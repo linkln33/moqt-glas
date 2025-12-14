@@ -12,24 +12,53 @@ export async function GET() {
   try {
     const supabase = createServerClient();
     
+    // Check if Supabase client is properly configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || supabaseUrl.includes('placeholder') || !serviceRoleKey || serviceRoleKey.includes('placeholder')) {
+      console.error('❌ Supabase not properly configured for elections API');
+      return NextResponse.json(
+        { error: 'Базата данни не е конфигурирана', elections: [] },
+        { status: 500 }
+      );
+    }
+    
     const { data, error } = await supabase
       .from('elections')
       .select('*')
       .order('start_date', { ascending: false });
 
     if (error) {
-      console.error('Error fetching elections:', error);
+      console.error('❌ Error fetching elections:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
       return NextResponse.json(
-        { error: 'Грешка при зареждане на изборите' },
+        { 
+          error: 'Грешка при зареждане на изборите',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+          elections: [] 
+        },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ elections: data || [] });
   } catch (error: any) {
-    console.error('Elections fetch error:', error);
+    console.error('❌ Elections fetch exception:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+    });
     return NextResponse.json(
-      { error: 'Грешка при зареждане на изборите' },
+      { 
+        error: 'Грешка при зареждане на изборите',
+        details: process.env.NODE_ENV === 'development' ? error?.message : undefined,
+        elections: [] 
+      },
       { status: 500 }
     );
   }

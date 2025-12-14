@@ -119,26 +119,9 @@ export async function getOrCreateUserFromTelegram(
       
       if (insertError) {
         console.error('Direct insert error in fallback:', insertError);
-        // Last resort: return a minimal profile object
-        return {
-          id: `temp-${params.telegram_id}`,
-          auth_user_id: null,
-          telegram_id: params.telegram_id,
-          first_name: params.first_name,
-          last_name: params.last_name || null,
-          username: params.username || null,
-          photo_url: params.photo_url || null,
-          email: null,
-          phone: null,
-          is_verified: true,
-          is_active: true,
-          role: 'voter' as const,
-          metadata: {},
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_login_at: new Date().toISOString(),
-          last_vote_at: null,
-        };
+        // Don't return a temp ID - return null so the caller can handle the error
+        // Returning a temp ID causes issues downstream (invalid UUID format)
+        return null;
       }
       
       console.log('Created user via direct insert fallback');
