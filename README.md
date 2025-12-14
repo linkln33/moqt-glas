@@ -19,8 +19,8 @@ Mobile-first web application for Bulgarian elections with Telegram authenticatio
 - **Tailwind CSS 3.4** - Mobile-first styling
 - **Shadcn UI** - Accessible components
 - **Supabase** - PostgreSQL database (free tier)
-- **Upstash Redis** - Rate limiting (free tier)
 - **Telegram Login Widget** - Authentication
+- **Render** - Free hosting (750 hours/month)
 
 ## 📋 Prerequisites
 

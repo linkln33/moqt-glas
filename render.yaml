@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: moqt-glas
+    env: node
+    plan: free
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NPM_FLAGS
+        value: --legacy-peer-deps
+    # Environment variables should be set in Render Dashboard:
+    # NEXT_PUBLIC_TELEGRAM_BOT_NAME
+    # TELEGRAM_BOT_TOKEN
+    # NEXT_PUBLIC_SUPABASE_URL
+    # NEXT_PUBLIC_SUPABASE_ANON_KEY
+    # SUPABASE_SERVICE_ROLE_KEY
+    # NEXT_PUBLIC_APP_URL
