@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
+import { PieChartComponent } from '@/components/pie-chart';
 
 interface Stats {
   totalElections: number;
@@ -11,6 +12,25 @@ interface Stats {
   totalUsers: number;
   recentElections: any[];
   popularElections: any[];
+  statusDistribution?: {
+    active: number;
+    upcoming: number;
+    ended: number;
+  };
+  fundraisingDistribution?: {
+    withFundraising: number;
+    withoutFundraising: number;
+  };
+  voteDistribution?: Array<{
+    name: string;
+    value: number;
+    id?: string;
+  }>;
+  fundraisingStats?: {
+    totalRaised: number;
+    successfulCampaigns: number;
+    pendingCampaigns: number;
+  };
 }
 
 export default function StatisticsPage() {
@@ -106,29 +126,161 @@ export default function StatisticsPage() {
         </div>
 
         {/* Charts Section */}
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          {/* Election Status Distribution */}
           <GlassCard>
             <GlassCardHeader>
-              <GlassCardTitle>Активност по дни</GlassCardTitle>
+              <GlassCardTitle>Статус на изборите</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                Графика на активността (в разработка)
-              </div>
+              {stats.statusDistribution ? (
+                <PieChartComponent
+                  data={[
+                    {
+                      name: 'Активни',
+                      value: stats.statusDistribution.active,
+                    },
+                    {
+                      name: 'Предстоящи',
+                      value: stats.statusDistribution.upcoming,
+                    },
+                    {
+                      name: 'Приключили',
+                      value: stats.statusDistribution.ended,
+                    },
+                  ]}
+                  colors={['#10b981', '#3b82f6', '#6b7280']}
+                  height={280}
+                />
+              ) : (
+                <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                  Зареждане...
+                </div>
+              )}
             </GlassCardContent>
           </GlassCard>
 
+          {/* Vote Distribution */}
           <GlassCard>
             <GlassCardHeader>
               <GlassCardTitle>Разпределение на гласовете</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                Кръгова диаграма (в разработка)
-              </div>
+              {stats.voteDistribution && stats.voteDistribution.length > 0 ? (
+                <PieChartComponent
+                  data={stats.voteDistribution}
+                  colors={['#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#84cc16', '#ef4444']}
+                  height={280}
+                />
+              ) : (
+                <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                  Няма данни
+                </div>
+              )}
+            </GlassCardContent>
+          </GlassCard>
+
+          {/* Fundraising Distribution */}
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle>Събиране на средства</GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent>
+              {stats.fundraisingDistribution ? (
+                <PieChartComponent
+                  data={[
+                    {
+                      name: 'Със средства',
+                      value: stats.fundraisingDistribution.withFundraising,
+                    },
+                    {
+                      name: 'Без средства',
+                      value: stats.fundraisingDistribution.withoutFundraising,
+                    },
+                  ]}
+                  colors={['#10b981', '#6b7280']}
+                  height={280}
+                />
+              ) : (
+                <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                  Зареждане...
+                </div>
+              )}
             </GlassCardContent>
           </GlassCard>
         </div>
+
+        {/* Additional Charts Row */}
+        {stats.fundraisingStats && stats.fundraisingStats.totalRaised > 0 && (
+          <div className="grid gap-6 md:grid-cols-2 mb-8">
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle>Кампании за средства</GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <PieChartComponent
+                  data={[
+                    {
+                      name: 'Успешни',
+                      value: stats.fundraisingStats.successfulCampaigns,
+                    },
+                    {
+                      name: 'В очакване',
+                      value: stats.fundraisingStats.pendingCampaigns,
+                    },
+                  ]}
+                  colors={['#10b981', '#f59e0b']}
+                  height={280}
+                />
+                <div className="mt-4 text-center">
+                  <p className="text-2xl font-bold text-primary">
+                    {stats.fundraisingStats.totalRaised.toFixed(2)} BGN
+                  </p>
+                  <p className="text-sm text-muted-foreground">Общо събрани средства</p>
+                </div>
+              </GlassCardContent>
+            </GlassCard>
+
+            {/* User Participation Chart */}
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle>Участие на потребители</GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent>
+                {stats.totalUsers > 0 && stats.totalVotes > 0 ? (
+                  <>
+                    <PieChartComponent
+                      data={[
+                        {
+                          name: 'Гласували',
+                          value: Math.min(stats.totalUsers, stats.totalVotes),
+                        },
+                        {
+                          name: 'Неактивни',
+                          value: Math.max(0, stats.totalUsers - stats.totalVotes),
+                        },
+                      ]}
+                      colors={['#3b82f6', '#6b7280']}
+                      height={280}
+                    />
+                    <div className="mt-4 text-center">
+                      <p className="text-2xl font-bold text-primary">
+                        {stats.totalVotes > 0 
+                          ? ((Math.min(stats.totalUsers, stats.totalVotes) / stats.totalUsers) * 100).toFixed(1)
+                          : 0}%
+                      </p>
+                      <p className="text-sm text-muted-foreground">Процент активност</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                    Няма данни
+                  </div>
+                )}
+              </GlassCardContent>
+            </GlassCard>
+          </div>
+        )}
 
         {/* Popular Elections */}
         <GlassCard>
