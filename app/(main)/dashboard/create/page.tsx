@@ -1,18 +1,75 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 
+const templates = [
+  {
+    name: 'Да/Не',
+    icon: '✅',
+    questions: [{
+      question_text_bg: 'Съгласни ли сте?',
+      question_type: 'single-choice' as const,
+      options: [
+        { option_text_bg: 'Да' },
+        { option_text_bg: 'Не' }
+      ]
+    }]
+  },
+  {
+    name: 'Рейтинг',
+    icon: '⭐',
+    questions: [{
+      question_text_bg: 'Оценете от 1 до 5',
+      question_type: 'single-choice' as const,
+      options: [
+        { option_text_bg: '1' },
+        { option_text_bg: '2' },
+        { option_text_bg: '3' },
+        { option_text_bg: '4' },
+        { option_text_bg: '5' }
+      ]
+    }]
+  },
+  {
+    name: 'Избор на кандидат',
+    icon: '👤',
+    questions: [{
+      question_text_bg: 'Изберете кандидат',
+      question_type: 'single-choice' as const,
+      options: [
+        { option_text_bg: 'Кандидат А' },
+        { option_text_bg: 'Кандидат Б' },
+        { option_text_bg: 'Кандидат В' }
+      ]
+    }]
+  }
+];
+
 export default function CreatePollPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    title_bg: string;
+    description: string;
+    description_bg: string;
+    start_date: string;
+    end_date: string;
+    questions: Array<{
+      question_text: string;
+      question_text_bg: string;
+      question_type: 'single-choice' | 'multiple-choice';
+      options: Array<{ option_text: string; option_text_bg: string }>;
+    }>;
+  }>({
     title: '',
     title_bg: '',
     description: '',
@@ -23,11 +80,50 @@ export default function CreatePollPage() {
       {
         question_text: '',
         question_text_bg: '',
-        question_type: 'single-choice' as const,
+        question_type: 'single-choice',
         options: [{ option_text: '', option_text_bg: '' }],
       },
     ],
   });
+
+  const useTemplate = (template: typeof templates[0]) => {
+    setFormData(prev => ({
+      ...prev,
+      questions: template.questions.map(q => ({
+        question_text: '',
+        question_text_bg: q.question_text_bg,
+        question_type: q.question_type,
+        options: q.options.map(o => ({ option_text: '', option_text_bg: o.option_text_bg }))
+      }))
+    }));
+    setStep(2);
+  };
+
+  // Check for template parameter in URL
+  useEffect(() => {
+    const templateParam = searchParams.get('template');
+    if (templateParam) {
+      const templateMap: Record<string, typeof templates[0]> = {
+        'yesno': templates[0],
+        'rating': templates[1],
+        'candidate': templates[2],
+      };
+      const selectedTemplate = templateMap[templateParam];
+      if (selectedTemplate) {
+        setFormData(prev => ({
+          ...prev,
+          questions: selectedTemplate.questions.map(q => ({
+            question_text: '',
+            question_text_bg: q.question_text_bg,
+            question_type: q.question_type,
+            options: q.options.map(o => ({ option_text: '', option_text_bg: o.option_text_bg }))
+          }))
+        }));
+        setStep(2);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -130,14 +226,41 @@ export default function CreatePollPage() {
         </div>
 
         {step === 1 && (
-          <GlassCard>
-            <GlassCardHeader>
-              <GlassCardTitle>Основна информация</GlassCardTitle>
-              <GlassCardDescription>
-                Въведете информация за вашата анкета
-              </GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent className="space-y-6">
+          <>
+            {/* Quick Templates */}
+            <GlassCard className="mb-6">
+              <GlassCardHeader>
+                <GlassCardTitle>Бързи шаблони</GlassCardTitle>
+                <GlassCardDescription>
+                  Изберете шаблон за бързо създаване
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {templates.map((template, i) => (
+                    <button
+                      key={i}
+                      onClick={() => useTemplate(template)}
+                      className="p-6 border-2 border-border rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-center group"
+                    >
+                      <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">
+                        {template.icon}
+                      </div>
+                      <div className="text-sm font-semibold">{template.name}</div>
+                    </button>
+                  ))}
+                </div>
+              </GlassCardContent>
+            </GlassCard>
+
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle>Основна информация</GlassCardTitle>
+                <GlassCardDescription>
+                  Въведете информация за вашата анкета
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Заглавие (Български) *</label>
                 <Input
@@ -186,6 +309,7 @@ export default function CreatePollPage() {
               </div>
             </GlassCardContent>
           </GlassCard>
+          </>
         )}
 
         {step === 2 && (

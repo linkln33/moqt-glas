@@ -126,24 +126,15 @@ All UI text is in Bulgarian:
 
 ## 🚢 Deployment
 
-### Netlify (Configured)
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions.
+
+### Quick Deploy to Netlify
 
 1. Push to GitHub: `git push origin main`
 2. Go to [Netlify](https://netlify.com)
 3. Import from GitHub: `linkln33/moqt-glas`
-4. Add environment variables (see `.env.netlify.example`)
+4. Add environment variables (see [DEPLOYMENT.md](./DEPLOYMENT.md))
 5. Deploy automatically!
-
-See [NETLIFY_DEPLOY.md](./NETLIFY_DEPLOY.md) for detailed deployment instructions.
-
-### Vercel (Alternative)
-
-1. Push to GitHub
-2. Import in Vercel
-3. Add environment variables
-4. Deploy
-
-See [SETUP.md](./SETUP.md) for detailed setup instructions.
 
 ## 📝 Environment Variables
 
@@ -160,9 +151,18 @@ NEXT_PUBLIC_APP_URL=https://your-domain.com
 
 ## 📚 Documentation
 
-- [Implementation Plan](./IMPLEMENTATION_PLAN.md)
-- [Tech Stack Recommendation](./TECH_STACK_RECOMMENDATION.md)
-- [Setup Guide](./SETUP.md)
+### Essential Guides
+- [Setup Guide](./SETUP.md) - Complete setup instructions
+- [Deployment Guide](./DEPLOYMENT.md) - Deploy to Netlify
+- [Creating Polls](./CREATE_POLLS.md) - How to create polls and example elections
+- [User System Setup](./USER_SYSTEM_SETUP.md) - User management system
+
+### Reference
+- [Tech Stack Recommendation](./TECH_STACK_RECOMMENDATION.md) - Technology choices
+- [Implementation Plan](./IMPLEMENTATION_PLAN.md) - Development phases
+- [Poll Features](./POLL_FEATURES.md) - Multiple questions support
+
+### Research & Planning
 - [Voting App Research](./voting-app-research.md)
 - [Telegram Auth Brainstorm](./telegram-auth-brainstorm.md)
 - [Free Anti-Fraud Solution](./free-anti-fraud-solution.md)

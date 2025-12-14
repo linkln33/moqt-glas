@@ -26,7 +26,7 @@ export function verifyTelegramAuth(
     // Create data check string (sorted alphabetically)
     const dataCheckString = Object.keys(data)
       .sort()
-      .map(key => `${key}=${data[key]}`)
+      .map(key => `${key}=${data[key as keyof typeof data]}`)
       .join('\n');
     
     // Compute secret key (SHA256 of bot token)

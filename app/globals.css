@@ -150,4 +150,9 @@
       @apply text-lg;
     }
   }
+  
+  /* Safe area for mobile devices */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

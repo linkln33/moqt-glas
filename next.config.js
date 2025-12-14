@@ -3,6 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     domains: ['cdn.telegram.org'],
+    unoptimized: false,
   },
   // Ensure proper handling of environment variables
   env: {

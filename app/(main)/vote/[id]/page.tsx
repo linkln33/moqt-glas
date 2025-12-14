@@ -6,6 +6,7 @@ import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, Gla
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/status-badge';
 import { useDeviceFingerprint } from '@/lib/device-fingerprint';
 import { trackUserBehavior } from '@/lib/behavioral-analysis';
 import { formatDateBG, formatTimeBG, isElectionActive, hasElectionEnded } from '@/lib/utils';
@@ -34,9 +35,40 @@ export default function VotePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   const { fingerprint, loading: fingerprintLoading } = useDeviceFingerprint();
   const [behaviorTracker, setBehaviorTracker] = useState<ReturnType<typeof trackUserBehavior> | null>(null);
+
+  const sharePoll = async () => {
+    const link = `${window.location.origin}/vote/${electionId}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: election?.title_bg || 'Анкета',
+          text: election?.description_bg || '',
+          url: link,
+        });
+      } catch (err) {
+        // User cancelled or error
+      }
+    } else {
+      // Fallback: copy to clipboard
+      await copyLink();
+    }
+  };
+
+  const copyLink = async () => {
+    const link = `${window.location.origin}/vote/${electionId}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      alert('Грешка при копиране на линк');
+    }
+  };
 
   useEffect(() => {
     // Start tracking behavior
@@ -247,23 +279,48 @@ export default function VotePage() {
       <div className="container mx-auto px-4 max-w-4xl">
         <GlassCard variant="gradient" className="mb-6 shine">
           <GlassCardHeader>
-            <GlassCardTitle className="text-3xl text-white">
-              {election.title_bg || election.title}
-            </GlassCardTitle>
-            <GlassCardDescription className="text-white/80">
-              {election.description_bg || election.description}
-            </GlassCardDescription>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <GlassCardTitle className="text-3xl text-white">
+                  {election.title_bg || election.title}
+                </GlassCardTitle>
+                <GlassCardDescription className="text-white/80">
+                  {election.description_bg || election.description}
+                </GlassCardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={sharePoll}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  📤 Сподели
+                </Button>
+                <Button
+                  onClick={copyLink}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  {copied ? '✓ Копирано' : '📋 Копирай'}
+                </Button>
+              </div>
+            </div>
           </GlassCardHeader>
           <GlassCardContent>
-            <div className="flex flex-wrap gap-4 text-sm text-white/90">
-              <div className="flex items-center gap-2">
-                <span>📅 Начало:</span>
-                <span className="font-medium">{formatDateBG(startDate)} {formatTimeBG(startDate)}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex flex-wrap gap-4 text-sm text-white/90">
+                <div className="flex items-center gap-2">
+                  <span>📅 Начало:</span>
+                  <span className="font-medium">{formatDateBG(startDate)} {formatTimeBG(startDate)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>🏁 Край:</span>
+                  <span className="font-medium">{formatDateBG(endDate)} {formatTimeBG(endDate)}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span>🏁 Край:</span>
-                <span className="font-medium">{formatDateBG(endDate)} {formatTimeBG(endDate)}</span>
-              </div>
+              <StatusBadge startDate={startDate} endDate={endDate} />
             </div>
           </GlassCardContent>
         </GlassCard>
@@ -341,23 +398,21 @@ export default function VotePage() {
                         <button
                           key={option.id}
                           onClick={() => handleOptionToggle(question.id, option.id, question.question_type)}
-                          className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                          className={`w-full text-left p-6 rounded-2xl border-2 transition-all duration-200 min-h-[64px] ${
                             isSelected
-                              ? 'border-primary bg-primary/20 shadow-lg scale-[1.02]'
-                              : 'border-border/50 bg-background/30 hover:border-primary/50 hover:bg-primary/5'
+                              ? 'border-primary bg-primary/20 shadow-xl scale-[1.02]'
+                              : 'border-border/50 bg-background/30 hover:border-primary/50 hover:bg-primary/5 hover:scale-[1.01]'
                           }`}
                         >
                           <div className="flex items-center space-x-4">
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xl font-bold transition-all flex-shrink-0 ${
                               isSelected
-                                ? 'border-primary bg-primary shadow-lg'
+                                ? 'border-primary bg-primary text-white shadow-lg'
                                 : 'border-muted-foreground/50'
                             }`}>
-                              {isSelected && (
-                                <div className="w-3 h-3 rounded-full bg-white"></div>
-                              )}
+                              {isSelected && '✓'}
                             </div>
-                            <span className={`flex-1 font-medium ${isSelected ? 'text-primary' : ''}`}>
+                            <span className={`flex-1 text-lg font-semibold ${isSelected ? 'text-primary' : ''}`}>
                               {option.option_text_bg}
                             </span>
                           </div>

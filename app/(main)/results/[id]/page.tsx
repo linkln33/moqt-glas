@@ -174,8 +174,8 @@ export default async function ResultsPage({
               <GlassCardContent>
                 <div className="space-y-4">
                   {question.options
-                    .sort((a, b) => b.votes - a.votes)
-                    .map((option, index) => (
+                    .sort((a: { votes: number }, b: { votes: number }) => b.votes - a.votes)
+                    .map((option: { id: string; votes: number; percentage: number; option_text_bg?: string; [key: string]: any }, index: number) => (
                       <div key={option.id} className="space-y-2">
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-3">

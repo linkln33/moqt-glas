@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardFooter, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
@@ -66,9 +67,22 @@ export default async function HomePage() {
             <div className="mb-6">
               <Badge variant="info" className="mb-4">Нова платформа</Badge>
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent animate-pulse">
-              Моят Глас
-            </h1>
+            <div className="flex flex-col items-center justify-center mb-6">
+              <div className="mb-6 bg-transparent">
+                <Image 
+                  src="/logo.png" 
+                  alt="Моят Глас" 
+                  width={200}
+                  height={200}
+                  className="object-contain mx-auto drop-shadow-2xl bg-transparent"
+                  priority
+                  style={{ backgroundColor: 'transparent' }}
+                />
+              </div>
+              <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">
+                Моят Глас
+              </h1>
+            </div>
             <p className="text-xl md:text-2xl text-muted-foreground mb-4">
               Създавайте и участвайте в избори и анкети
             </p>
@@ -88,6 +102,69 @@ export default async function HomePage() {
               </Link>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Templates Section */}
+      <div className="container mx-auto px-4 py-16 max-w-6xl">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Бързи шаблони</h2>
+          <p className="text-muted-foreground text-lg">
+            Създайте анкета за секунди с готови шаблони
+          </p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3 mb-16">
+          <Link href="/dashboard/create?template=yesno">
+            <GlassCard hover className="cursor-pointer h-full text-center shine">
+              <GlassCardHeader>
+                <div className="text-6xl mb-4">✅</div>
+                <GlassCardTitle className="text-2xl">Да/Не</GlassCardTitle>
+                <GlassCardDescription>
+                  Бърза анкета с две опции - идеална за бързи решения
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <Button variant="outline" className="w-full">
+                  Използвай шаблон →
+                </Button>
+              </GlassCardContent>
+            </GlassCard>
+          </Link>
+
+          <Link href="/dashboard/create?template=rating">
+            <GlassCard hover className="cursor-pointer h-full text-center shine">
+              <GlassCardHeader>
+                <div className="text-6xl mb-4">⭐</div>
+                <GlassCardTitle className="text-2xl">Рейтинг</GlassCardTitle>
+                <GlassCardDescription>
+                  Оценка от 1 до 5 - перфектна за обратна връзка
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <Button variant="outline" className="w-full">
+                  Използвай шаблон →
+                </Button>
+              </GlassCardContent>
+            </GlassCard>
+          </Link>
+
+          <Link href="/dashboard/create?template=candidate">
+            <GlassCard hover className="cursor-pointer h-full text-center shine">
+              <GlassCardHeader>
+                <div className="text-6xl mb-4">👤</div>
+                <GlassCardTitle className="text-2xl">Избор на кандидат</GlassCardTitle>
+                <GlassCardDescription>
+                  Избор между няколко кандидата - за избори и гласувания
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <Button variant="outline" className="w-full">
+                  Използвай шаблон →
+                </Button>
+              </GlassCardContent>
+            </GlassCard>
+          </Link>
         </div>
       </div>
 

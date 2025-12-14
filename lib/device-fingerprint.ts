@@ -44,7 +44,7 @@ export async function generateDeviceFingerprint(): Promise<string> {
   components.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   components.timezoneOffset = date.getTimezoneOffset();
   components.language = navigator.language;
-  components.languages = navigator.languages || [];
+  components.languages = navigator.languages ? [...navigator.languages] : [];
   
   // Hardware
   components.hardwareConcurrency = navigator.hardwareConcurrency || 0;
@@ -70,7 +70,7 @@ export async function generateDeviceFingerprint(): Promise<string> {
   }
   
   // WebGL fingerprinting
-  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
   if (gl) {
     const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
     if (debugInfo) {

@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/client';
 import { getClientIP } from '@/lib/utils';
 import { checkIPRateLimit, checkDeviceRateLimit, checkTelegramIdRateLimit } from '@/lib/rate-limiting';
 import { calculateRiskScore, checkDuplicatePatterns } from '@/lib/risk-scoring';
-import { analyzeVotingBehavior } from '@/lib/behavioral-analysis';
+import { analyzeVotingBehavior, type BehaviorScore } from '@/lib/behavioral-analysis';
 
 export async function POST(request: NextRequest) {
   try {
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     );
 
     // 8. Analyze behavior
-    let behaviorScore = { score: 0, suspicious: false, reasons: [] };
+    let behaviorScore: BehaviorScore = { score: 0, suspicious: false, reasons: [] };
     if (userBehavior) {
       behaviorScore = analyzeVotingBehavior(userBehavior);
     }
