@@ -1,11 +1,13 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDateBG, formatTimeBG } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils';
+import { Heart, MessageCircle, Share2 } from 'lucide-react';
 
 interface PollWithStats {
   id: string;
@@ -31,6 +33,10 @@ interface PollWithStats {
   }>;
   totalVotes: number;
   isActive: boolean;
+  likesCount?: number;
+  commentsCount?: number;
+  sharesCount?: number;
+  isLiked?: boolean;
 }
 
 interface FeedItemProps {
@@ -38,10 +44,140 @@ interface FeedItemProps {
 }
 
 export function FeedItem({ poll }: FeedItemProps) {
+  const [likesCount, setLikesCount] = useState(poll.likesCount || 0);
+  const [commentsCount, setCommentsCount] = useState(poll.commentsCount || 0);
+  const [sharesCount, setSharesCount] = useState(poll.sharesCount || 0);
+  const [isLiked, setIsLiked] = useState(poll.isLiked || false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentText, setCommentText] = useState('');
+
+  // Check if user has liked this poll on mount
+  useEffect(() => {
+    const checkUserLike = async () => {
+      try {
+        const authData = localStorage.getItem('telegram_auth');
+        if (!authData) return;
+
+        const parsed = JSON.parse(authData);
+        if (!parsed.telegramId) return;
+
+        const response = await fetch(`/api/elections/${poll.id}/like/check?telegramId=${parsed.telegramId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setIsLiked(data.isLiked || false);
+        }
+      } catch (error) {
+        console.error('Error checking user like:', error);
+      }
+    };
+
+    checkUserLike();
+  }, [poll.id]);
+
   const mainQuestion = poll.questions?.[0];
   const previewOptions = mainQuestion?.options?.slice(0, 3) || [];
   const hasMoreOptions = (mainQuestion?.options?.length || 0) > 3;
   const questionCount = poll.questions?.length || 0;
+
+  const handleLike = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      const authData = localStorage.getItem('telegram_auth');
+      if (!authData) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const parsed = JSON.parse(authData);
+      const response = await fetch(`/api/elections/${poll.id}/like`, {
+        method: isLiked ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: parsed.telegramId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsLiked(!isLiked);
+        setLikesCount(data.likesCount || likesCount + (isLiked ? -1 : 1));
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleComment = async () => {
+    if (!commentText.trim() || isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      const authData = localStorage.getItem('telegram_auth');
+      if (!authData) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const parsed = JSON.parse(authData);
+      const response = await fetch(`/api/elections/${poll.id}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          commentText: commentText.trim(),
+          telegramId: parsed.telegramId,
+        }),
+      });
+
+      if (response.ok) {
+        setCommentText('');
+        setShowCommentInput(false);
+        setCommentsCount(commentsCount + 1);
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      const authData = localStorage.getItem('telegram_auth');
+      if (!authData) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const parsed = JSON.parse(authData);
+      const response = await fetch(`/api/elections/${poll.id}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: parsed.telegramId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSharesCount(data.sharesCount || sharesCount + 1);
+        
+        // Copy link to clipboard
+        const shareUrl = `${window.location.origin}/results/${poll.id}`;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(shareUrl);
+          alert('Линкът е копиран в клипборда!');
+        }
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <GlassCard hover className="overflow-hidden">
@@ -131,6 +267,72 @@ export function FeedItem({ poll }: FeedItemProps) {
             Край: {formatDateBG(poll.end_date)} {formatTimeBG(poll.end_date)}
           </div>
         </div>
+
+        {/* Social Actions */}
+        <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border/50">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLike}
+            disabled={isLoading}
+            className={`flex-1 ${isLiked ? 'text-red-500 hover:text-red-600' : ''}`}
+          >
+            <Heart className={`w-4 h-4 mr-2 ${isLiked ? 'fill-current' : ''}`} />
+            <span>{likesCount || 0}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCommentInput(!showCommentInput)}
+            className="flex-1"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            <span>{commentsCount || 0}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleShare}
+            disabled={isLoading}
+            className="flex-1"
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            <span>{sharesCount || 0}</span>
+          </Button>
+        </div>
+
+        {/* Comment Input */}
+        {showCommentInput && (
+          <div className="mb-4 space-y-2">
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Напишете коментар..."
+              className="w-full p-3 rounded-lg bg-background/50 border border-border/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+              rows={3}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowCommentInput(false);
+                  setCommentText('');
+                }}
+              >
+                Отказ
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleComment}
+                disabled={!commentText.trim() || isLoading}
+                className="gradient-primary text-white"
+              >
+                Публикувай
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex gap-3">

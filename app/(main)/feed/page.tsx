@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase/client';
 import { FeedItem } from '@/components/feed-item';
+import { FeedSidebar } from '@/components/feed-sidebar';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -28,6 +29,10 @@ interface PollWithStats {
   }>;
   totalVotes: number;
   isActive: boolean;
+  likesCount?: number;
+  commentsCount?: number;
+  sharesCount?: number;
+  isLiked?: boolean;
 }
 
 async function getFeedPolls(): Promise<PollWithStats[]> {
@@ -73,6 +78,22 @@ async function getFeedPolls(): Promise<PollWithStats[]> {
           .select('*', { count: 'exact', head: true })
           .eq('election_id', election.id);
 
+        // Get social stats
+        const { count: likesCount } = await supabase
+          .from('election_likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('election_id', election.id);
+
+        const { count: commentsCount } = await supabase
+          .from('election_comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('election_id', election.id);
+
+        const { count: sharesCount } = await supabase
+          .from('election_shares')
+          .select('*', { count: 'exact', head: true })
+          .eq('election_id', election.id);
+
         // Check if election is currently active
         const isActive = new Date(election.start_date) <= new Date(now) && 
                         new Date(election.end_date) >= new Date(now);
@@ -82,6 +103,10 @@ async function getFeedPolls(): Promise<PollWithStats[]> {
           questions: questions || [],
           totalVotes: totalVotes || 0,
           isActive,
+          likesCount: likesCount || 0,
+          commentsCount: commentsCount || 0,
+          sharesCount: sharesCount || 0,
+          isLiked: false, // Will be set client-side based on user
         };
       })
     );
@@ -98,45 +123,56 @@ export default async function FeedPage() {
 
   return (
     <div className="min-h-screen py-8">
-      <div className="container mx-auto px-4 max-w-3xl">
-        {/* Feed Header */}
-        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Лента</h1>
-            <p className="text-muted-foreground">
-              Най-новите анкети и избори
-            </p>
-          </div>
-          <Link href="/dashboard/create" className="w-full sm:w-auto">
-            <Button className="w-full sm:w-auto gradient-primary text-white shadow-lg hover:shadow-xl transition-shadow">
-              ➕ Създай анкета
-            </Button>
-          </Link>
-        </div>
+      <div className="container mx-auto px-4">
+        <div className="flex gap-8">
+          {/* Sidebar */}
+          <FeedSidebar />
 
-        {/* Feed Items */}
-        {polls.length > 0 ? (
-          <div className="space-y-6">
-            {polls.map((poll) => (
-              <FeedItem key={poll.id} poll={poll} />
-            ))}
-          </div>
-        ) : (
-          <GlassCard>
-            <GlassCardContent className="py-16 text-center">
-              <div className="text-6xl mb-4">📊</div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">Няма анкети</h2>
-              <p className="text-muted-foreground mb-6">
-                Все още няма публикувани анкети. Бъдете първият, който създава!
-              </p>
-              <Link href="/dashboard/create">
-                <Button className="gradient-primary text-white shadow-lg hover:shadow-xl transition-shadow">
-                  ➕ Създай първата анкета
+          {/* Main Feed */}
+          <div className="flex-1 max-w-2xl mx-auto lg:mx-0">
+            {/* Feed Header */}
+            <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold mb-2">Лента</h1>
+                <p className="text-muted-foreground">
+                  Най-новите анкети и избори
+                </p>
+              </div>
+              <Link href="/dashboard/create" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto gradient-primary text-white shadow-lg hover:shadow-xl transition-shadow">
+                  ➕ Създай анкета
                 </Button>
               </Link>
-            </GlassCardContent>
-          </GlassCard>
-        )}
+            </div>
+
+            {/* Feed Items */}
+            {polls.length > 0 ? (
+              <div className="space-y-6">
+                {polls.map((poll) => (
+                  <FeedItem key={poll.id} poll={poll} />
+                ))}
+              </div>
+            ) : (
+              <GlassCard>
+                <GlassCardContent className="py-16 text-center">
+                  <div className="text-6xl mb-4">📊</div>
+                  <h2 className="text-2xl md:text-3xl font-bold mb-4">Няма анкети</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Все още няма публикувани анкети. Бъдете първият, който създава!
+                  </p>
+                  <Link href="/dashboard/create">
+                    <Button className="gradient-primary text-white shadow-lg hover:shadow-xl transition-shadow">
+                      ➕ Създай първата анкета
+                    </Button>
+                  </Link>
+                </GlassCardContent>
+              </GlassCard>
+            )}
+          </div>
+
+          {/* Right Sidebar (empty for now, can add ads or suggestions later) */}
+          <aside className="hidden xl:block w-80 shrink-0"></aside>
+        </div>
       </div>
     </div>
   );
