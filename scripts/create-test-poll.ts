@@ -99,9 +99,14 @@ async function createTestPoll() {
         order_index: 6,
       },
       {
+        option_text: 'Velichie (Величие)',
+        option_text_bg: 'Величие',
+        order_index: 7,
+      },
+      {
         option_text: 'Other / None',
         option_text_bg: 'Друга / Никоя',
-        order_index: 7,
+        order_index: 8,
       },
     ];
 

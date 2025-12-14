@@ -50,7 +50,8 @@ Based on October 2024 election results:
 5. **БСП-ОЛ** (BSP-OL) - 7.32% - Bulgarian Socialist Party – United Left
 6. **АРФ** (ARF) - 7.24% - Alliance for Rights and Freedoms
 7. **ИТН** (ITN) - 6.56% - There Is Such a People
-8. **Друга / Никоя** - Other / None
+8. **Величие** (Velichie) - 3.99% - Entered parliament in 2025
+9. **Друга / Никоя** - Other / None
 
 ## After Creating
 

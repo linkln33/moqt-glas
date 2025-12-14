@@ -40,7 +40,8 @@ BEGIN
     (v_question_id, 'BSP-OL (Bulgarian Socialist Party – United Left)', 'БСП-ОЛ (Българска социалистическа партия – Обединена левица)', 4),
     (v_question_id, 'ARF (Alliance for Rights and Freedoms)', 'АРФ (Алианс за права и свободи)', 5),
     (v_question_id, 'ITN (There Is Such a People)', 'ИТН (Има такъв народ)', 6),
-    (v_question_id, 'Other / None', 'Друга / Никоя', 7);
+    (v_question_id, 'Velichie (Величие)', 'Величие', 7),
+    (v_question_id, 'Other / None', 'Друга / Никоя', 8);
 
   RAISE NOTICE 'Election created with ID: %', v_election_id;
   RAISE NOTICE 'Question created with ID: %', v_question_id;

@@ -115,9 +115,20 @@ WHERE e.title_bg = 'Анкета за български политически 
 INSERT INTO options (question_id, option_text, option_text_bg, order_index)
 SELECT 
   q.id,
+  'Velichie (Величие)',
+  'Величие',
+  7
+FROM questions q
+JOIN elections e ON q.election_id = e.id
+WHERE e.title_bg = 'Анкета за български политически партии' 
+  AND q.question_text_bg = 'За коя политическа партия бихте гласували?';
+
+INSERT INTO options (question_id, option_text, option_text_bg, order_index)
+SELECT 
+  q.id,
   'Other / None',
   'Друга / Никоя',
-  7
+  8
 FROM questions q
 JOIN elections e ON q.election_id = e.id
 WHERE e.title_bg = 'Анкета за български политически партии' 
