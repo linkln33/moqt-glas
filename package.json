@@ -12,7 +12,9 @@
     "start": "next start",
     "lint": "next lint",
     "create-poll": "tsx scripts/create-test-poll.ts",
-    "create-example-polls": "tsx scripts/create-example-polls.ts"
+    "create-example-polls": "tsx scripts/create-example-polls.ts",
+    "configure-netlify": "node scripts/setup-netlify-bot.js",
+    "setup-bot": "node scripts/setup-netlify-bot.js"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.0.5",
