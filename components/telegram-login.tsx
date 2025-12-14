@@ -36,9 +36,9 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
     if (!containerRef.current || !mounted) return;
 
     // Define global callback FIRST, before loading script
-    // This ensures it's available when Telegram calls it
-    // Use a wrapper to ensure we always have the latest onAuth reference
-    const callbackWrapper = (user: TelegramAuthData) => {
+    // CRITICAL: Must be a direct function on window, not a wrapper
+    // Telegram widget requires the function to be directly accessible
+    (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
       callbackCalledRef.current = true;
       console.log('🔵 Telegram auth callback received:', {
         id: user?.id,
@@ -46,6 +46,7 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
         hasHash: !!user?.hash,
         keys: user ? Object.keys(user) : [],
         timestamp: new Date().toISOString(),
+        callbackType: typeof (window as any).handleTelegramAuth,
       });
       
       if (!user || !user.id || !user.hash) {
@@ -55,10 +56,15 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       }
       
       try {
+        // Get the latest onAuth from the stored reference
+        const latestOnAuth = (window as any).__latestTelegramOnAuth || onAuth;
+        
         console.log('🔵 Calling onAuth callback...', {
-          onAuthType: typeof onAuth,
-          onAuthExists: !!onAuth,
+          onAuthType: typeof latestOnAuth,
+          onAuthExists: !!latestOnAuth,
+          hasStoredReference: !!(window as any).__latestTelegramOnAuth,
         });
+        
         setDomainError(false);
         if (errorCheckIntervalRef.current) {
           clearInterval(errorCheckIntervalRef.current);
@@ -66,11 +72,11 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
         }
         
         // Call the onAuth prop - this should trigger handleTelegramAuth in login page
-        if (typeof onAuth === 'function') {
-          onAuth(user);
+        if (typeof latestOnAuth === 'function') {
+          latestOnAuth(user);
           console.log('✅ onAuth callback completed');
         } else {
-          console.error('❌ onAuth is not a function!', { onAuth });
+          console.error('❌ onAuth is not a function!', { latestOnAuth });
           setDomainError(true);
         }
       } catch (error) {
@@ -83,11 +89,15 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       }
     };
     
-    // Store the callback on window
-    (window as any).handleTelegramAuth = callbackWrapper;
-    
-    // Also store a reference to the latest onAuth in case it changes
+    // Store a reference to the latest onAuth in case it changes
     (window as any).__latestTelegramOnAuth = onAuth;
+    
+    // Verify the callback is accessible globally (required by Telegram)
+    if (typeof (window as any).handleTelegramAuth !== 'function') {
+      console.error('❌ CRITICAL: handleTelegramAuth is not a function on window!');
+      setDomainError(true);
+      return;
+    }
     
     // Log that callback is set up
     console.log('✅ Telegram callback registered:', {
@@ -114,13 +124,27 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
     }
 
     // Create script element
+    // IMPORTANT: Use the latest widget version and ensure callback name matches exactly
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
     script.setAttribute('data-telegram-login', botName);
     script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'handleTelegramAuth');
+    script.setAttribute('data-onauth', 'handleTelegramAuth'); // Must match window function name exactly
     script.setAttribute('data-request-access', 'write');
     script.async = true;
+    
+    // Verify callback exists before loading script
+    if (typeof (window as any).handleTelegramAuth !== 'function') {
+      console.error('❌ CRITICAL: handleTelegramAuth not found before script load!');
+      setDomainError(true);
+      return;
+    }
+    
+    console.log('✅ Callback verified before script load:', {
+      callbackExists: typeof (window as any).handleTelegramAuth === 'function',
+      callbackName: 'handleTelegramAuth',
+      botName,
+    });
 
     // Error handling for script load
     script.onerror = () => {
@@ -235,11 +259,11 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       if (containerRef.current && script.parentNode) {
         script.parentNode.removeChild(script);
       }
-      // Update the callback to use latest onAuth before cleanup
+      // Update the callback to use latest onAuth before cleanup (keep as function, not arrow)
       if ((window as any).__latestTelegramOnAuth) {
-        (window as any).handleTelegramAuth = (user: TelegramAuthData) => {
+        (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
           const latestOnAuth = (window as any).__latestTelegramOnAuth;
-          if (latestOnAuth) {
+          if (latestOnAuth && typeof latestOnAuth === 'function') {
             latestOnAuth(user);
           }
         };
@@ -262,18 +286,19 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
     <div className={className}>
       {mounted && domainError && (
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-          <p className="text-sm font-semibold text-yellow-300 mb-2">⚠️ Домейн не е конфигуриран за localhost</p>
+          <p className="text-sm font-semibold text-yellow-300 mb-2">⚠️ Проблем с Telegram Login Widget</p>
           <p className="text-xs text-yellow-200/80 mb-3">
-            Telegram Login Widget изисква HTTPS. За локална разработка:
+            Възможни причини:
           </p>
           <ol className="text-xs text-yellow-200/70 space-y-1.5 list-decimal list-inside mb-3">
-            <li>Инсталирайте <strong>ngrok</strong>: <code className="bg-yellow-500/20 px-1 rounded">brew install ngrok</code></li>
-            <li>Стартирайте тунел: <code className="bg-yellow-500/20 px-1 rounded">ngrok http 3000</code></li>
-            <li>Задайте домейна в <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a> с <code className="bg-yellow-500/20 px-1 rounded">/setdomain</code></li>
-            <li>Отворете приложението чрез ngrok URL (не localhost)</li>
+            <li><strong>Домейн не е зададен в BotFather:</strong> Използвайте <code className="bg-yellow-500/20 px-1 rounded">/setdomain</code> в <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a></li>
+            <li><strong>Формат на домейна:</strong> Трябва да е точно <code className="bg-yellow-500/20 px-1 rounded">moqt-glas.onrender.com</code> (БЕЗ https://, БЕЗ /)</li>
+            <li><strong>Пропагация:</strong> Изчакайте 5-10 минути след задаване на домейна</li>
+            <li><strong>Third-party cookies:</strong> Проверете дали браузърът не блокира third-party cookies</li>
+            <li><strong>HTTPS:</strong> Уверете се, че сайтът е на HTTPS</li>
           </ol>
-          <p className="text-xs text-yellow-200/60">
-            Или тествайте след като разгърнете в production.
+          <p className="text-xs text-yellow-200/60 mt-3">
+            Текущ URL: <code className="bg-yellow-500/20 px-1 rounded">{typeof window !== 'undefined' ? window.location.href : 'N/A'}</code>
           </p>
         </div>
       )}
