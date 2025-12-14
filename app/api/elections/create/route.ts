@@ -3,6 +3,15 @@ import { verifyTelegramAuth, getTelegramId } from '@/lib/telegram-auth';
 import { createServerClient } from '@/lib/supabase/client';
 
 export async function POST(request: NextRequest) {
+  // Check if Supabase is configured (not placeholder)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl || supabaseUrl.includes('placeholder') || supabaseUrl === 'https://placeholder.supabase.co') {
+    return NextResponse.json(
+      { error: 'Базата данни не е конфигурирана' },
+      { status: 500 }
+    );
+  }
+
   try {
     const {
       telegramAuth,

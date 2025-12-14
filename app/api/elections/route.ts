@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/client';
 
 export async function GET() {
+  // Check if Supabase is configured (not placeholder)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl || supabaseUrl.includes('placeholder') || supabaseUrl === 'https://placeholder.supabase.co') {
+    // Return empty array during build if Supabase is not configured
+    return NextResponse.json({ elections: [] }, { status: 200 });
+  }
+
   try {
     const supabase = createServerClient();
     

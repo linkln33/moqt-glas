@@ -42,7 +42,9 @@ const GlassCardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      'text-2xl font-bold leading-none tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent',
+      'text-2xl font-bold leading-none tracking-tight',
+      'bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent',
+      'dark:text-foreground', // Fallback for dark mode
       className
     )}
     {...props}

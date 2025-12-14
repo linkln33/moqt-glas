@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
@@ -51,7 +51,7 @@ const templates = [
   }
 ];
 
-export default function CreatePollPage() {
+function CreatePollPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -419,5 +419,20 @@ export default function CreatePollPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CreatePollPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Зареждане...</p>
+        </div>
+      </div>
+    }>
+      <CreatePollPageContent />
+    </Suspense>
   );
 }

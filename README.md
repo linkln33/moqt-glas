@@ -141,7 +141,7 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions.
 ```env
 NEXT_PUBLIC_TELEGRAM_BOT_NAME=your_bot_name
 TELEGRAM_BOT_TOKEN=your_bot_token
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_URL=https://igjkhyisdwezrnjhgsta.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 UPSTASH_REDIS_URL=your_redis_url

@@ -42,9 +42,19 @@ export function createServerClient() {
   const isConfigured = isServerClientConfigured();
   
   if (!isConfigured) {
-    // Throw error to prevent network calls to placeholder URL
-    // This forces callers to check configuration first
-    throw new Error('Supabase is not configured. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
+    // During build/prerender, return a safe client that won't cause build failures
+    // The client will fail on actual operations, but won't throw during initialization
+    // This allows the build to complete even when Supabase is not configured
+    return createClient(
+      'https://placeholder.supabase.co',
+      'placeholder-key',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
   }
   
   return createClient(url!, serviceRoleKey!, {

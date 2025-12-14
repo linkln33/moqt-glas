@@ -35,6 +35,16 @@ export async function POST(request: NextRequest) {
     }
 
     const telegramId = getTelegramId(telegramAuth);
+    
+    // Check if Supabase is configured before creating client
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl || supabaseUrl.includes('placeholder') || supabaseUrl === 'https://placeholder.supabase.co') {
+      return NextResponse.json(
+        { error: 'Базата данни не е конфигурирана' },
+        { status: 500 }
+      );
+    }
+    
     const supabase = createServerClient();
     const ipAddress = getClientIP(request);
 

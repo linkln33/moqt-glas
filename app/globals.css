@@ -36,7 +36,7 @@
   }
 
   .light {
-    --background: 0 0% 100%;
+    --background: 0 0% 98%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -44,22 +44,22 @@
     --popover-foreground: 240 10% 3.9%;
     --primary: 142 76% 36%; /* Bulgarian green */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 4.8% 95.9%;
+    --secondary: 240 4.8% 96.9%;
     --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
+    --muted: 240 4.8% 96.9%;
+    --muted-foreground: 240 3.8% 35%; /* Darker for better contrast */
+    --accent: 240 4.8% 96.9%;
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 62.8% 30.6%; /* Bulgarian red */
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
+    --border: 240 5.9% 85%; /* Darker border for better visibility */
     --input: 240 5.9% 90%;
     --ring: 142 76% 36%;
     
-    /* Glassmorphism colors - light mode */
-    --glass-bg: 255 255 255 / 0.8;
-    --glass-border: 240 5.9% 90% / 0.5;
-    --glass-shadow: 0 0% 0% / 0.05;
+    /* Glassmorphism colors - light mode with better contrast */
+    --glass-bg: 255 255 255 / 0.95; /* More opaque */
+    --glass-border: 240 5.9% 80% / 0.8; /* Darker, more visible border */
+    --glass-shadow: 0 0% 0% / 0.12; /* Stronger shadow for depth */
     
     /* Gradient colors - same for light mode */
     --gradient-from: 142 76% 36%;
@@ -85,8 +85,10 @@
     background: hsl(var(--glass-bg));
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid hsl(var(--glass-border));
-    box-shadow: 0 8px 32px 0 hsl(var(--glass-shadow));
+    border: 1.5px solid hsl(var(--glass-border));
+    box-shadow: 
+      0 4px 16px 0 hsl(var(--glass-shadow)),
+      0 0 0 1px hsl(var(--border) / 0.1);
   }
   
   /* Gradient backgrounds */
@@ -104,9 +106,19 @@
   
   .light .gradient-bg {
     background: linear-gradient(135deg, 
-      hsl(0, 0%, 100%) 0%,
-      hsl(240, 4.8%, 95.9%) 50%,
-      hsl(0, 0%, 100%) 100%
+      hsl(0, 0%, 98%) 0%,
+      hsl(240, 4.8%, 96.9%) 50%,
+      hsl(0, 0%, 98%) 100%
+    );
+  }
+  
+  /* Light mode shine effect - darker for better visibility */
+  .light .shine::before {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(0, 0, 0, 0.05),
+      transparent
     );
   }
   
@@ -172,9 +184,10 @@
   
   /* Light mode body background */
   .light body {
+    background: hsl(var(--background));
     background-image: 
-      radial-gradient(at 0% 0%, hsl(142, 76%, 36%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsl(200, 70%, 50%, 0.05) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsl(142, 76%, 36%, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsl(200, 70%, 50%, 0.03) 0px, transparent 50%);
   }
 }
 
@@ -219,5 +232,92 @@
   /* Hero logo styling */
   .hero-logo {
     filter: drop-shadow(0 10px 30px rgba(0, 150, 110, 0.3));
+  }
+  
+  .light .hero-logo {
+    filter: drop-shadow(0 10px 30px rgba(0, 150, 110, 0.2));
+  }
+  
+  /* Light mode card improvements */
+  .light .glass {
+    color: hsl(var(--foreground));
+  }
+  
+  /* Better text contrast in light mode */
+  .light .text-muted-foreground {
+    color: hsl(240 3.8% 35%);
+  }
+  
+  /* Light mode navigation improvements */
+  .light nav.glass {
+    border-bottom-color: hsl(var(--border));
+    box-shadow: 0 1px 3px 0 hsl(var(--glass-shadow));
+  }
+  
+  /* Light mode footer improvements */
+  .light footer.glass {
+    border-top-color: hsl(var(--border));
+  }
+  
+  /* Light mode gradient text - ensure it's visible */
+  .light .bg-gradient-to-r.from-primary {
+    background: linear-gradient(to right, hsl(142 76% 36%), hsl(142 76% 30%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  /* Better button contrast in light mode */
+  .light button.gradient-primary {
+    box-shadow: 0 4px 12px 0 hsl(142 76% 36% / 0.3);
+  }
+  
+  /* Light mode badge improvements */
+  .light [class*="badge"] {
+    border-color: hsl(var(--border));
+  }
+  
+  /* Light mode badge variants - better contrast */
+  .light .bg-green-500\/20 {
+    background-color: hsl(142 76% 36% / 0.15);
+    color: hsl(142 76% 28%);
+    border-color: hsl(142 76% 36% / 0.4);
+  }
+  
+  .light .bg-yellow-500\/20 {
+    background-color: hsl(45 93% 47% / 0.15);
+    color: hsl(45 93% 35%);
+    border-color: hsl(45 93% 47% / 0.4);
+  }
+  
+  .light .bg-blue-500\/20 {
+    background-color: hsl(217 91% 60% / 0.15);
+    color: hsl(217 91% 45%);
+    border-color: hsl(217 91% 60% / 0.4);
+  }
+  
+  /* Light mode input and form elements */
+  .light input,
+  .light textarea,
+  .light select {
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--background));
+  }
+  
+  .light input:focus,
+  .light textarea:focus,
+  .light select:focus {
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+  }
+  
+  /* Light mode link improvements */
+  .light a {
+    color: hsl(var(--primary));
+  }
+  
+  .light a:hover {
+    color: hsl(142 76% 30%);
+    text-decoration: underline;
   }
 }

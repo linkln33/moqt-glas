@@ -69,7 +69,7 @@ export default async function HomePage() {
       {/* Hero Section */}
       <div className="relative overflow-hidden gradient-bg border-b border-border/50">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent"></div>
-        <div className="container mx-auto px-4 py-20 md:py-32 relative">
+        <div className="container mx-auto px-4 pt-12 pb-20 md:pt-16 md:pb-32 relative">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex flex-col items-center justify-center mb-6">
               <div className="mb-6">
@@ -363,10 +363,10 @@ export default async function HomePage() {
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <GlassCard variant="gradient" className="text-center">
           <GlassCardContent className="p-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-4">
               Готови ли сте да започнете?
             </h2>
-            <p className="text-white/80 mb-8 text-lg">
+            <p className="text-muted-foreground dark:text-white/80 mb-8 text-lg">
               Създайте първата си анкета за минути
             </p>
             <Link href="/dashboard/create">
