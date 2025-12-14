@@ -68,22 +68,29 @@ export default function LoginPage() {
 
       setLoadingStep('Обработка на отговора...');
 
-      // Check if response is ok before parsing JSON
+      // Parse response - check status first, then parse
       let result;
+      const text = await response.text();
+      console.log('Response text (first 500 chars):', text.substring(0, 500));
+      
       try {
-        const text = await response.text();
-        console.log('Response text:', text.substring(0, 200));
         result = JSON.parse(text);
       } catch (parseError) {
-        console.error('Failed to parse response:', parseError);
+        console.error('❌ Failed to parse response as JSON:', {
+          error: parseError,
+          text: text.substring(0, 200),
+          status: response.status,
+        });
         throw new Error('Невалиден отговор от сървъра. Моля, опитайте отново.');
       }
 
+      // Check response status AFTER parsing (so we can show error message)
       if (!response.ok) {
         console.error('❌ Auth verification failed:', {
           status: response.status,
           statusText: response.statusText,
           result,
+          fullResponse: text,
         });
         const errorMessage = result?.error || `Неуспешна автентификация (${response.status})`;
         throw new Error(errorMessage);
@@ -135,23 +142,23 @@ export default function LoginPage() {
 
       setLoadingStep('Пренасочване...');
       console.log('🔄 Redirecting to /elections...');
+      console.log('📊 Final state check:', {
+        hasTelegramAuth: !!localStorage.getItem('telegram_auth'),
+        hasUserId: !!localStorage.getItem('user_id'),
+        hasTelegramId: !!localStorage.getItem('telegram_id'),
+        currentPath: window.location.pathname,
+      });
       
-      // Redirect to elections
+      // Use window.location for immediate redirect (more reliable than router.push)
+      // This ensures the redirect happens even if there are React state issues
+      window.location.href = '/elections';
+      
+      // Also try router.push as backup (though window.location should work)
       try {
         router.push('/elections');
-        router.refresh(); // Force refresh to update nav state
-        
-        // Also try window.location as fallback
-        setTimeout(() => {
-          if (window.location.pathname === '/login') {
-            console.warn('Router push may have failed, using window.location');
-            window.location.href = '/elections';
-          }
-        }, 1000);
+        router.refresh();
       } catch (redirectError) {
-        console.error('❌ Redirect error:', redirectError);
-        // Fallback to window.location
-        window.location.href = '/elections';
+        console.warn('Router push error (using window.location instead):', redirectError);
       }
     } catch (err: any) {
       console.error('Auth error:', err);
