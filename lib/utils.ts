@@ -81,3 +81,36 @@ export function hasElectionEnded(endDate: Date | string): boolean {
   const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
   return now > end;
 }
+
+/**
+ * Format relative time in Bulgarian (e.g., "преди 2 часа", "вчера", "преди 3 дни")
+ */
+export function formatRelativeTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSecs < 60) {
+    return 'току-що';
+  } else if (diffMins < 60) {
+    return `преди ${diffMins} ${diffMins === 1 ? 'минута' : 'минути'}`;
+  } else if (diffHours < 24) {
+    return `преди ${diffHours} ${diffHours === 1 ? 'час' : 'часа'}`;
+  } else if (diffDays === 1) {
+    return 'вчера';
+  } else if (diffDays < 7) {
+    return `преди ${diffDays} ${diffDays === 1 ? 'ден' : 'дни'}`;
+  } else if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `преди ${weeks} ${weeks === 1 ? 'седмица' : 'седмици'}`;
+  } else if (diffDays < 365) {
+    const months = Math.floor(diffDays / 30);
+    return `преди ${months} ${months === 1 ? 'месец' : 'месеца'}`;
+  } else {
+    return formatDateBG(d);
+  }
+}

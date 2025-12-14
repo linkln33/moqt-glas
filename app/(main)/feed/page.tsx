@@ -1,0 +1,129 @@
+import { createServerClient } from '@/lib/supabase/client';
+import { FeedItem } from '@/components/feed-item';
+import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
+
+interface PollWithStats {
+  id: string;
+  title: string;
+  title_bg: string;
+  description: string;
+  description_bg: string;
+  status: string;
+  start_date: string;
+  end_date: string;
+  created_at: string;
+  created_by: string;
+  questions: Array<{
+    id: string;
+    question_text: string;
+    question_text_bg: string;
+    question_type: string;
+    options: Array<{
+      id: string;
+      option_text: string;
+      option_text_bg: string;
+    }>;
+  }>;
+  totalVotes: number;
+  isActive: boolean;
+}
+
+async function getFeedPolls(): Promise<PollWithStats[]> {
+  // Check if Supabase is configured (not placeholder)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl || supabaseUrl.includes('placeholder') || supabaseUrl === 'https://placeholder.supabase.co') {
+    return [];
+  }
+
+  try {
+    const supabase = createServerClient();
+    const now = new Date().toISOString();
+
+    // Get recent elections ordered by creation date (most recent first)
+    const { data: elections, error } = await supabase
+      .from('elections')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error('Error fetching elections:', error);
+      return [];
+    }
+
+    if (!elections || elections.length === 0) {
+      return [];
+    }
+
+    // Get questions, options, and vote counts for each election
+    const pollsWithStats = await Promise.all(
+      elections.map(async (election) => {
+        // Get questions with options
+        const { data: questions } = await supabase
+          .from('questions')
+          .select('*, options(*)')
+          .eq('election_id', election.id)
+          .order('order_index', { ascending: true });
+
+        // Get total vote count for this election
+        const { count: totalVotes } = await supabase
+          .from('votes')
+          .select('*', { count: 'exact', head: true })
+          .eq('election_id', election.id);
+
+        // Check if election is currently active
+        const isActive = new Date(election.start_date) <= new Date(now) && 
+                        new Date(election.end_date) >= new Date(now);
+
+        return {
+          ...election,
+          questions: questions || [],
+          totalVotes: totalVotes || 0,
+          isActive,
+        };
+      })
+    );
+
+    return pollsWithStats;
+  } catch (error) {
+    console.error('Error fetching feed polls:', error);
+    return [];
+  }
+}
+
+export default async function FeedPage() {
+  const polls = await getFeedPolls();
+
+  return (
+    <div className="min-h-screen py-8">
+      <div className="container mx-auto px-4 max-w-3xl">
+        {/* Feed Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">Лента</h1>
+          <p className="text-muted-foreground">
+            Най-новите анкети и избори
+          </p>
+        </div>
+
+        {/* Feed Items */}
+        {polls.length > 0 ? (
+          <div className="space-y-6">
+            {polls.map((poll) => (
+              <FeedItem key={poll.id} poll={poll} />
+            ))}
+          </div>
+        ) : (
+          <GlassCard>
+            <GlassCardContent className="py-16 text-center">
+              <div className="text-6xl mb-4">📊</div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-4">Няма анкети</h2>
+              <p className="text-muted-foreground mb-6">
+                Все още няма публикувани анкети. Бъдете първият, който създава!
+              </p>
+            </GlassCardContent>
+          </GlassCard>
+        )}
+      </div>
+    </div>
+  );
+}
