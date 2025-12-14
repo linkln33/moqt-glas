@@ -126,14 +126,24 @@ All UI text is in Bulgarian:
 
 ## 🚢 Deployment
 
-### Vercel (Recommended)
+### Netlify (Configured)
+
+1. Push to GitHub: `git push origin main`
+2. Go to [Netlify](https://netlify.com)
+3. Import from GitHub: `linkln33/moqt-glas`
+4. Add environment variables (see `.env.netlify.example`)
+5. Deploy automatically!
+
+See [NETLIFY_DEPLOY.md](./NETLIFY_DEPLOY.md) for detailed deployment instructions.
+
+### Vercel (Alternative)
 
 1. Push to GitHub
 2. Import in Vercel
 3. Add environment variables
 4. Deploy
 
-See [SETUP.md](./SETUP.md) for detailed deployment instructions.
+See [SETUP.md](./SETUP.md) for detailed setup instructions.
 
 ## 📝 Environment Variables
 
