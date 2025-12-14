@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { Nav } from '@/components/nav';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter' });
 
@@ -19,9 +20,8 @@ export default function RootLayout({
   return (
     <html lang="bg" className={inter.variable}>
       <body className="font-sans antialiased">
-        <div className="min-h-screen bg-gray-50">
-          {children}
-        </div>
+        <Nav />
+        {children}
       </body>
     </html>
   );

@@ -1,25 +1,29 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-const Card = React.forwardRef<
+const GlassCard = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    variant?: 'default' | 'glass';
+    variant?: 'default' | 'light' | 'gradient';
+    hover?: boolean;
   }
->(({ className, variant = 'default', ...props }, ref) => (
+>(({ className, variant = 'default', hover = true, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      variant === 'default' && 'rounded-lg border bg-card text-card-foreground shadow-sm',
-      variant === 'glass' && 'glass rounded-2xl text-card-foreground shadow-xl hover:scale-[1.02] transition-all duration-300',
+      'rounded-2xl transition-all duration-300',
+      variant === 'default' && 'glass',
+      variant === 'light' && 'glass-light',
+      variant === 'gradient' && 'glass gradient-primary',
+      hover && 'hover:scale-[1.02] hover:shadow-2xl',
       className
     )}
     {...props}
   />
 ));
-Card.displayName = 'Card';
+GlassCard.displayName = 'GlassCard';
 
-const CardHeader = React.forwardRef<
+const GlassCardHeader = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
@@ -29,24 +33,24 @@ const CardHeader = React.forwardRef<
     {...props}
   />
 ));
-CardHeader.displayName = 'CardHeader';
+GlassCardHeader.displayName = 'GlassCardHeader';
 
-const CardTitle = React.forwardRef<
+const GlassCardTitle = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
     className={cn(
-      'text-2xl font-semibold leading-none tracking-tight',
+      'text-2xl font-bold leading-none tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent',
       className
     )}
     {...props}
   />
 ));
-CardTitle.displayName = 'CardTitle';
+GlassCardTitle.displayName = 'GlassCardTitle';
 
-const CardDescription = React.forwardRef<
+const GlassCardDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
@@ -56,17 +60,17 @@ const CardDescription = React.forwardRef<
     {...props}
   />
 ));
-CardDescription.displayName = 'CardDescription';
+GlassCardDescription.displayName = 'GlassCardDescription';
 
-const CardContent = React.forwardRef<
+const GlassCardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
   <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
 ));
-CardContent.displayName = 'CardContent';
+GlassCardContent.displayName = 'GlassCardContent';
 
-const CardFooter = React.forwardRef<
+const GlassCardFooter = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
@@ -76,6 +80,13 @@ const CardFooter = React.forwardRef<
     {...props}
   />
 ));
-CardFooter.displayName = 'CardFooter';
+GlassCardFooter.displayName = 'GlassCardFooter';
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+export {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardFooter,
+  GlassCardTitle,
+  GlassCardDescription,
+  GlassCardContent,
+};

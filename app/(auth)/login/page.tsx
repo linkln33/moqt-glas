@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TelegramLogin } from '@/components/telegram-login';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
@@ -46,64 +46,77 @@ export default function LoginPage() {
 
   if (!botName) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle>Грешка в конфигурацията</CardTitle>
-            <CardDescription>
-              Telegram ботът не е конфигуриран
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center py-8">
+        <div className="container mx-auto px-4 max-w-md">
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle>Грешка в конфигурацията</GlassCardTitle>
+              <GlassCardDescription>
+                Telegram ботът не е конфигуриран
+              </GlassCardDescription>
+            </GlassCardHeader>
+          </GlassCard>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-md">
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Влез с Telegram</CardTitle>
-          <CardDescription>
-            Използвайте Telegram, за да влезете и да гласувате
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
-              {error}
-            </div>
-          )}
+    <div className="min-h-screen flex items-center justify-center py-8">
+      <div className="container mx-auto px-4 max-w-md">
+        <GlassCard variant="gradient" className="shine">
+          <GlassCardHeader className="text-center">
+            <GlassCardTitle className="text-3xl text-white mb-2">
+              Влез с Telegram
+            </GlassCardTitle>
+            <GlassCardDescription className="text-white/80">
+              Използвайте Telegram, за да влезете и да гласувате
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-6">
+            {error && (
+              <GlassCard className="border-red-500/50 bg-red-500/10">
+                <GlassCardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">⚠️</span>
+                    <span className="text-red-400 font-semibold">{error}</span>
+                  </div>
+                </GlassCardContent>
+              </GlassCard>
+            )}
 
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <p className="mt-4 text-sm text-gray-600">Проверка на идентичността...</p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center space-y-4">
-              <TelegramLogin
-                botName={botName}
-                onAuth={handleTelegramAuth}
-                className="w-full"
-              />
-              <p className="text-xs text-center text-gray-500 px-4">
-                С натискане на бутона се съгласявате с условията за използване
-              </p>
-            </div>
-          )}
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                <p className="mt-4 text-white/80">Проверка на идентичността...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center space-y-6">
+                <div className="w-full">
+                  <TelegramLogin
+                    botName={botName}
+                    onAuth={handleTelegramAuth}
+                    className="w-full"
+                  />
+                </div>
+                <p className="text-xs text-center text-white/60 px-4">
+                  С натискане на бутона се съгласявате с условията за използване
+                </p>
+              </div>
+            )}
 
-          <div className="pt-4 border-t">
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => router.push('/')}
-            >
-              Назад
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="pt-4 border-t border-white/20">
+              <Button
+                variant="ghost"
+                className="w-full text-white/80 hover:text-white hover:bg-white/10"
+                onClick={() => router.push('/')}
+              >
+                ← Назад
+              </Button>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
     </div>
   );
 }

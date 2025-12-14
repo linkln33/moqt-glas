@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardFooter, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { createServerClient } from '@/lib/supabase/client';
 import { formatDateBG, formatTimeBG, isElectionActive, hasElectionEnded } from '@/lib/utils';
 
@@ -42,65 +44,73 @@ export default async function ElectionsPage() {
   );
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-          Избори
-        </h1>
-        <p className="text-gray-600">
-          Изберете избори, в които да участвате
-        </p>
+    <div className="min-h-screen py-8">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="mb-12 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            Избори и анкети
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            Изберете избори, в които да участвате
+          </p>
+        </div>
+
+        {/* Active Elections */}
+        {activeElections.length > 0 && (
+          <section className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Активни избори</h2>
+                <p className="text-muted-foreground">Гласувайте сега</p>
+              </div>
+              <Badge variant="success" className="text-lg px-4 py-2">
+                {activeElections.length} активни
+              </Badge>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {activeElections.map((election) => (
+                <ElectionCard key={election.id} election={election} status="active" />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Upcoming Elections */}
+        {upcomingElections.length > 0 && (
+          <section className="mb-12">
+            <h2 className="text-3xl font-bold mb-6">Предстоящи избори</h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {upcomingElections.map((election) => (
+                <ElectionCard key={election.id} election={election} status="upcoming" />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Ended Elections */}
+        {endedElections.length > 0 && (
+          <section className="mb-12">
+            <h2 className="text-3xl font-bold mb-6">Приключили избори</h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {endedElections.map((election) => (
+                <ElectionCard key={election.id} election={election} status="ended" />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {elections.length === 0 && (
+          <GlassCard>
+            <GlassCardContent className="py-16 text-center">
+              <div className="text-6xl mb-4">📊</div>
+              <p className="text-xl text-muted-foreground mb-4">Няма налични избори</p>
+              <Link href="/dashboard/create">
+                <Button className="gradient-primary">Създай първата анкета</Button>
+              </Link>
+            </GlassCardContent>
+          </GlassCard>
+        )}
       </div>
-
-      {/* Active Elections */}
-      {activeElections.length > 0 && (
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-            Активни избори
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {activeElections.map((election) => (
-              <ElectionCard key={election.id} election={election} status="active" />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Upcoming Elections */}
-      {upcomingElections.length > 0 && (
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-            Предстоящи избори
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {upcomingElections.map((election) => (
-              <ElectionCard key={election.id} election={election} status="upcoming" />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Ended Elections */}
-      {endedElections.length > 0 && (
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-            Приключили избори
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {endedElections.map((election) => (
-              <ElectionCard key={election.id} election={election} status="ended" />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {elections.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-gray-600">Няма налични избори</p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
@@ -116,45 +126,51 @@ function ElectionCard({
   const endDate = new Date(election.end_date);
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader>
-        <CardTitle className="text-xl">{election.title_bg || election.title}</CardTitle>
-        <CardDescription>
+    <GlassCard hover className="flex flex-col cursor-pointer group">
+      <GlassCardHeader>
+        <div className="flex items-start justify-between gap-4">
+          <GlassCardTitle className="text-xl group-hover:text-primary transition-colors">
+            {election.title_bg || election.title}
+          </GlassCardTitle>
+          <Badge 
+            variant={
+              status === 'active' ? 'success' : 
+              status === 'upcoming' ? 'info' : 
+              'secondary'
+            }
+          >
+            {status === 'active' ? 'Активни' : status === 'upcoming' ? 'Предстоящи' : 'Приключили'}
+          </Badge>
+        </div>
+        <GlassCardDescription className="line-clamp-2">
           {election.description_bg || election.description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow">
+        </GlassCardDescription>
+      </GlassCardHeader>
+      <GlassCardContent className="flex-grow">
         <div className="space-y-2 text-sm">
-          <div>
-            <span className="font-medium">Начало: </span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">📅 Начало:</span>
             <span>{formatDateBG(startDate)} {formatTimeBG(startDate)}</span>
           </div>
-          <div>
-            <span className="font-medium">Край: </span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">🏁 Край:</span>
             <span>{formatDateBG(endDate)} {formatTimeBG(endDate)}</span>
           </div>
-          <div>
-            <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-              status === 'active' 
-                ? 'bg-green-100 text-green-800' 
-                : status === 'upcoming'
-                ? 'bg-blue-100 text-blue-800'
-                : 'bg-gray-100 text-gray-800'
-            }`}>
-              {status === 'active' ? 'Активни' : status === 'upcoming' ? 'Предстоящи' : 'Приключили'}
-            </span>
-          </div>
         </div>
-      </CardContent>
-      <CardFooter className="gap-2">
+      </GlassCardContent>
+      <GlassCardFooter className="gap-2">
         {status === 'active' && (
           <Link href={`/vote/${election.id}`} className="flex-1">
-            <Button className="w-full">Гласувай сега</Button>
+            <Button className="w-full gradient-primary text-white shadow-lg">
+              Гласувай сега →
+            </Button>
           </Link>
         )}
         {status === 'ended' && (
           <Link href={`/results/${election.id}`} className="flex-1">
-            <Button variant="outline" className="w-full">Виж резултатите</Button>
+            <Button variant="outline" className="w-full glass">
+              Виж резултатите
+            </Button>
           </Link>
         )}
         {status === 'upcoming' && (
@@ -162,7 +178,7 @@ function ElectionCard({
             Очаква се
           </Button>
         )}
-      </CardFooter>
-    </Card>
+      </GlassCardFooter>
+    </GlassCard>
   );
 }

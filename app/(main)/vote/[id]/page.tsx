@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDeviceFingerprint } from '@/lib/device-fingerprint';
 import { trackUserBehavior } from '@/lib/behavioral-analysis';
@@ -241,44 +243,53 @@ export default function VotePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-2xl">{election.title_bg || election.title}</CardTitle>
-          <CardDescription>
-            {election.description_bg || election.description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-gray-600 space-y-1">
-            <p>Начало: {formatDateBG(startDate)} {formatTimeBG(startDate)}</p>
-            <p>Край: {formatDateBG(endDate)} {formatTimeBG(endDate)}</p>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen py-8">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <GlassCard variant="gradient" className="mb-6 shine">
+          <GlassCardHeader>
+            <GlassCardTitle className="text-3xl text-white">
+              {election.title_bg || election.title}
+            </GlassCardTitle>
+            <GlassCardDescription className="text-white/80">
+              {election.description_bg || election.description}
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="flex flex-wrap gap-4 text-sm text-white/90">
+              <div className="flex items-center gap-2">
+                <span>📅 Начало:</span>
+                <span className="font-medium">{formatDateBG(startDate)} {formatTimeBG(startDate)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>🏁 Край:</span>
+                <span className="font-medium">{formatDateBG(endDate)} {formatTimeBG(endDate)}</span>
+              </div>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
 
       {/* Progress Indicator */}
       {questions.length > 1 && (
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-sm">
-                <span className="font-medium text-gray-700">
+        <GlassCard className="mb-6">
+          <GlassCardContent className="pt-6">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-lg">
                   Прогрес: {answeredQuestions} от {totalQuestions} въпроса
                 </span>
-                <span className="text-gray-600">
+                <Badge variant="info" className="text-lg px-3 py-1">
                   {Math.round(progress)}%
-                </span>
+                </Badge>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="w-full bg-background/50 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-primary h-2.5 rounded-full transition-all duration-300"
+                  className="gradient-primary h-3 rounded-full transition-all duration-500 shadow-lg"
                   style={{ width: `${progress}%` }}
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {error && (
@@ -292,81 +303,82 @@ export default function VotePage() {
           {questions.map((question, index) => {
             const isAnswered = (selectedOptions[question.id] || []).length > 0;
             return (
-              <Card 
+              <GlassCard 
                 key={question.id} 
                 id={`question-${question.id}`}
-                className={!isAnswered ? 'border-2 border-yellow-300' : ''}
+                hover
+                className={!isAnswered ? 'border-2 border-yellow-500/50' : ''}
               >
-                <CardHeader>
+                <GlassCardHeader>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <CardTitle className="text-lg mb-1">
+                      <GlassCardTitle className="text-xl mb-2">
                         {questions.length > 1 && (
-                          <span className="text-primary font-semibold mr-2">
-                            Въпрос {index + 1}:
-                          </span>
+                          <Badge variant="info" className="mr-2">
+                            Въпрос {index + 1}
+                          </Badge>
                         )}
                         {question.question_text_bg}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
+                      </GlassCardTitle>
+                      <GlassCardDescription className="mt-2">
                         {question.question_type === 'single-choice' 
                           ? 'Изберете една опция' 
                           : 'Можете да изберете няколко опции'}
-                      </CardDescription>
+                      </GlassCardDescription>
                     </div>
                     {isAnswered && (
-                      <div className="flex-shrink-0">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          ✓ Отговорено
-                        </span>
-                      </div>
+                      <Badge variant="success">
+                        ✓ Отговорено
+                      </Badge>
                     )}
                   </div>
-                </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {question.options.map((option) => {
-                  const isSelected = (selectedOptions[question.id] || []).includes(option.id);
-                  return (
-                    <button
-                      key={option.id}
-                      onClick={() => handleOptionToggle(question.id, option.id, question.question_type)}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
-                        isSelected
-                          ? 'border-primary bg-primary/5'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          isSelected
-                            ? 'border-primary bg-primary'
-                            : 'border-gray-300'
-                        }`}>
-                          {isSelected && (
-                            <div className="w-2 h-2 rounded-full bg-white"></div>
-                          )}
-                        </div>
-                        <span className="flex-1">{option.option_text_bg}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-                </CardContent>
-              </Card>
+                </GlassCardHeader>
+                <GlassCardContent>
+                  <div className="space-y-3">
+                    {question.options.map((option) => {
+                      const isSelected = (selectedOptions[question.id] || []).includes(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          onClick={() => handleOptionToggle(question.id, option.id, question.question_type)}
+                          className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                            isSelected
+                              ? 'border-primary bg-primary/20 shadow-lg scale-[1.02]'
+                              : 'border-border/50 bg-background/30 hover:border-primary/50 hover:bg-primary/5'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                              isSelected
+                                ? 'border-primary bg-primary shadow-lg'
+                                : 'border-muted-foreground/50'
+                            }`}>
+                              {isSelected && (
+                                <div className="w-3 h-3 rounded-full bg-white"></div>
+                              )}
+                            </div>
+                            <span className={`flex-1 font-medium ${isSelected ? 'text-primary' : ''}`}>
+                              {option.option_text_bg}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </GlassCardContent>
+              </GlassCard>
             );
           })}
         </div>
       ) : (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-xl">Преглед на вашите отговори</CardTitle>
-            <CardDescription>
+        <GlassCard className="mb-6">
+          <GlassCardHeader>
+            <GlassCardTitle className="text-2xl">Преглед на вашите отговори</GlassCardTitle>
+            <GlassCardDescription>
               Моля, прегледайте отговорите си преди подаване
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="space-y-4">
               {questions.map((question, index) => {
                 const selected = selectedOptions[question.id] || [];
@@ -394,8 +406,8 @@ export default function VotePage() {
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       <div className="mt-8 space-y-4">
@@ -407,17 +419,17 @@ export default function VotePage() {
                 disabled={!allAnswered || submitting}
                 size="lg"
                 variant="outline"
-                className="flex-1"
+                className="flex-1 glass"
               >
-                Преглед на отговорите
+                👁️ Преглед на отговорите
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={!allAnswered || submitting}
                 size="lg"
-                className="flex-1"
+                className="flex-1 gradient-primary text-white shadow-lg hover:shadow-xl"
               >
-                {submitting ? 'Обработване...' : allAnswered ? 'Подай глас' : `Отговорете на всички въпроси (${totalQuestions - answeredQuestions} остават)`}
+                {submitting ? 'Обработване...' : allAnswered ? '✅ Подай глас' : `Отговорете на всички (${totalQuestions - answeredQuestions} остават)`}
               </Button>
             </div>
             <Button
@@ -425,7 +437,7 @@ export default function VotePage() {
               variant="ghost"
               className="w-full"
             >
-              Отказ
+              ← Назад към изборите
             </Button>
           </>
         ) : (
@@ -434,17 +446,17 @@ export default function VotePage() {
               onClick={() => setShowSummary(false)}
               variant="outline"
               size="lg"
-              className="flex-1"
+              className="flex-1 glass"
             >
-              Редактирай отговори
+              ✏️ Редактирай отговори
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={submitting}
               size="lg"
-              className="flex-1"
+              className="flex-1 gradient-primary text-white shadow-lg hover:shadow-xl"
             >
-              {submitting ? 'Обработване...' : 'Потвърди и подай глас'}
+              {submitting ? 'Обработване...' : '✅ Потвърди и подай глас'}
             </Button>
           </div>
         )}
