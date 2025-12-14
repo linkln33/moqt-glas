@@ -12,19 +12,30 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleTelegramAuth = async (authData: any) => {
+    console.log('handleTelegramAuth called with:', {
+      hasData: !!authData,
+      id: authData?.id,
+      first_name: authData?.first_name,
+      hasHash: !!authData?.hash,
+      keys: authData ? Object.keys(authData) : [],
+    });
+
     setLoading(true);
     setError(null);
 
     try {
       // Validate auth data structure
       if (!authData || !authData.id || !authData.hash) {
+        console.error('Invalid auth data structure:', authData);
         throw new Error('Невалидни данни от Telegram. Моля, опитайте отново.');
       }
 
       console.log('Sending Telegram auth data to server:', {
         id: authData.id,
         first_name: authData.first_name,
+        username: authData.username,
         hasHash: !!authData.hash,
+        auth_date: authData.auth_date,
       });
 
       const response = await fetch('/api/auth/telegram/verify', {
@@ -165,6 +176,13 @@ TELEGRAM_BOT_TOKEN=your_bot_token`}
                     onAuth={handleTelegramAuth}
                     className="w-full"
                   />
+                </div>
+                <div className="w-full bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                  <p className="text-xs text-blue-200/80 text-center">
+                    💡 Ако прозорецът се появява и изчезва, проверете дали домейнът е зададен в{' '}
+                    <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer" className="underline font-semibold">@BotFather</a>
+                    {' '}с команда <code className="bg-blue-500/20 px-1 rounded">/setdomain</code>
+                  </p>
                 </div>
                 <p className="text-xs text-center text-white/60 px-4">
                   С натискане на бутона се съгласявате с условията за използване

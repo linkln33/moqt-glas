@@ -21,6 +21,7 @@ interface TelegramLoginProps {
 
 export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const errorCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const [domainError, setDomainError] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -32,6 +33,35 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
 
   useEffect(() => {
     if (!containerRef.current || !mounted) return;
+
+    // Define global callback FIRST, before loading script
+    // This ensures it's available when Telegram calls it
+    (window as any).handleTelegramAuth = (user: TelegramAuthData) => {
+      console.log('🔵 Telegram auth callback received:', {
+        id: user?.id,
+        first_name: user?.first_name,
+        hasHash: !!user?.hash,
+        keys: user ? Object.keys(user) : [],
+      });
+      
+      if (!user || !user.id || !user.hash) {
+        console.error('❌ Invalid user data in callback:', user);
+        setDomainError(true);
+        return;
+      }
+      
+      try {
+        setDomainError(false);
+        if (errorCheckIntervalRef.current) {
+          clearInterval(errorCheckIntervalRef.current);
+          errorCheckIntervalRef.current = null;
+        }
+        onAuth(user);
+      } catch (error) {
+        console.error('❌ Error in Telegram auth callback:', error);
+        setDomainError(true);
+      }
+    };
 
     // Clean up any existing script
     const existingScript = containerRef.current.querySelector('script');
@@ -61,62 +91,46 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
 
     // Error handling for script load
     script.onerror = () => {
-      console.error('Failed to load Telegram widget script');
+      console.error('❌ Failed to load Telegram widget script');
       setDomainError(true);
     };
 
-    // Monitor for domain errors
-    const checkForError = setInterval(() => {
-      const widgetContainer = containerRef.current;
-      if (widgetContainer) {
-        const errorText = widgetContainer.textContent || '';
-        if (errorText.includes('domain') || errorText.includes('invalid')) {
-          setDomainError(true);
-          clearInterval(checkForError);
-        }
-      }
-    }, 1000);
-
-    // Global callback function - must be defined before script loads
-    (window as any).handleTelegramAuth = (user: TelegramAuthData) => {
-      console.log('Telegram auth callback received:', {
-        id: user.id,
-        first_name: user.first_name,
-        hasHash: !!user.hash,
-      });
+    script.onload = () => {
+      console.log('✅ Telegram widget script loaded');
       
-      try {
-        setDomainError(false);
-        clearInterval(checkForError);
-        onAuth(user);
-      } catch (error) {
-        console.error('Error in Telegram auth callback:', error);
-        setDomainError(true);
-      }
-    };
-    
-    // Also listen for errors from the widget
-    const originalConsoleError = console.error;
-    console.error = (...args: any[]) => {
-      if (args.some(arg => typeof arg === 'string' && (arg.includes('domain') || arg.includes('Telegram')))) {
-        console.log('Telegram widget error detected:', args);
-        setDomainError(true);
-      }
-      originalConsoleError.apply(console, args);
+      // Monitor for domain errors after script loads
+      errorCheckIntervalRef.current = setInterval(() => {
+        const widgetContainer = containerRef.current;
+        if (widgetContainer) {
+          const errorText = widgetContainer.textContent || '';
+          if (errorText.includes('domain') || errorText.includes('invalid') || errorText.includes('Bot domain')) {
+            console.error('❌ Domain error detected in widget:', errorText);
+            setDomainError(true);
+            if (errorCheckIntervalRef.current) {
+              clearInterval(errorCheckIntervalRef.current);
+              errorCheckIntervalRef.current = null;
+            }
+          }
+        }
+      }, 1000);
     };
 
     containerRef.current.appendChild(script);
 
     return () => {
-      clearInterval(checkForError);
-      console.error = originalConsoleError; // Restore original
+      if (errorCheckIntervalRef.current) {
+        clearInterval(errorCheckIntervalRef.current);
+        errorCheckIntervalRef.current = null;
+      }
       if (containerRef.current && script.parentNode) {
         script.parentNode.removeChild(script);
       }
-      // Don't delete the callback immediately - Telegram might still call it
+      // Keep callback for a bit in case Telegram is still processing
       setTimeout(() => {
-        delete (window as any).handleTelegramAuth;
-      }, 5000);
+        if ((window as any).handleTelegramAuth) {
+          delete (window as any).handleTelegramAuth;
+        }
+      }, 10000);
     };
   }, [botName, onAuth, mounted]);
 
