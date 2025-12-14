@@ -1,5 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Helper to check if Supabase is properly configured
+function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return !!(
+    url &&
+    !url.includes('placeholder') &&
+    url !== 'https://placeholder.supabase.co' &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== 'placeholder-key'
+  );
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 
@@ -12,12 +24,21 @@ export function createServerClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   
-  if (!url || !serviceRoleKey) {
+  // Check if we have valid configuration (not placeholder values)
+  const isConfigured = !!(
+    url &&
+    !url.includes('placeholder') &&
+    url !== 'https://placeholder.supabase.co' &&
+    serviceRoleKey &&
+    serviceRoleKey !== 'placeholder-key'
+  );
+  
+  if (!isConfigured) {
     // Return a client with placeholder values - will fail on actual DB operations
-    // but allows the app to render
+    // but allows the app to render during build
     return createClient(
-      url || 'https://placeholder.supabase.co',
-      serviceRoleKey || 'placeholder-key',
+      'https://placeholder.supabase.co',
+      'placeholder-key',
       {
         auth: {
           autoRefreshToken: false,
@@ -27,10 +48,13 @@ export function createServerClient() {
     );
   }
   
-  return createClient(url, serviceRoleKey, {
+  return createClient(url!, serviceRoleKey!, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
   });
 }
+
+// Export helper to check configuration status
+export { isSupabaseConfigured };

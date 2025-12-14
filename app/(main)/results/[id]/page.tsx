@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 async function getElectionResults(electionId: string) {
+  // Check if Supabase is configured (not placeholder)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl || supabaseUrl.includes('placeholder') || supabaseUrl === 'https://placeholder.supabase.co') {
+    // Return null during build if Supabase is not configured
+    return null;
+  }
+
   try {
     const supabase = createServerClient();
 

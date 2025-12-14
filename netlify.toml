@@ -5,5 +5,25 @@
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
-  NODE_VERSION = "18.20.0"
+  NODE_VERSION = "20.18.0"
   NPM_FLAGS = "--legacy-peer-deps"
+
+# Required Environment Variables (set in Netlify Dashboard → Site settings → Environment variables):
+# 
+# Telegram Bot Configuration:
+#   NEXT_PUBLIC_TELEGRAM_BOT_NAME=your_bot_username
+#   TELEGRAM_BOT_TOKEN=your_bot_token
+#
+# Supabase Configuration (REQUIRED):
+#   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+#   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+#
+# Upstash Redis (REQUIRED for rate limiting):
+#   UPSTASH_REDIS_URL=https://your-redis.upstash.io
+#   UPSTASH_REDIS_TOKEN=your_redis_token
+#
+# App Configuration:
+#   NEXT_PUBLIC_APP_URL=https://your-site.netlify.app
+#
+# Note: Do NOT commit actual secrets to git. Set these in Netlify Dashboard.

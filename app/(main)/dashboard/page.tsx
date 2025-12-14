@@ -98,9 +98,8 @@ export default function DashboardPage() {
                 alt="Моят Глас" 
                 width={64}
                 height={64}
-                className="object-contain bg-transparent"
+                className="object-contain"
                 priority
-                style={{ backgroundColor: 'transparent' }}
               />
               <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
                 Моят Глас

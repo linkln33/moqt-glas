@@ -1,10 +1,30 @@
 import { Redis } from '@upstash/redis';
 
-// Initialize Upstash Redis client
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_URL!,
-  token: process.env.UPSTASH_REDIS_TOKEN!,
-});
+// Helper to check if Upstash Redis is configured
+function isRedisConfigured(): boolean {
+  return !!(
+    process.env.UPSTASH_REDIS_URL &&
+    process.env.UPSTASH_REDIS_TOKEN &&
+    process.env.UPSTASH_REDIS_URL !== '' &&
+    process.env.UPSTASH_REDIS_TOKEN !== ''
+  );
+}
+
+// Initialize Upstash Redis client only if configured
+// Otherwise, create a dummy client that will fail gracefully
+let redis: Redis | null = null;
+
+if (isRedisConfigured()) {
+  try {
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_URL!,
+      token: process.env.UPSTASH_REDIS_TOKEN!,
+    });
+  } catch (error) {
+    console.warn('Failed to initialize Redis client:', error);
+    redis = null;
+  }
+}
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -22,6 +42,15 @@ export async function checkIPRateLimit(
   maxVotes: number = 3,
   windowSeconds: number = 86400 // 24 hours
 ): Promise<RateLimitResult> {
+  // If Redis is not configured, fail open (allow the request)
+  if (!redis) {
+    return {
+      allowed: true,
+      remaining: maxVotes,
+      resetAt: Date.now() + windowSeconds * 1000,
+    };
+  }
+
   const key = `ratelimit:ip:${electionId}:${ipAddress}`;
   
   try {
@@ -67,6 +96,15 @@ export async function checkDeviceRateLimit(
   deviceFingerprint: string,
   electionId: string
 ): Promise<RateLimitResult> {
+  // If Redis is not configured, fail open (allow the request)
+  if (!redis) {
+    return {
+      allowed: true,
+      remaining: 0,
+      resetAt: Date.now() + 2592000000,
+    };
+  }
+
   const key = `ratelimit:device:${electionId}:${deviceFingerprint}`;
   
   try {
@@ -106,6 +144,15 @@ export async function checkTelegramIdRateLimit(
   telegramId: number,
   electionId: string
 ): Promise<RateLimitResult> {
+  // If Redis is not configured, fail open (allow the request)
+  if (!redis) {
+    return {
+      allowed: true,
+      remaining: 0,
+      resetAt: Date.now() + 31536000000,
+    };
+  }
+
   const key = `ratelimit:tg:${electionId}:${telegramId}`;
   
   try {

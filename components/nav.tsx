@@ -28,13 +28,12 @@ export function Nav() {
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2">
             <Image 
-              src="/logo.png" 
+              src="/logo.svg" 
               alt="Моят Глас" 
               width={32}
               height={32}
-              className="object-contain bg-transparent"
+              className="object-contain"
               priority
-              style={{ backgroundColor: 'transparent' }}
             />
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               Моят Глас

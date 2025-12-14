@@ -2,6 +2,13 @@ import { createServerClient } from '@/lib/supabase/client';
 import { ElectionsClientPage } from './client-page';
 
 async function getElections() {
+  // Check if Supabase is configured (not placeholder)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl || supabaseUrl.includes('placeholder') || supabaseUrl === 'https://placeholder.supabase.co') {
+    // Return empty array during build if Supabase is not configured
+    return [];
+  }
+
   try {
     const supabase = createServerClient();
     

@@ -34,8 +34,7 @@ export function Footer() {
                 alt="Моят Глас" 
                 width={24}
                 height={24}
-                className="object-contain bg-transparent"
-                style={{ backgroundColor: 'transparent' }}
+                className="object-contain"
               />
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                 Моят Глас

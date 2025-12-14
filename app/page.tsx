@@ -7,6 +7,13 @@ import { createServerClient } from '@/lib/supabase/client';
 import { formatDateBG } from '@/lib/utils';
 
 async function getActiveElections() {
+  // Check if Supabase is configured (not placeholder)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl || supabaseUrl.includes('placeholder') || supabaseUrl === 'https://placeholder.supabase.co') {
+    // Return empty array during build if Supabase is not configured
+    return [];
+  }
+
   try {
     const supabase = createServerClient();
     const now = new Date().toISOString();
@@ -68,15 +75,14 @@ export default async function HomePage() {
               <Badge variant="info" className="mb-4">Нова платформа</Badge>
             </div>
             <div className="flex flex-col items-center justify-center mb-6">
-              <div className="mb-6 bg-transparent">
+              <div className="mb-6">
                 <Image 
-                  src="/logo.png" 
+                  src="/logo.svg" 
                   alt="Моят Глас" 
-                  width={200}
-                  height={200}
-                  className="object-contain mx-auto drop-shadow-2xl bg-transparent"
+                  width={300}
+                  height={300}
+                  className="object-contain mx-auto drop-shadow-2xl"
                   priority
-                  style={{ backgroundColor: 'transparent' }}
                 />
               </div>
               <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">

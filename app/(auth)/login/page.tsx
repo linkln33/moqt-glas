@@ -50,11 +50,36 @@ export default function LoginPage() {
         <div className="container mx-auto px-4 max-w-md">
           <GlassCard>
             <GlassCardHeader>
-              <GlassCardTitle>Грешка в конфигурацията</GlassCardTitle>
+              <GlassCardTitle className="text-red-400">⚠️ Грешка в конфигурацията</GlassCardTitle>
               <GlassCardDescription>
                 Telegram ботът не е конфигуриран
               </GlassCardDescription>
             </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <p className="text-sm font-semibold">За да конфигурирате Telegram бот:</p>
+                <ol className="text-sm space-y-2 list-decimal list-inside text-muted-foreground">
+                  <li>Създайте бот чрез <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@BotFather</a> в Telegram</li>
+                  <li>Добавете в <code className="bg-background px-1.5 py-0.5 rounded text-xs">.env.local</code>:
+                    <pre className="mt-2 p-2 bg-background rounded text-xs overflow-x-auto">
+{`NEXT_PUBLIC_TELEGRAM_BOT_NAME=your_bot_name
+TELEGRAM_BOT_TOKEN=your_bot_token`}
+                    </pre>
+                  </li>
+                  <li>Рестартирайте сървъра за разработка</li>
+                </ol>
+                <p className="text-xs text-muted-foreground mt-4">
+                  Вижте <a href="https://github.com/linkln33/moqt-glas/blob/main/SETUP.md" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">SETUP.md</a> за подробни инструкции.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push('/')}
+              >
+                ← Назад към началото
+              </Button>
+            </GlassCardContent>
           </GlassCard>
         </div>
       </div>
