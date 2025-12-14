@@ -134,28 +134,93 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
         callbackExists: !!(window as any).handleTelegramAuth,
         callbackType: typeof (window as any).handleTelegramAuth,
         botName,
+        currentUrl: window.location.href,
+        hostname: window.location.hostname,
       });
+      
+      // Wait a bit for widget to render, then check for button
+      setTimeout(() => {
+        const widgetContainer = containerRef.current;
+        if (widgetContainer) {
+          const button = widgetContainer.querySelector('iframe') || widgetContainer.querySelector('button') || widgetContainer.querySelector('a');
+          console.log('🔍 Widget container check:', {
+            hasContainer: !!widgetContainer,
+            containerHTML: widgetContainer.innerHTML.substring(0, 200),
+            hasButton: !!button,
+            buttonType: button?.tagName,
+            containerText: widgetContainer.textContent?.substring(0, 100),
+          });
+          
+          // Check for iframe (Telegram widget uses iframe)
+          const iframe = widgetContainer.querySelector('iframe');
+          if (iframe) {
+            console.log('📦 Iframe found:', {
+              src: iframe.src,
+              width: iframe.width,
+              height: iframe.height,
+            });
+            
+            // Listen for iframe load
+            iframe.onload = () => {
+              console.log('✅ Iframe loaded');
+            };
+            
+            iframe.onerror = () => {
+              console.error('❌ Iframe load error');
+              setDomainError(true);
+            };
+          } else {
+            console.warn('⚠️ No iframe found in widget container');
+          }
+        }
+      }, 1000);
       
       // Monitor for domain errors after script loads
       errorCheckIntervalRef.current = setInterval(() => {
         const widgetContainer = containerRef.current;
         if (widgetContainer) {
           const errorText = widgetContainer.textContent || '';
-          if (errorText.includes('domain') || errorText.includes('invalid') || errorText.includes('Bot domain')) {
-            console.error('❌ Domain error detected in widget:', errorText);
+          const innerHTML = widgetContainer.innerHTML || '';
+          
+          // Check for various error indicators
+          if (errorText.includes('domain') || 
+              errorText.includes('invalid') || 
+              errorText.includes('Bot domain') ||
+              innerHTML.includes('domain') ||
+              innerHTML.includes('invalid')) {
+            console.error('❌ Domain error detected in widget:', {
+              text: errorText,
+              html: innerHTML.substring(0, 200),
+            });
             setDomainError(true);
             if (errorCheckIntervalRef.current) {
               clearInterval(errorCheckIntervalRef.current);
               errorCheckIntervalRef.current = null;
             }
           }
+          
+          // Log widget state periodically
+          const iframe = widgetContainer.querySelector('iframe');
+          if (iframe && !callbackCalledRef.current) {
+            console.log('📊 Widget state:', {
+              iframeSrc: iframe.src,
+              containerText: errorText.substring(0, 50),
+              callbackCalled: callbackCalledRef.current,
+            });
+          }
         }
-      }, 1000);
+      }, 2000);
       
       // Also check if callback was called after a delay (for debugging)
       setTimeout(() => {
         if (!callbackCalledRef.current) {
-          console.warn('⚠️ Callback not called yet after 5 seconds. This might indicate the widget button was not clicked or there\'s an issue.');
+          console.warn('⚠️ Callback not called yet after 5 seconds. This might indicate:');
+          console.warn('   1. Widget button was not clicked');
+          console.warn('   2. Domain is not configured in BotFather');
+          console.warn('   3. Domain configuration hasn\'t propagated yet (wait 5-10 min)');
+          console.warn('   4. Domain format is incorrect in BotFather');
+          console.warn('   Current URL:', window.location.href);
+          console.warn('   Expected domain in BotFather: moqt-glas.onrender.com (NO https://)');
         }
       }, 5000);
     };
