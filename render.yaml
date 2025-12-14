@@ -3,14 +3,16 @@ services:
     name: moqt-glas
     env: node
     plan: free
+    region: oregon
     buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm start
+    healthCheckPath: /
     envVars:
       - key: NODE_VERSION
         value: 20
       - key: NPM_FLAGS
         value: --legacy-peer-deps
-    # Environment variables should be set in Render Dashboard:
+    # Additional environment variables should be set in Render Dashboard:
     # NEXT_PUBLIC_TELEGRAM_BOT_NAME
     # TELEGRAM_BOT_TOKEN
     # NEXT_PUBLIC_SUPABASE_URL
