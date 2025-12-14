@@ -26,6 +26,8 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
   const router = useRouter();
   const [domainError, setDomainError] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [widgetLoaded, setWidgetLoaded] = useState(false);
+  const [callbackReceived, setCallbackReceived] = useState(false);
 
   // Only check client-side after mount to avoid hydration mismatch
   useEffect(() => {
@@ -40,18 +42,36 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
     // Telegram widget requires the function to be directly accessible
     (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
       callbackCalledRef.current = true;
-      console.log('🔵 Telegram auth callback received:', {
+      setCallbackReceived(true); // Show visual indicator
+      console.log('🔵 ========================================');
+      console.log('🔵 Telegram auth callback RECEIVED!');
+      console.log('🔵 ========================================');
+      console.log('🔵 Callback data:', {
         id: user?.id,
         first_name: user?.first_name,
+        last_name: user?.last_name,
+        username: user?.username,
         hasHash: !!user?.hash,
+        hashLength: user?.hash?.length || 0,
+        auth_date: user?.auth_date,
         keys: user ? Object.keys(user) : [],
         timestamp: new Date().toISOString(),
         callbackType: typeof (window as any).handleTelegramAuth,
       });
       
       if (!user || !user.id || !user.hash) {
-        console.error('❌ Invalid user data in callback:', user);
+        console.error('❌ ========================================');
+        console.error('❌ INVALID USER DATA IN CALLBACK');
+        console.error('❌ ========================================');
+        console.error('❌ Received data:', user);
+        console.error('❌ Missing fields:', {
+          hasId: !!user?.id,
+          hasHash: !!user?.hash,
+          hasFirstName: !!user?.first_name,
+        });
         setDomainError(true);
+        // Show alert to user
+        alert('Грешка: Невалидни данни от Telegram. Моля, опитайте отново.');
         return;
       }
       
@@ -59,10 +79,14 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
         // Get the latest onAuth from the stored reference
         const latestOnAuth = (window as any).__latestTelegramOnAuth || onAuth;
         
-        console.log('🔵 Calling onAuth callback...', {
+        console.log('🔵 ========================================');
+        console.log('🔵 CALLING onAuth CALLBACK...');
+        console.log('🔵 ========================================');
+        console.log('🔵 onAuth status:', {
           onAuthType: typeof latestOnAuth,
           onAuthExists: !!latestOnAuth,
           hasStoredReference: !!(window as any).__latestTelegramOnAuth,
+          onAuthIsFunction: typeof latestOnAuth === 'function',
         });
         
         setDomainError(false);
@@ -73,19 +97,45 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
         
         // Call the onAuth prop - this should trigger handleTelegramAuth in login page
         if (typeof latestOnAuth === 'function') {
-          latestOnAuth(user);
-          console.log('✅ onAuth callback completed');
+          console.log('🔵 Executing onAuth function now...');
+          try {
+            latestOnAuth(user);
+            console.log('✅ ========================================');
+            console.log('✅ onAuth callback COMPLETED successfully');
+            console.log('✅ ========================================');
+          } catch (onAuthError) {
+            console.error('❌ ========================================');
+            console.error('❌ ERROR IN onAuth FUNCTION');
+            console.error('❌ ========================================');
+            console.error('❌ Error:', onAuthError);
+            console.error('❌ Error details:', {
+              message: onAuthError instanceof Error ? onAuthError.message : String(onAuthError),
+              stack: onAuthError instanceof Error ? onAuthError.stack : undefined,
+            });
+            setDomainError(true);
+            alert('Грешка при обработка на данните. Проверете конзолата за подробности.');
+            throw onAuthError; // Re-throw to be caught by outer try-catch
+          }
         } else {
-          console.error('❌ onAuth is not a function!', { latestOnAuth });
+          console.error('❌ ========================================');
+          console.error('❌ onAuth IS NOT A FUNCTION!');
+          console.error('❌ ========================================');
+          console.error('❌ onAuth value:', latestOnAuth);
+          console.error('❌ onAuth type:', typeof latestOnAuth);
           setDomainError(true);
+          alert('Грешка: onAuth не е функция. Моля, презаредете страницата.');
         }
       } catch (error) {
-        console.error('❌ Error in Telegram auth callback:', error);
-        console.error('Error details:', {
+        console.error('❌ ========================================');
+        console.error('❌ UNEXPECTED ERROR IN TELEGRAM AUTH CALLBACK');
+        console.error('❌ ========================================');
+        console.error('❌ Error:', error);
+        console.error('❌ Error details:', {
           message: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
         });
         setDomainError(true);
+        alert('Грешка при автентификация. Проверете конзолата за подробности.');
       }
     };
     
@@ -125,8 +175,10 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
 
     // Create script element
     // IMPORTANT: Use the latest widget version and ensure callback name matches exactly
+    // Add cache-busting timestamp to force fresh load
+    const cacheBuster = Date.now();
     const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.src = `https://telegram.org/js/telegram-widget.js?22&cb=${cacheBuster}`;
     script.setAttribute('data-telegram-login', botName);
     script.setAttribute('data-size', 'large');
     script.setAttribute('data-onauth', 'handleTelegramAuth'); // Must match window function name exactly
@@ -160,7 +212,10 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
         botName,
         currentUrl: window.location.href,
         hostname: window.location.hostname,
+        expectedDomain: 'moqt-glas.onrender.com',
       });
+      console.log('💡 If domain was just changed, wait 5-10 minutes for Telegram to propagate');
+      console.log('💡 Clear browser cache (Ctrl+Shift+Delete) and try again');
       
       // Wait a bit for widget to render, then check for button
       setTimeout(() => {
@@ -183,18 +238,29 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
               width: iframe.width,
               height: iframe.height,
             });
+            setWidgetLoaded(true);
+            setDomainError(false);
             
             // Listen for iframe load
             iframe.onload = () => {
               console.log('✅ Iframe loaded');
+              setWidgetLoaded(true);
             };
             
             iframe.onerror = () => {
               console.error('❌ Iframe load error');
               setDomainError(true);
+              setWidgetLoaded(false);
             };
           } else {
             console.warn('⚠️ No iframe found in widget container');
+            setWidgetLoaded(false);
+            // Only set error if we've waited long enough
+            setTimeout(() => {
+              if (!widgetContainer.querySelector('iframe')) {
+                setDomainError(true);
+              }
+            }, 3000);
           }
         }
       }, 1000);
@@ -235,16 +301,82 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
         }
       }, 2000);
       
-      // Also check if callback was called after a delay (for debugging)
+      // Check if widget is visible and callback status (for debugging)
       setTimeout(() => {
         if (!callbackCalledRef.current) {
-          console.warn('⚠️ Callback not called yet after 5 seconds. This might indicate:');
-          console.warn('   1. Widget button was not clicked');
-          console.warn('   2. Domain is not configured in BotFather');
-          console.warn('   3. Domain configuration hasn\'t propagated yet (wait 5-10 min)');
-          console.warn('   4. Domain format is incorrect in BotFather');
-          console.warn('   Current URL:', window.location.href);
-          console.warn('   Expected domain in BotFather: moqt-glas.onrender.com (NO https://)');
+          const widgetContainer = containerRef.current;
+          const iframe = widgetContainer?.querySelector('iframe');
+          const hasWidget = !!iframe;
+          const containerText = widgetContainer?.textContent || '';
+          const containerHTML = widgetContainer?.innerHTML || '';
+          
+          console.warn('⚠️ Callback not called yet after 5 seconds.');
+          console.warn('   Widget status:', {
+            hasIframe: hasWidget,
+            iframeSrc: iframe?.src || 'N/A',
+            iframeVisible: iframe ? (iframe.offsetWidth > 0 && iframe.offsetHeight > 0) : false,
+            iframeWidth: iframe?.offsetWidth || 0,
+            iframeHeight: iframe?.offsetHeight || 0,
+            containerHasContent: containerText.length > 0,
+            containerTextPreview: containerText.substring(0, 100),
+          });
+          
+          if (!hasWidget) {
+            console.error('❌ Telegram widget iframe not found! This means domain is NOT configured correctly.');
+            console.error('');
+            console.error('   ⏰ Domain Propagation Time:');
+            console.error('      - Usually: 5-10 minutes');
+            console.error('      - Sometimes: up to 30 minutes');
+            console.error('      - After setting domain, wait at least 10 minutes');
+            console.error('');
+            console.error('   🔧 VERIFY domain in BotFather RIGHT NOW:');
+            console.error('      1. Open Telegram → @BotFather');
+            console.error('      2. Send: /mybots');
+            console.error('      3. Select your bot');
+            console.error('      4. Click: "Bot Settings" → "Domain"');
+            console.error('      5. Should show EXACTLY: moqt-glas.onrender.com');
+            console.error('         (NO https://, NO trailing /, NO path)');
+            console.error('');
+            console.error('   🔧 If domain is wrong or missing:');
+            console.error('      1. Send: /setdomain');
+            console.error('      2. Select your bot');
+            console.error('      3. Enter: moqt-glas.onrender.com');
+            console.error('      4. Wait 10-15 minutes for propagation');
+            console.error('      5. Clear browser cache and try again');
+            console.error('');
+            console.error('   🔍 Check iframe in DOM:');
+            console.error('      Run: document.querySelector(\'iframe[src*="telegram.org"]\')');
+            console.error('      If null → domain not configured or not propagated');
+            
+            // Check for error messages in container
+            if (containerText.includes('domain') || containerText.includes('invalid') || containerText.includes('Bot')) {
+              console.error('');
+              console.error('   📋 Error message detected in widget:', containerText);
+            }
+          } else {
+            console.warn('   ✅ Widget iframe is loaded! Domain is configured correctly.');
+            console.warn('   This warning is NORMAL - it just means you haven\'t clicked the button yet.');
+            console.warn('');
+            console.warn('   ✅ Next steps:');
+            console.warn('      1. Click the Telegram login button (it should be visible)');
+            console.warn('      2. Authorize in the Telegram popup');
+            console.warn('      3. Callback will be called immediately');
+            console.warn('');
+            console.warn('   ⚠️ If callback still not called AFTER clicking:');
+            console.warn('      - Domain might not have fully propagated (wait 5-10 more min)');
+            console.warn('      - Browser might be blocking third-party cookies');
+            console.warn('      - Try incognito/private window');
+            console.warn('      - Check browser console for errors');
+          }
+          
+          console.warn('');
+          console.warn('   📍 Current URL:', window.location.href);
+          console.warn('   📍 Expected domain in BotFather: moqt-glas.onrender.com (NO https://)');
+          console.warn('   📍 Bot name:', botName);
+          console.warn('');
+          console.warn('   💡 Quick test: Run this in console to check widget:');
+          console.warn('      const iframe = document.querySelector(\'iframe[src*="telegram.org"]\');');
+          console.warn('      console.log("Widget found:", !!iframe, "Visible:", iframe?.offsetWidth > 0);');
         }
       }, 5000);
     };
@@ -294,18 +426,58 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
             <li><strong>Домейн не е зададен в BotFather:</strong> Използвайте <code className="bg-yellow-500/20 px-1 rounded">/setdomain</code> в <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a></li>
             <li><strong>Формат на домейна:</strong> Трябва да е точно <code className="bg-yellow-500/20 px-1 rounded">moqt-glas.onrender.com</code> (БЕЗ https://, БЕЗ /)</li>
             <li><strong>Пропагация:</strong> Изчакайте 5-10 минути след задаване на домейна</li>
+            <li><strong>Кеш на браузъра:</strong> Изчистете кеша (Ctrl+Shift+Delete) или използвайте инкогнито режим</li>
             <li><strong>Third-party cookies:</strong> Проверете дали браузърът не блокира third-party cookies</li>
             <li><strong>HTTPS:</strong> Уверете се, че сайтът е на HTTPS</li>
           </ol>
-          <p className="text-xs text-yellow-200/60 mt-3">
-            Текущ URL: <code className="bg-yellow-500/20 px-1 rounded">{typeof window !== 'undefined' ? window.location.href : 'N/A'}</code>
-          </p>
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-yellow-200/60">
+              Текущ URL: <code className="bg-yellow-500/20 px-1 rounded">{typeof window !== 'undefined' ? window.location.href : 'N/A'}</code>
+            </p>
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.reload();
+                }
+              }}
+              className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 px-3 py-1.5 rounded transition-colors text-yellow-200"
+            >
+              🔄 Презареди страницата (за изчистване на кеш)
+            </button>
+          </div>
         </div>
       )}
       <div 
         ref={containerRef} 
         style={{ minHeight: '40px' }}
       />
+      
+      {/* Widget Status Indicator - Only show in development or when there's an issue */}
+      {mounted && (
+        <div className="mt-2 text-xs text-muted-foreground space-y-1">
+          {callbackReceived ? (
+            <div className="flex items-center gap-2 text-blue-400 animate-pulse">
+              <span>🔄</span>
+              <span>Данните са получени, обработва се...</span>
+            </div>
+          ) : widgetLoaded ? (
+            <div className="flex items-center gap-2 text-green-400">
+              <span>✅</span>
+              <span>Widget зареден - Натиснете бутона за вход</span>
+            </div>
+          ) : domainError ? (
+            <div className="flex items-center gap-2 text-yellow-400">
+              <span>⚠️</span>
+              <span>Изчакайте 10-15 минути след задаване на домейна</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span>⏳</span>
+              <span>Зареждане на widget...</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

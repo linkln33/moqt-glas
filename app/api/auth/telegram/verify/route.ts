@@ -9,10 +9,28 @@ export async function POST(request: NextRequest) {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    // Log bot token status (without exposing full token)
+    console.log('🔑 Bot token check:', {
+      hasToken: !!botToken,
+      tokenLength: botToken?.length || 0,
+      tokenPrefix: botToken ? botToken.substring(0, 10) + '...' : 'N/A',
+      expectedLength: 46, // Telegram bot tokens are typically 46 characters
+      tokenFormat: botToken ? (botToken.includes(':') ? 'correct' : 'missing colon') : 'missing',
+    });
+
     if (!botToken) {
-      console.error('TELEGRAM_BOT_TOKEN not configured');
+      console.error('❌ TELEGRAM_BOT_TOKEN not configured');
       return NextResponse.json(
         { error: 'Bot token не е конфигуриран' },
+        { status: 500 }
+      );
+    }
+
+    // Validate bot token format (should be: number:alphanumeric)
+    if (!botToken.includes(':')) {
+      console.error('❌ TELEGRAM_BOT_TOKEN format invalid (should contain colon)');
+      return NextResponse.json(
+        { error: 'Невалиден формат на bot token' },
         { status: 500 }
       );
     }
@@ -34,27 +52,53 @@ export async function POST(request: NextRequest) {
     });
 
     // Log received auth data (without sensitive info)
-    console.log('Received Telegram auth data:', {
+    console.log('📥 Received Telegram auth data:', {
       id: authData.id,
       first_name: authData.first_name,
+      last_name: authData.last_name,
       username: authData.username,
+      photo_url: authData.photo_url ? 'present' : 'missing',
       auth_date: authData.auth_date,
-      hasHash: !!authData.hash,
+      hash: authData.hash ? authData.hash.substring(0, 16) + '...' : 'missing',
+      hashLength: authData.hash?.length || 0,
+      allKeys: Object.keys(authData),
+      dataTypes: Object.entries(authData).reduce((acc, [key, value]) => {
+        acc[key] = typeof value;
+        return acc;
+      }, {} as Record<string, string>),
     });
 
+    // Validate required fields
+    if (!authData.id || !authData.first_name || !authData.auth_date || !authData.hash) {
+      console.error('❌ Missing required fields:', {
+        hasId: !!authData.id,
+        hasFirstName: !!authData.first_name,
+        hasAuthDate: !!authData.auth_date,
+        hasHash: !!authData.hash,
+      });
+      return NextResponse.json(
+        { error: 'Липсват задължителни данни от Telegram. Моля, опитайте отново.' },
+        { status: 400 }
+      );
+    }
+
     // Verify Telegram authentication
+    console.log('🔍 Starting authentication verification...');
     const isValid = verifyTelegramAuth(authData, botToken);
 
     if (!isValid) {
-      console.error('Telegram auth verification failed', {
+      console.error('❌ Telegram auth verification failed', {
         telegramId: authData.id,
         hasToken: !!botToken,
+        tokenLength: botToken?.length || 0,
       });
       return NextResponse.json(
-        { error: 'Невалидна автентификация. Моля, опитайте отново.' },
+        { error: 'Невалидна автентификация. Моля, проверете конфигурацията на бота и опитайте отново.' },
         { status: 401 }
       );
     }
+
+    console.log('✅ Telegram authentication verified successfully');
 
     const telegramId = getTelegramId(authData);
     const supabase = createServerClient();

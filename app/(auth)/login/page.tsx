@@ -13,12 +13,20 @@ export default function LoginPage() {
   const [loadingStep, setLoadingStep] = useState<string>('');
 
   const handleTelegramAuth = useCallback(async (authData: any) => {
-    console.log('handleTelegramAuth called with:', {
+    console.log('🟢 ========================================');
+    console.log('🟢 handleTelegramAuth CALLED IN LOGIN PAGE');
+    console.log('🟢 ========================================');
+    console.log('🟢 Received auth data:', {
       hasData: !!authData,
       id: authData?.id,
       first_name: authData?.first_name,
+      last_name: authData?.last_name,
+      username: authData?.username,
       hasHash: !!authData?.hash,
+      hashLength: authData?.hash?.length || 0,
+      auth_date: authData?.auth_date,
       keys: authData ? Object.keys(authData) : [],
+      fullData: authData,
     });
 
     setLoading(true);
@@ -33,12 +41,20 @@ export default function LoginPage() {
       }
 
       setLoadingStep('Изпращане към сървъра...');
-      console.log('Sending Telegram auth data to server:', {
+      console.log('📤 Sending Telegram auth data to server:', {
         id: authData.id,
         first_name: authData.first_name,
+        last_name: authData.last_name,
         username: authData.username,
-        hasHash: !!authData.hash,
+        photo_url: authData.photo_url ? 'present' : 'missing',
         auth_date: authData.auth_date,
+        hash: authData.hash ? authData.hash.substring(0, 16) + '...' : 'missing',
+        hashLength: authData.hash?.length || 0,
+        allKeys: Object.keys(authData),
+        dataTypes: Object.entries(authData).reduce((acc, [key, value]) => {
+          acc[key] = typeof value;
+          return acc;
+        }, {} as Record<string, string>),
       });
 
       // Use absolute URL in production to avoid path issues
@@ -50,19 +66,34 @@ export default function LoginPage() {
 
       let response: Response;
       try {
+        console.log('🌐 ========================================');
+        console.log('🌐 SENDING REQUEST TO SERVER');
+        console.log('🌐 ========================================');
+        console.log('🌐 URL:', apiUrl);
+        console.log('🌐 Method: POST');
+        console.log('🌐 Body:', JSON.stringify(authData, null, 2));
+        
         response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(authData),
         });
-        console.log('📡 Response received:', {
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok,
-          headers: Object.fromEntries(response.headers.entries()),
-        });
+        
+        console.log('📡 ========================================');
+        console.log('📡 RESPONSE RECEIVED FROM SERVER');
+        console.log('📡 ========================================');
+        console.log('📡 Status:', response.status);
+        console.log('📡 Status Text:', response.statusText);
+        console.log('📡 OK:', response.ok);
+        console.log('📡 Headers:', Object.fromEntries(response.headers.entries()));
       } catch (networkError: any) {
-        console.error('❌ Network error:', networkError);
+        console.error('❌ ========================================');
+        console.error('❌ NETWORK ERROR');
+        console.error('❌ ========================================');
+        console.error('❌ Error:', networkError);
+        console.error('❌ Error message:', networkError?.message);
+        console.error('❌ Error name:', networkError?.name);
+        console.error('❌ Error stack:', networkError?.stack);
         throw new Error(`Грешка при свързване със сървъра: ${networkError.message || 'Мрежова грешка'}`);
       }
 
@@ -71,27 +102,39 @@ export default function LoginPage() {
       // Parse response - check status first, then parse
       let result;
       const text = await response.text();
-      console.log('Response text (first 500 chars):', text.substring(0, 500));
+      console.log('📄 ========================================');
+      console.log('📄 RESPONSE TEXT');
+      console.log('📄 ========================================');
+      console.log('📄 Full response text:', text);
+      console.log('📄 Response length:', text.length);
+      console.log('📄 First 500 chars:', text.substring(0, 500));
       
       try {
         result = JSON.parse(text);
+        console.log('✅ ========================================');
+        console.log('✅ RESPONSE PARSED SUCCESSFULLY');
+        console.log('✅ ========================================');
+        console.log('✅ Parsed result:', JSON.stringify(result, null, 2));
       } catch (parseError) {
-        console.error('❌ Failed to parse response as JSON:', {
-          error: parseError,
-          text: text.substring(0, 200),
-          status: response.status,
-        });
+        console.error('❌ ========================================');
+        console.error('❌ FAILED TO PARSE RESPONSE AS JSON');
+        console.error('❌ ========================================');
+        console.error('❌ Parse error:', parseError);
+        console.error('❌ Response text (first 500 chars):', text.substring(0, 500));
+        console.error('❌ Response status:', response.status);
+        console.error('❌ Response status text:', response.statusText);
         throw new Error('Невалиден отговор от сървъра. Моля, опитайте отново.');
       }
 
       // Check response status AFTER parsing (so we can show error message)
       if (!response.ok) {
-        console.error('❌ Auth verification failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          result,
-          fullResponse: text,
-        });
+        console.error('❌ ========================================');
+        console.error('❌ AUTH VERIFICATION FAILED');
+        console.error('❌ ========================================');
+        console.error('❌ Status:', response.status);
+        console.error('❌ Status Text:', response.statusText);
+        console.error('❌ Response result:', result);
+        console.error('❌ Full response text:', text);
         const errorMessage = result?.error || `Неуспешна автентификация (${response.status})`;
         throw new Error(errorMessage);
       }
@@ -161,7 +204,13 @@ export default function LoginPage() {
         console.warn('Router push error (using window.location instead):', redirectError);
       }
     } catch (err: any) {
-      console.error('Auth error:', err);
+      console.error('❌ ========================================');
+      console.error('❌ AUTH ERROR IN handleTelegramAuth');
+      console.error('❌ ========================================');
+      console.error('❌ Error:', err);
+      console.error('❌ Error message:', err?.message);
+      console.error('❌ Error stack:', err?.stack);
+      console.error('❌ Full error object:', JSON.stringify(err, null, 2));
       setError(err.message || 'Грешка при автентификация. Моля, опитайте отново.');
     } finally {
       setLoading(false);
