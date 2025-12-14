@@ -11,9 +11,9 @@ Run the SQL migration file in your Supabase SQL Editor:
 3. Open and run: `supabase/migrations/003_example_polls.sql`
 
 This will create 3 example polls:
-- **Любим български град** - Favorite Bulgarian City (single-choice)
-- **Най-добра българска храна** - Best Bulgarian Food (single-choice)
-- **Технологични предпочитания** - Technology Preferences (multiple questions, including multiple-choice)
+- **Ако днес бяха изборите за кого бихте гласували** - If elections were today, who would you vote for? (all Bulgarian political parties)
+- **Кой трябва да влезе в затвора** - Who should go to prison? (Тиквата, Свинята, Радо Геля)
+- **Пирамида ли е Исторически парк** - Is Historical Park a pyramid scheme? (Yes/No/Not sure)
 
 ## Option 2: Using TypeScript Script
 
@@ -35,21 +35,20 @@ tsx scripts/create-example-polls.ts
 
 ## What Gets Created
 
-### Poll 1: Любим български град
+### Poll 1: Ако днес бяха изборите за кого бихте гласували
 - Single-choice question
-- 8 options: София, Пловдив, Варна, Бургас, Русе, Стара Загора, Велико Търново, Друг
+- 9 options: All major Bulgarian political parties
+  - ГЕРБ, ПП-ДБ, Възраждане, ДПС-НН, БСП-ОЛ, АРФ, ИТН, Величие, Друга / Никоя
 - Active for 30 days
 
-### Poll 2: Най-добра българска храна
+### Poll 2: Кой трябва да влезе в затвора
 - Single-choice question
-- 8 options: Баница, Шопска салата, Каварма, Таратор, Мусака, Сарми, Кебапче, Друго
+- 5 options: Тиквата, Свинята, Радо Геля, Всички, Никой
 - Active for 25 days
 
-### Poll 3: Технологични предпочитания
-- **Question 1**: Primary device (single-choice)
-  - Options: Смартфон, Лаптоп, Настолен компютър, Таблет, Друго
-- **Question 2**: Social media platforms (multiple-choice)
-  - Options: Facebook, Instagram, Twitter/X, LinkedIn, TikTok, Telegram, Никоя
+### Poll 3: Пирамида ли е Исторически парк
+- Single-choice question
+- 3 options: Да, Не, Не съм сигурен
 - Active for 20 days
 
 ## Display on Home Page

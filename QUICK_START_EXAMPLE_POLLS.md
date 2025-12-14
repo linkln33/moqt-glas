@@ -1,12 +1,29 @@
--- Create 3 example polls for Моят Глас
+# Quick Start: Create Example Polls
 
+The example polls section on the home page won't show until you create the polls in your database.
+
+## The 3 Example Polls
+
+1. **Ако днес бяха изборите за кого бихте гласували** - All Bulgarian political parties
+2. **Кой трябва да влезе в затвора** - Тиквата, Свинята, Радо Геля
+3. **Пирамида ли е Исторически парк** - Yes/No/Not sure
+
+## Quick Method: Run SQL in Supabase
+
+1. **Go to your Supabase Dashboard**
+   - Navigate to: SQL Editor
+
+2. **Copy and paste the SQL from `supabase/migrations/003_example_polls.sql`**
+
+   Or copy this simplified version:
+
+```sql
 -- Poll 1: Ако днес бяха изборите за кого бихте гласували
 DO $$
 DECLARE
   election_id_1 UUID;
   question_id_1 UUID;
 BEGIN
-  -- Create election
   INSERT INTO elections (title, title_bg, description, description_bg, status, start_date, end_date, created_by)
   VALUES (
     'If elections were today, who would you vote for?',
@@ -20,7 +37,6 @@ BEGIN
   )
   RETURNING id INTO election_id_1;
 
-  -- Create question
   INSERT INTO questions (election_id, question_text, question_text_bg, question_type, order_index)
   VALUES (
     election_id_1,
@@ -31,7 +47,6 @@ BEGIN
   )
   RETURNING id INTO question_id_1;
 
-  -- Create options - all Bulgarian political parties
   INSERT INTO options (question_id, option_text, option_text_bg, order_index) VALUES
     (question_id_1, 'GERB (Citizens for European Development of Bulgaria)', 'ГЕРБ (Граждани за европейско развитие на България)', 0),
     (question_id_1, 'PP-DB (We Continue the Change – Democratic Bulgaria)', 'ПП-ДБ (Продължаваме промяната – Демократична България)', 1),
@@ -50,7 +65,6 @@ DECLARE
   election_id_2 UUID;
   question_id_2 UUID;
 BEGIN
-  -- Create election
   INSERT INTO elections (title, title_bg, description, description_bg, status, start_date, end_date, created_by)
   VALUES (
     'Who should go to prison?',
@@ -64,7 +78,6 @@ BEGIN
   )
   RETURNING id INTO election_id_2;
 
-  -- Create question
   INSERT INTO questions (election_id, question_text, question_text_bg, question_type, order_index)
   VALUES (
     election_id_2,
@@ -75,7 +88,6 @@ BEGIN
   )
   RETURNING id INTO question_id_2;
 
-  -- Create options
   INSERT INTO options (question_id, option_text, option_text_bg, order_index) VALUES
     (question_id_2, 'Tikvata', 'Тиквата', 0),
     (question_id_2, 'Svinyata', 'Свинята', 1),
@@ -90,7 +102,6 @@ DECLARE
   election_id_3 UUID;
   question_id_3 UUID;
 BEGIN
-  -- Create election
   INSERT INTO elections (title, title_bg, description, description_bg, status, start_date, end_date, created_by)
   VALUES (
     'Is Historical Park a pyramid scheme?',
@@ -104,7 +115,6 @@ BEGIN
   )
   RETURNING id INTO election_id_3;
 
-  -- Create question
   INSERT INTO questions (election_id, question_text, question_text_bg, question_type, order_index)
   VALUES (
     election_id_3,
@@ -115,9 +125,36 @@ BEGIN
   )
   RETURNING id INTO question_id_3;
 
-  -- Create options
   INSERT INTO options (question_id, option_text, option_text_bg, order_index) VALUES
     (question_id_3, 'Yes', 'Да', 0),
     (question_id_3, 'No', 'Не', 1),
     (question_id_3, 'Not sure', 'Не съм сигурен', 2);
 END $$;
+```
+
+3. **Click "Run"** in the SQL Editor
+
+4. **Refresh your home page** - the example polls should now appear!
+
+## Alternative: Use the TypeScript Script
+
+If you prefer using the script:
+
+```bash
+# Make sure you have environment variables set
+export NEXT_PUBLIC_SUPABASE_URL="your-url"
+export SUPABASE_SERVICE_ROLE_KEY="your-key"
+
+# Run the script
+npm run create-example-polls
+```
+
+## Verify the Polls Were Created
+
+After running the SQL, you can verify by checking:
+
+1. Go to Supabase Dashboard → Table Editor → `elections`
+2. Filter by `created_by = 'example'`
+3. You should see 3 elections
+
+Or just refresh your home page - the polls should appear in the "Примерни анкети" section!

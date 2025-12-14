@@ -18,14 +18,14 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 async function createExamplePolls() {
   console.log('Creating example polls...');
 
-  // Poll 1: Favorite Bulgarian City
+  // Poll 1: Ако днес бяха изборите за кого бихте гласували
   const { data: election1, error: err1 } = await supabase
     .from('elections')
     .insert({
-      title: 'Favorite Bulgarian City',
-      title_bg: 'Любим български град',
-      description: 'Which Bulgarian city do you like the most?',
-      description_bg: 'Кой български град ви харесва най-много?',
+      title: 'If elections were today, who would you vote for?',
+      title_bg: 'Ако днес бяха изборите за кого бихте гласували',
+      description: 'Which political party would you vote for if elections were today?',
+      description_bg: 'За коя политическа партия бихте гласували, ако днес бяха изборите?',
       status: 'active',
       start_date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
       end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
@@ -43,8 +43,8 @@ async function createExamplePolls() {
     .from('questions')
     .insert({
       election_id: election1.id,
-      question_text: 'Which Bulgarian city do you like the most?',
-      question_text_bg: 'Кой български град ви харесва най-много?',
+      question_text: 'If elections were today, who would you vote for?',
+      question_text_bg: 'Ако днес бяха изборите за кого бихте гласували?',
       question_type: 'single-choice',
       order_index: 0,
     })
@@ -57,26 +57,27 @@ async function createExamplePolls() {
   }
 
   await supabase.from('options').insert([
-    { question_id: question1.id, option_text: 'Sofia', option_text_bg: 'София', order_index: 0 },
-    { question_id: question1.id, option_text: 'Plovdiv', option_text_bg: 'Пловдив', order_index: 1 },
-    { question_id: question1.id, option_text: 'Varna', option_text_bg: 'Варна', order_index: 2 },
-    { question_id: question1.id, option_text: 'Burgas', option_text_bg: 'Бургас', order_index: 3 },
-    { question_id: question1.id, option_text: 'Ruse', option_text_bg: 'Русе', order_index: 4 },
-    { question_id: question1.id, option_text: 'Stara Zagora', option_text_bg: 'Стара Загора', order_index: 5 },
-    { question_id: question1.id, option_text: 'Veliko Tarnovo', option_text_bg: 'Велико Търново', order_index: 6 },
-    { question_id: question1.id, option_text: 'Other', option_text_bg: 'Друг', order_index: 7 },
+    { question_id: question1.id, option_text: 'GERB (Citizens for European Development of Bulgaria)', option_text_bg: 'ГЕРБ (Граждани за европейско развитие на България)', order_index: 0 },
+    { question_id: question1.id, option_text: 'PP-DB (We Continue the Change – Democratic Bulgaria)', option_text_bg: 'ПП-ДБ (Продължаваме промяната – Демократична България)', order_index: 1 },
+    { question_id: question1.id, option_text: 'Vazrazhdane (Revival)', option_text_bg: 'Възраждане', order_index: 2 },
+    { question_id: question1.id, option_text: 'DPS-NN (Movement for Rights and Freedoms – New Beginning)', option_text_bg: 'ДПС-НН (Движение за права и свободи – Ново начало)', order_index: 3 },
+    { question_id: question1.id, option_text: 'BSP-OL (Bulgarian Socialist Party – United Left)', option_text_bg: 'БСП-ОЛ (Българска социалистическа партия – Обединена левица)', order_index: 4 },
+    { question_id: question1.id, option_text: 'ARF (Alliance for Rights and Freedoms)', option_text_bg: 'АРФ (Алианс за права и свободи)', order_index: 5 },
+    { question_id: question1.id, option_text: 'ITN (There Is Such a People)', option_text_bg: 'ИТН (Има такъв народ)', order_index: 6 },
+    { question_id: question1.id, option_text: 'Velichie (Величие)', option_text_bg: 'Величие', order_index: 7 },
+    { question_id: question1.id, option_text: 'Other / None', option_text_bg: 'Друга / Никоя', order_index: 8 },
   ]);
 
-  console.log('✅ Created poll 1: Любим български град');
+  console.log('✅ Created poll 1: Ако днес бяха изборите за кого бихте гласували');
 
-  // Poll 2: Best Bulgarian Food
+  // Poll 2: Кой трябва да влезе в затвора
   const { data: election2, error: err2 } = await supabase
     .from('elections')
     .insert({
-      title: 'Best Bulgarian Food',
-      title_bg: 'Най-добра българска храна',
-      description: 'What is your favorite traditional Bulgarian dish?',
-      description_bg: 'Коя е вашата любима традиционна българска храна?',
+      title: 'Who should go to prison?',
+      title_bg: 'Кой трябва да влезе в затвора',
+      description: 'Who should go to prison?',
+      description_bg: 'Кой трябва да влезе в затвора?',
       status: 'active',
       start_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       end_date: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
@@ -94,8 +95,8 @@ async function createExamplePolls() {
     .from('questions')
     .insert({
       election_id: election2.id,
-      question_text: 'What is your favorite traditional Bulgarian dish?',
-      question_text_bg: 'Коя е вашата любима традиционна българска храна?',
+      question_text: 'Who should go to prison?',
+      question_text_bg: 'Кой трябва да влезе в затвора?',
       question_type: 'single-choice',
       order_index: 0,
     })
@@ -108,26 +109,23 @@ async function createExamplePolls() {
   }
 
   await supabase.from('options').insert([
-    { question_id: question2.id, option_text: 'Banitsa', option_text_bg: 'Баница', order_index: 0 },
-    { question_id: question2.id, option_text: 'Shopska Salad', option_text_bg: 'Шопска салата', order_index: 1 },
-    { question_id: question2.id, option_text: 'Kavarma', option_text_bg: 'Каварма', order_index: 2 },
-    { question_id: question2.id, option_text: 'Tarator', option_text_bg: 'Таратор', order_index: 3 },
-    { question_id: question2.id, option_text: 'Musaka', option_text_bg: 'Мусака', order_index: 4 },
-    { question_id: question2.id, option_text: 'Sarmi', option_text_bg: 'Сарми', order_index: 5 },
-    { question_id: question2.id, option_text: 'Kebapche', option_text_bg: 'Кебапче', order_index: 6 },
-    { question_id: question2.id, option_text: 'Other', option_text_bg: 'Друго', order_index: 7 },
+    { question_id: question2.id, option_text: 'Tikvata', option_text_bg: 'Тиквата', order_index: 0 },
+    { question_id: question2.id, option_text: 'Svinyata', option_text_bg: 'Свинята', order_index: 1 },
+    { question_id: question2.id, option_text: 'Rado Gelya', option_text_bg: 'Радо Геля', order_index: 2 },
+    { question_id: question2.id, option_text: 'All of them', option_text_bg: 'Всички', order_index: 3 },
+    { question_id: question2.id, option_text: 'None', option_text_bg: 'Никой', order_index: 4 },
   ]);
 
-  console.log('✅ Created poll 2: Най-добра българска храна');
+  console.log('✅ Created poll 2: Кой трябва да влезе в затвора');
 
-  // Poll 3: Technology Preferences (Multiple questions)
+  // Poll 3: Пирамида ли е Исторически парк
   const { data: election3, error: err3 } = await supabase
     .from('elections')
     .insert({
-      title: 'Technology Preferences',
-      title_bg: 'Технологични предпочитания',
-      description: 'Share your technology preferences and usage habits',
-      description_bg: 'Споделете вашите технологични предпочитания и навици',
+      title: 'Is Historical Park a pyramid scheme?',
+      title_bg: 'Пирамида ли е Исторически парк',
+      description: 'Is Historical Park a pyramid scheme?',
+      description_bg: 'Пирамида ли е Исторически парк?',
       status: 'active',
       start_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
       end_date: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
@@ -141,61 +139,30 @@ async function createExamplePolls() {
     return;
   }
 
-  // Question 1: Primary device
-  const { data: question3_1, error: qErr3_1 } = await supabase
+  const { data: question3, error: qErr3 } = await supabase
     .from('questions')
     .insert({
       election_id: election3.id,
-      question_text: 'What is your primary device for browsing the internet?',
-      question_text_bg: 'Какво е вашето основно устройство за сърфиране в интернет?',
+      question_text: 'Is Historical Park a pyramid scheme?',
+      question_text_bg: 'Пирамида ли е Исторически парк?',
       question_type: 'single-choice',
       order_index: 0,
     })
     .select()
     .single();
 
-  if (qErr3_1) {
-    console.error('Error creating question 3.1:', qErr3_1);
+  if (qErr3) {
+    console.error('Error creating question 3:', qErr3);
     return;
   }
 
   await supabase.from('options').insert([
-    { question_id: question3_1.id, option_text: 'Smartphone', option_text_bg: 'Смартфон', order_index: 0 },
-    { question_id: question3_1.id, option_text: 'Laptop', option_text_bg: 'Лаптоп', order_index: 1 },
-    { question_id: question3_1.id, option_text: 'Desktop Computer', option_text_bg: 'Настолен компютър', order_index: 2 },
-    { question_id: question3_1.id, option_text: 'Tablet', option_text_bg: 'Таблет', order_index: 3 },
-    { question_id: question3_1.id, option_text: 'Other', option_text_bg: 'Друго', order_index: 4 },
+    { question_id: question3.id, option_text: 'Yes', option_text_bg: 'Да', order_index: 0 },
+    { question_id: question3.id, option_text: 'No', option_text_bg: 'Не', order_index: 1 },
+    { question_id: question3.id, option_text: 'Not sure', option_text_bg: 'Не съм сигурен', order_index: 2 },
   ]);
 
-  // Question 2: Social media
-  const { data: question3_2, error: qErr3_2 } = await supabase
-    .from('questions')
-    .insert({
-      election_id: election3.id,
-      question_text: 'Which social media platforms do you use? (You can select multiple)',
-      question_text_bg: 'Кои социални мрежи използвате? (Можете да изберете няколко)',
-      question_type: 'multiple-choice',
-      order_index: 1,
-    })
-    .select()
-    .single();
-
-  if (qErr3_2) {
-    console.error('Error creating question 3.2:', qErr3_2);
-    return;
-  }
-
-  await supabase.from('options').insert([
-    { question_id: question3_2.id, option_text: 'Facebook', option_text_bg: 'Facebook', order_index: 0 },
-    { question_id: question3_2.id, option_text: 'Instagram', option_text_bg: 'Instagram', order_index: 1 },
-    { question_id: question3_2.id, option_text: 'Twitter/X', option_text_bg: 'Twitter/X', order_index: 2 },
-    { question_id: question3_2.id, option_text: 'LinkedIn', option_text_bg: 'LinkedIn', order_index: 3 },
-    { question_id: question3_2.id, option_text: 'TikTok', option_text_bg: 'TikTok', order_index: 4 },
-    { question_id: question3_2.id, option_text: 'Telegram', option_text_bg: 'Telegram', order_index: 5 },
-    { question_id: question3_2.id, option_text: 'None', option_text_bg: 'Никоя', order_index: 6 },
-  ]);
-
-  console.log('✅ Created poll 3: Технологични предпочитания');
+  console.log('✅ Created poll 3: Пирамида ли е Исторически парк');
 
   console.log('\n🎉 All example polls created successfully!');
 }

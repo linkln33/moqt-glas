@@ -268,8 +268,8 @@ export default function VotePage() {
           </GlassCardContent>
         </GlassCard>
 
-      {/* Progress Indicator */}
-      {questions.length > 1 && (
+        {/* Progress Indicator */}
+        {questions.length > 1 && (
         <GlassCard className="mb-6">
           <GlassCardContent className="pt-6">
             <div className="space-y-3">
@@ -290,15 +290,15 @@ export default function VotePage() {
             </div>
           </GlassCardContent>
         </GlassCard>
-      )}
+        )}
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
+            {error}
+          </div>
+        )}
 
-      {!showSummary ? (
+        {!showSummary ? (
         <div className="space-y-6">
           {questions.map((question, index) => {
             const isAnswered = (selectedOptions[question.id] || []).length > 0;
@@ -370,7 +370,7 @@ export default function VotePage() {
             );
           })}
         </div>
-      ) : (
+        ) : (
         <GlassCard className="mb-6">
           <GlassCardHeader>
             <GlassCardTitle className="text-2xl">Преглед на вашите отговори</GlassCardTitle>
@@ -408,9 +408,9 @@ export default function VotePage() {
             </div>
           </GlassCardContent>
         </GlassCard>
-      )}
+        )}
 
-      <div className="mt-8 space-y-4">
+        <div className="mt-8 space-y-4">
         {!showSummary ? (
           <>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -460,6 +460,7 @@ export default function VotePage() {
             </Button>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

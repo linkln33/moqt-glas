@@ -9,14 +9,29 @@ async function getExamplePolls() {
   try {
     const supabase = createServerClient();
 
-    // Get elections created by 'example' (our example polls)
-    const { data: elections } = await supabase
+    // First try to get elections created by 'example'
+    let { data: elections, error } = await supabase
       .from('elections')
       .select('*')
       .eq('created_by', 'example')
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(3);
+
+    // If no example polls exist, try to get any active polls as fallback
+    if (!elections || elections.length === 0) {
+      const now = new Date().toISOString();
+      const { data: fallbackElections } = await supabase
+        .from('elections')
+        .select('*')
+        .eq('status', 'active')
+        .lte('start_date', now)
+        .gte('end_date', now)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      elections = fallbackElections;
+    }
 
     if (!elections || elections.length === 0) {
       return [];
@@ -146,7 +161,7 @@ export default async function HomePage() {
       </div>
 
       {/* Example Polls Section */}
-      {examplePolls.length > 0 && (
+      {examplePolls.length > 0 ? (
         <div className="container mx-auto px-4 py-16 max-w-7xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Примерни анкети</h2>
@@ -191,6 +206,34 @@ export default async function HomePage() {
               </Link>
             ))}
           </div>
+        </div>
+      ) : (
+        <div className="container mx-auto px-4 py-16 max-w-4xl">
+          <GlassCard className="text-center">
+            <GlassCardContent className="py-12">
+              <div className="text-6xl mb-4">📊</div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-4">Няма примерни анкети</h2>
+              <p className="text-muted-foreground mb-6">
+                Създайте примерни анкети, за да се покажат тук
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/dashboard/create">
+                  <Button className="gradient-primary">
+                    Създай първата анкета
+                  </Button>
+                </Link>
+                <a 
+                  href="https://github.com/linkln33/moqt-glas/blob/main/CREATE_EXAMPLE_POLLS.md" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" className="glass">
+                    Виж инструкциите
+                  </Button>
+                </a>
+              </div>
+            </GlassCardContent>
+          </GlassCard>
         </div>
       )}
 
