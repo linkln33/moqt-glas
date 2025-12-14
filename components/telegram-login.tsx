@@ -19,6 +19,67 @@ interface TelegramLoginProps {
   className?: string;
 }
 
+// CRITICAL: Define callback at module level, OUTSIDE component
+// This ensures it's always available before script loads
+// Modern browsers block third-party cookies which prevents iframe from calling parent
+// The callback MUST be defined before the script loads and must remain stable
+if (typeof window !== 'undefined') {
+  // Initialize callbacks map if it doesn't exist
+  if (!(window as any).__telegramAuthCallbacks) {
+    (window as any).__telegramAuthCallbacks = new Map();
+  }
+  
+  // Define the global callback ONCE at module level
+  // This ensures it exists before any component mounts
+  // CRITICAL: Modern browsers block third-party cookies which prevents iframe from calling parent
+  // This callback must be stable and always available
+  if (!(window as any).handleTelegramAuth) {
+    (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
+      console.log('🔵 ========================================');
+      console.log('🔵 Telegram auth callback RECEIVED (global)!');
+      console.log('🔵 ========================================');
+      console.log('🔵 User data:', {
+        id: user?.id,
+        first_name: user?.first_name,
+        hasHash: !!user?.hash,
+      });
+      
+      // Trigger a custom event that components can listen to
+      // This works even if direct function calls are blocked
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('telegram-auth', { 
+          detail: user 
+        }));
+      }
+      
+      // Also try direct callback (may be blocked by browser)
+      const callbacks = (window as any).__telegramAuthCallbacks;
+      if (callbacks && callbacks instanceof Map && callbacks.size > 0) {
+        const lastCallback = Array.from(callbacks.values())[callbacks.size - 1];
+        if (typeof lastCallback === 'function') {
+          try {
+            lastCallback(user);
+            console.log('✅ Direct callback executed');
+          } catch (error) {
+            console.error('❌ Error in direct callback:', error);
+          }
+        }
+      }
+      
+      // Fallback to old method
+      const latestOnAuth = (window as any).__latestTelegramOnAuth;
+      if (typeof latestOnAuth === 'function') {
+        try {
+          latestOnAuth(user);
+          console.log('✅ Fallback callback executed');
+        } catch (error) {
+          console.error('❌ Error in fallback callback:', error);
+        }
+      }
+    };
+  }
+}
+
 export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const errorCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -33,14 +94,63 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
   useEffect(() => {
     setMounted(true);
   }, []);
+  
+  // Listen for Telegram auth event (works even if direct callback is blocked)
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const handleTelegramAuthEvent = (event: CustomEvent) => {
+      const user = event.detail as TelegramAuthData;
+      console.log('🟢 Received Telegram auth via event:', user);
+      callbackCalledRef.current = true;
+      setCallbackReceived(true);
+      
+      if (user && user.id && user.hash) {
+        onAuth(user);
+      }
+    };
+    
+    // Listen for postMessage from iframe (fallback if direct callback blocked)
+    const handleMessage = (event: MessageEvent) => {
+      // Only accept messages from Telegram's domain
+      if (event.origin !== 'https://oauth.telegram.org') return;
+      
+      if (event.data && event.data.type === 'telegram-auth' && event.data.user) {
+        console.log('🟢 Received Telegram auth via postMessage:', event.data.user);
+        callbackCalledRef.current = true;
+        setCallbackReceived(true);
+        onAuth(event.data.user);
+      }
+    };
+    
+    window.addEventListener('telegram-auth', handleTelegramAuthEvent as EventListener);
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      window.removeEventListener('telegram-auth', handleTelegramAuthEvent as EventListener);
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [mounted, onAuth]);
 
   useEffect(() => {
-    if (!containerRef.current || !mounted) return;
+    if (!mounted) return;
 
-    // Define global callback FIRST, before loading script
-    // CRITICAL: Must be a direct function on window, not a wrapper
-    // Telegram widget requires the function to be directly accessible
-    (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
+    // CRITICAL: Store callback reference in a Map for multiple instances
+    // Use a unique ID for this component instance
+    const callbackId = `telegram_auth_${Date.now()}_${Math.random()}`;
+    
+    // Store the onAuth callback
+    if (!(window as any).__telegramAuthCallbacks) {
+      (window as any).__telegramAuthCallbacks = new Map();
+    }
+    (window as any).__telegramAuthCallbacks.set(callbackId, onAuth);
+    
+    // CRITICAL: Define callback on window object - MUST be a direct function
+    // Telegram widget iframe needs to access this from parent window
+    // Modern browsers block third-party cookies, so this must be stable
+    // Define it ONCE and keep it - don't redefine on every render
+    if (!(window as any).handleTelegramAuth) {
+      (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
       callbackCalledRef.current = true;
       setCallbackReceived(true); // Show visual indicator
       console.log('🔵 ========================================');
@@ -76,8 +186,23 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       }
       
       try {
-        // Get the latest onAuth from the stored reference
-        const latestOnAuth = (window as any).__latestTelegramOnAuth || onAuth;
+        // Get the latest onAuth from stored callbacks
+        // Try to get the most recent one, or fall back to any available
+        const callbacks = (window as any).__telegramAuthCallbacks;
+        let latestOnAuth = onAuth;
+        
+        if (callbacks && callbacks instanceof Map && callbacks.size > 0) {
+          // Get the most recent callback (last entry)
+          const lastCallback = Array.from(callbacks.values())[callbacks.size - 1];
+          if (typeof lastCallback === 'function') {
+            latestOnAuth = lastCallback;
+          }
+        }
+        
+        // Fallback to old method for compatibility
+        if (!latestOnAuth || typeof latestOnAuth !== 'function') {
+          latestOnAuth = (window as any).__latestTelegramOnAuth || onAuth;
+        }
         
         console.log('🔵 ========================================');
         console.log('🔵 CALLING onAuth CALLBACK...');
@@ -139,21 +264,46 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       }
     };
     
-    // Store a reference to the latest onAuth in case it changes
+    // Always update the stored reference (for compatibility)
     (window as any).__latestTelegramOnAuth = onAuth;
     
-    // Verify the callback is accessible globally (required by Telegram)
+    // Also store in the callbacks map
+    if ((window as any).__telegramAuthCallbacks) {
+      (window as any).__telegramAuthCallbacks.set(callbackId, onAuth);
+    }
+    
+    // Verify callback is accessible (critical for iframe)
+    console.log('🔍 Verifying callback accessibility:', {
+      callbackExists: !!(window as any).handleTelegramAuth,
+      callbackType: typeof (window as any).handleTelegramAuth,
+      callbackName: 'handleTelegramAuth',
+      isFunction: typeof (window as any).handleTelegramAuth === 'function',
+      windowHasProperty: 'handleTelegramAuth' in window,
+    });
+    
+    if (!containerRef.current) return;
+    
+    // Double-check callback is accessible (critical check)
     if (typeof (window as any).handleTelegramAuth !== 'function') {
       console.error('❌ CRITICAL: handleTelegramAuth is not a function on window!');
-      setDomainError(true);
-      return;
+      console.error('❌ Attempting to recreate callback...');
+      // Try to recreate it
+      (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
+        const latestOnAuth = (window as any).__latestTelegramOnAuth || onAuth;
+        if (typeof latestOnAuth === 'function') {
+          latestOnAuth(user);
+        }
+      };
     }
     
     // Log that callback is set up
-    console.log('✅ Telegram callback registered:', {
+    console.log('✅ Telegram callback registered and verified:', {
       callbackExists: !!(window as any).handleTelegramAuth,
+      callbackType: typeof (window as any).handleTelegramAuth,
+      callbackIsFunction: typeof (window as any).handleTelegramAuth === 'function',
       botName,
       onAuthType: typeof onAuth,
+      windowLocation: window.location.href,
     });
 
     // Clean up any existing script
@@ -181,8 +331,18 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
     script.src = `https://telegram.org/js/telegram-widget.js?22&cb=${cacheBuster}`;
     script.setAttribute('data-telegram-login', botName);
     script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'handleTelegramAuth'); // Must match window function name exactly
+    // CRITICAL: data-onauth must match the EXACT function name on window object
+    script.setAttribute('data-onauth', 'handleTelegramAuth'); // Must match window.handleTelegramAuth exactly
     script.setAttribute('data-request-access', 'write');
+    
+    // Verify the attribute was set correctly
+    console.log('📋 Script attributes:', {
+      'data-telegram-login': script.getAttribute('data-telegram-login'),
+      'data-onauth': script.getAttribute('data-onauth'),
+      'data-size': script.getAttribute('data-size'),
+      callbackName: 'handleTelegramAuth',
+      callbackExists: typeof (window as any).handleTelegramAuth === 'function',
+    });
     script.async = true;
     
     // Verify callback exists before loading script
@@ -206,13 +366,40 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
 
     script.onload = () => {
       console.log('✅ Telegram widget script loaded');
+      
+      // CRITICAL: Re-verify callback is accessible after script loads
+      // The script might have checked for it during load
+      if (typeof (window as any).handleTelegramAuth !== 'function') {
+        console.error('❌ CRITICAL: Callback lost after script load! Recreating...');
+        (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
+          const latestOnAuth = (window as any).__latestTelegramOnAuth || onAuth;
+          if (typeof latestOnAuth === 'function') {
+            latestOnAuth(user);
+          }
+        };
+      }
+      
+      // Test if callback is callable (for debugging)
+      try {
+        const testCall = (window as any).handleTelegramAuth;
+        console.log('🧪 Callback test:', {
+          isCallable: typeof testCall === 'function',
+          canCall: typeof testCall === 'function' && testCall.toString().includes('function'),
+        });
+      } catch (e) {
+        console.error('❌ Cannot test callback:', e);
+      }
+      
       console.log('📋 Callback check:', {
         callbackExists: !!(window as any).handleTelegramAuth,
         callbackType: typeof (window as any).handleTelegramAuth,
+        callbackName: 'handleTelegramAuth',
         botName,
         currentUrl: window.location.href,
         hostname: window.location.hostname,
         expectedDomain: 'moqt-glas.onrender.com',
+        // Test if we can access it as window['handleTelegramAuth']
+        windowAccessible: typeof (window as any)['handleTelegramAuth'] === 'function',
       });
       console.log('💡 If domain was just changed, wait 5-10 minutes for Telegram to propagate');
       console.log('💡 Clear browser cache (Ctrl+Shift+Delete) and try again');
@@ -391,8 +578,22 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       if (containerRef.current && script.parentNode) {
         script.parentNode.removeChild(script);
       }
-      // Update the callback to use latest onAuth before cleanup (keep as function, not arrow)
-      if ((window as any).__latestTelegramOnAuth) {
+      // Remove this instance's callback from the map
+      if ((window as any).__telegramAuthCallbacks && callbackId) {
+        (window as any).__telegramAuthCallbacks.delete(callbackId);
+      }
+      // DON'T delete the global callback - keep it alive for Telegram iframe
+      // The callback must persist even if component unmounts temporarily
+      // Update it to use the latest available callback
+      const callbacks = (window as any).__telegramAuthCallbacks;
+      if (callbacks && callbacks instanceof Map && callbacks.size > 0) {
+        const lastCallback = Array.from(callbacks.values())[callbacks.size - 1];
+        if (typeof lastCallback === 'function') {
+          (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
+            lastCallback(user);
+          };
+        }
+      } else if ((window as any).__latestTelegramOnAuth) {
         (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
           const latestOnAuth = (window as any).__latestTelegramOnAuth;
           if (latestOnAuth && typeof latestOnAuth === 'function') {
@@ -400,17 +601,27 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
           }
         };
       }
-      // Keep callback for a bit in case Telegram is still processing
-      setTimeout(() => {
-        if ((window as any).handleTelegramAuth) {
-          delete (window as any).handleTelegramAuth;
-        }
-        if ((window as any).__latestTelegramOnAuth) {
-          delete (window as any).__latestTelegramOnAuth;
-        }
-      }, 10000);
+      // Note: We intentionally DON'T delete the callback here
+      // Telegram iframe might call it even after component cleanup
     };
   }, [botName, onAuth, mounted]);
+  
+  // Cleanup on full unmount (page unload)
+  useEffect(() => {
+    return () => {
+      // Only cleanup on actual page unload
+      if (typeof window !== 'undefined') {
+        window.addEventListener('beforeunload', () => {
+          if ((window as any).handleTelegramAuth) {
+            delete (window as any).handleTelegramAuth;
+          }
+          if ((window as any).__latestTelegramOnAuth) {
+            delete (window as any).__latestTelegramOnAuth;
+          }
+        });
+      }
+    };
+  }, []);
 
   // Always render the container div to avoid hydration mismatch
   // Only show error message after mount
@@ -461,9 +672,16 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
               <span>Данните са получени, обработва се...</span>
             </div>
           ) : widgetLoaded ? (
-            <div className="flex items-center gap-2 text-green-400">
-              <span>✅</span>
-              <span>Widget зареден - Натиснете бутона за вход</span>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-green-400">
+                <span>✅</span>
+                <span>Widget зареден - Натиснете бутона за вход</span>
+              </div>
+              {typeof window !== 'undefined' && (
+                <div className="text-xs text-muted-foreground/70 pl-6">
+                  Callback готов: {typeof (window as any).handleTelegramAuth === 'function' ? '✅' : '❌'}
+                </div>
+              )}
             </div>
           ) : domainError ? (
             <div className="flex items-center gap-2 text-yellow-400">
