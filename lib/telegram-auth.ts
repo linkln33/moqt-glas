@@ -23,10 +23,20 @@ export function verifyTelegramAuth(
   try {
     const { hash, ...data } = authData;
     
-    // Create data check string (sorted alphabetically)
+    // Create data check string (sorted alphabetically, only include defined values)
+    // According to Telegram docs: only include fields that are present
     const dataCheckString = Object.keys(data)
+      .filter(key => {
+        const value = data[key as keyof typeof data];
+        // Only include fields that are not undefined/null
+        return value !== undefined && value !== null;
+      })
       .sort()
-      .map(key => `${key}=${data[key as keyof typeof data]}`)
+      .map(key => {
+        const value = data[key as keyof typeof data];
+        // Convert to string (Telegram sends all values as strings)
+        return `${key}=${String(value)}`;
+      })
       .join('\n');
     
     // Compute secret key (SHA256 of bot token)
@@ -41,8 +51,13 @@ export function verifyTelegramAuth(
       .update(dataCheckString)
       .digest('hex');
     
-    // Verify hash matches
-    if (computedHash !== hash) {
+    // Verify hash matches (case-insensitive comparison as per Telegram docs)
+    if (computedHash.toLowerCase() !== hash.toLowerCase()) {
+      console.error('Hash mismatch:', {
+        computed: computedHash,
+        received: hash,
+        dataCheckString,
+      });
       return false;
     }
     
@@ -52,6 +67,7 @@ export function verifyTelegramAuth(
     const hoursDiff = (now.getTime() - authDate.getTime()) / (1000 * 60 * 60);
     
     if (hoursDiff > 24) {
+      console.error('Auth too old:', hoursDiff, 'hours');
       return false; // Auth too old
     }
     

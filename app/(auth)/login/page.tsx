@@ -16,6 +16,17 @@ export default function LoginPage() {
     setError(null);
 
     try {
+      // Validate auth data structure
+      if (!authData || !authData.id || !authData.hash) {
+        throw new Error('Невалидни данни от Telegram. Моля, опитайте отново.');
+      }
+
+      console.log('Sending Telegram auth data to server:', {
+        id: authData.id,
+        first_name: authData.first_name,
+        hasHash: !!authData.hash,
+      });
+
       const response = await fetch('/api/auth/telegram/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -25,6 +36,7 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (!response.ok) {
+        console.error('Auth verification failed:', result);
         throw new Error(result.error || 'Неуспешна автентификация');
       }
 
@@ -36,7 +48,7 @@ export default function LoginPage() {
       router.push('/elections');
     } catch (err: any) {
       console.error('Auth error:', err);
-      setError(err.message || 'Грешка при автентификация');
+      setError(err.message || 'Грешка при автентификация. Моля, опитайте отново.');
     } finally {
       setLoading(false);
     }
@@ -123,20 +135,6 @@ TELEGRAM_BOT_TOKEN=your_bot_token`}
                     onAuth={handleTelegramAuth}
                     className="w-full"
                   />
-                </div>
-                <div className="w-full bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                  <p className="text-xs text-yellow-300 font-semibold mb-2">⚠️ Домейн не е конфигуриран</p>
-                  <p className="text-xs text-yellow-200/80 mb-3">
-                    За да работи Telegram входа локално, трябва да:
-                  </p>
-                  <ol className="text-xs text-yellow-200/70 space-y-1.5 list-decimal list-inside mb-3">
-                    <li>Използвайте <strong>ngrok</strong> или подобен тунел за HTTPS</li>
-                    <li>Задайте домейна в <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a> с <code className="bg-yellow-500/20 px-1 rounded">/setdomain</code></li>
-                    <li>Или тествайте след като разгърнете в production</li>
-                  </ol>
-                  <p className="text-xs text-yellow-200/60">
-                    За production: Задайте домейна в BotFather след разгръщане.
-                  </p>
                 </div>
                 <p className="text-xs text-center text-white/60 px-4">
                   С натискане на бутона се съгласявате с условията за използване

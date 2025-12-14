@@ -9,18 +9,32 @@ export async function POST(request: NextRequest) {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
     if (!botToken) {
+      console.error('TELEGRAM_BOT_TOKEN not configured');
       return NextResponse.json(
         { error: 'Bot token не е конфигуриран' },
         { status: 500 }
       );
     }
 
+    // Log received auth data (without sensitive info)
+    console.log('Received Telegram auth data:', {
+      id: authData.id,
+      first_name: authData.first_name,
+      username: authData.username,
+      auth_date: authData.auth_date,
+      hasHash: !!authData.hash,
+    });
+
     // Verify Telegram authentication
     const isValid = verifyTelegramAuth(authData, botToken);
 
     if (!isValid) {
+      console.error('Telegram auth verification failed', {
+        telegramId: authData.id,
+        hasToken: !!botToken,
+      });
       return NextResponse.json(
-        { error: 'Невалидна автентификация' },
+        { error: 'Невалидна автентификация. Моля, опитайте отново.' },
         { status: 401 }
       );
     }
