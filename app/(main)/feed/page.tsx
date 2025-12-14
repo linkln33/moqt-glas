@@ -1,6 +1,8 @@
 import { createServerClient } from '@/lib/supabase/client';
 import { FeedItem } from '@/components/feed-item';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 interface PollWithStats {
   id: string;
@@ -98,11 +100,18 @@ export default async function FeedPage() {
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4 max-w-3xl">
         {/* Feed Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Лента</h1>
-          <p className="text-muted-foreground">
-            Най-новите анкети и избори
-          </p>
+        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Лента</h1>
+            <p className="text-muted-foreground">
+              Най-новите анкети и избори
+            </p>
+          </div>
+          <Link href="/dashboard/create" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto gradient-primary text-white shadow-lg hover:shadow-xl transition-shadow">
+              ➕ Създай анкета
+            </Button>
+          </Link>
         </div>
 
         {/* Feed Items */}
@@ -120,6 +129,11 @@ export default async function FeedPage() {
               <p className="text-muted-foreground mb-6">
                 Все още няма публикувани анкети. Бъдете първият, който създава!
               </p>
+              <Link href="/dashboard/create">
+                <Button className="gradient-primary text-white shadow-lg hover:shadow-xl transition-shadow">
+                  ➕ Създай първата анкета
+                </Button>
+              </Link>
             </GlassCardContent>
           </GlassCard>
         )}

@@ -73,9 +73,9 @@ function LoginPageContent() {
           detail: { isLoggedIn: true } 
         }));
 
-        // Small delay then redirect
+        // Small delay then redirect to feed
         setTimeout(() => {
-          router.push('/elections');
+          router.push('/feed');
         }, 500);
       } catch (err) {
         console.error('❌ Failed to store session:', err);
