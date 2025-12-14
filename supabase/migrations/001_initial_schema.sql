@@ -1,4 +1,4 @@
--- МОКТ Глас Database Schema
+-- Моят Глас Database Schema
 -- Bulgarian Elections Voting Platform
 
 -- Enable UUID extension

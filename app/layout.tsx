@@ -6,7 +6,7 @@ import { Nav } from '@/components/nav';
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'МОКТ Глас - Български избори',
+  title: 'Моят Глас - Български избори',
   description: 'Платформа за гласуване в българските избори',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
   themeColor: '#00966E',

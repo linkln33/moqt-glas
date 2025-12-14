@@ -1,4 +1,4 @@
-# Setup Guide - МОКТ Глас
+# Setup Guide - Моят Глас
 
 ## Prerequisites
 

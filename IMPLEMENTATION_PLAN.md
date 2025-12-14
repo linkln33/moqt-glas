@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Name**: МОКТ Глас (MOQT Glas) - Bulgarian Elections Voting Platform
+**Name**: Моят Глас - Bulgarian Elections Voting Platform
 **Type**: Mobile-first web application
 **Language**: Bulgarian (Български)
 **Authentication**: Telegram Login Widget

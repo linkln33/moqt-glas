@@ -92,7 +92,7 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-12 md:py-20 relative">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
-              МОКТ Глас
+              Моят Глас
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8">
               Създавайте и участвайте в избори и анкети

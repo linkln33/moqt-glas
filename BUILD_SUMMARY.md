@@ -1,4 +1,4 @@
-# Build Summary - МОКТ Глас
+# Build Summary - Моят Глас
 
 ## ✅ Completed Features
 

@@ -1,4 +1,4 @@
-# МОКТ Глас (MOQT Glas) - Bulgarian Elections Voting Platform
+# Моят Глас - Bulgarian Elections Voting Platform
 
 Mobile-first web application for Bulgarian elections with Telegram authentication and free anti-fraud protection.
 

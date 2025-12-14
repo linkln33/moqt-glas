@@ -1,9 +1,52 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardFooter, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
+import { createServerClient } from '@/lib/supabase/client';
+import { formatDateBG } from '@/lib/utils';
 
-export default function HomePage() {
+async function getExamplePolls() {
+  try {
+    const supabase = createServerClient();
+
+    // Get elections created by 'example' (our example polls)
+    const { data: elections } = await supabase
+      .from('elections')
+      .select('*')
+      .eq('created_by', 'example')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    if (!elections || elections.length === 0) {
+      return [];
+    }
+
+    // Get questions and options for each election
+    const electionsWithDetails = await Promise.all(
+      elections.map(async (election) => {
+        const { data: questions } = await supabase
+          .from('questions')
+          .select('*, options(*)')
+          .eq('election_id', election.id)
+          .order('order_index', { ascending: true });
+
+        return {
+          ...election,
+          questions: questions || [],
+        };
+      })
+    );
+
+    return electionsWithDetails;
+  } catch (error) {
+    console.error('Error fetching example polls:', error);
+    return [];
+  }
+}
+
+export default async function HomePage() {
+  const examplePolls = await getExamplePolls();
   return (
     <main className="min-h-screen">
       {/* Hero Section */}
@@ -15,7 +58,7 @@ export default function HomePage() {
               <Badge variant="info" className="mb-4">Нова платформа</Badge>
             </div>
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent animate-pulse">
-              МОКТ Глас
+              Моят Глас
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-4">
               Създавайте и участвайте в избори и анкети
@@ -42,7 +85,7 @@ export default function HomePage() {
       {/* Features Section */}
       <div className="container mx-auto px-4 py-16 max-w-6xl">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Защо МОКТ Глас?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Защо Моят Глас?</h2>
           <p className="text-muted-foreground text-lg">
             Модерна платформа за демократично участие
           </p>
@@ -101,6 +144,55 @@ export default function HomePage() {
           </GlassCard>
         </div>
       </div>
+
+      {/* Example Polls Section */}
+      {examplePolls.length > 0 && (
+        <div className="container mx-auto px-4 py-16 max-w-7xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Примерни анкети</h2>
+            <p className="text-muted-foreground text-lg">
+              Опитайте нашата платформа с тези примерни анкети
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {examplePolls.map((poll) => (
+              <Link key={poll.id} href={`/vote/${poll.id}`}>
+                <GlassCard hover className="flex flex-col cursor-pointer group h-full">
+                  <GlassCardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <GlassCardTitle className="text-xl group-hover:text-primary transition-colors">
+                        {poll.title_bg || poll.title}
+                      </GlassCardTitle>
+                      <Badge variant="info">Пример</Badge>
+                    </div>
+                    <GlassCardDescription className="line-clamp-2">
+                      {poll.description_bg || poll.description}
+                    </GlassCardDescription>
+                  </GlassCardHeader>
+                  <GlassCardContent className="flex-grow">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">📊 Въпроси:</span>
+                        <span className="font-medium">{poll.questions?.length || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">📅 Край:</span>
+                        <span>{formatDateBG(poll.end_date)}</span>
+                      </div>
+                    </div>
+                  </GlassCardContent>
+                  <GlassCardFooter>
+                    <Button className="w-full gradient-primary text-white shadow-lg">
+                      Гласувай сега →
+                    </Button>
+                  </GlassCardFooter>
+                </GlassCard>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* CTA Section */}
       <div className="container mx-auto px-4 py-16 max-w-4xl">

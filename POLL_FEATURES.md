@@ -2,7 +2,7 @@
 
 ## Overview
 
-The МОКТ Глас app fully supports polls with **multiple questions** per election. Each election can have one or more questions, and each question can have multiple options.
+The Моят Глас app fully supports polls with **multiple questions** per election. Each election can have one or more questions, and each question can have multiple options.
 
 ---
 
