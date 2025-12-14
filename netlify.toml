@@ -7,9 +7,4 @@
 
 [build.environment]
   NODE_VERSION = "18"
-
-# Redirects for Next.js App Router
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  NPM_FLAGS = "--legacy-peer-deps"
