@@ -32,9 +32,17 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       existingScript.remove();
     }
 
-    // Check if we're on HTTPS or localhost
+    // Check if we're on localhost (which won't work with Telegram domain validation)
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const isHttps = window.location.protocol === 'https:';
+
+    // Telegram Login Widget requires a valid domain set in BotFather
+    // Localhost doesn't work - user needs to use ngrok or deploy to production
+    if (isLocalhost && !isHttps) {
+      // Don't load the widget on localhost - it will show "Bot domain invalid" error
+      // The login page already shows a warning message about this
+      return;
+    }
 
     // Create script element
     const script = document.createElement('script');
