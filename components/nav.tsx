@@ -13,8 +13,31 @@ export function Nav() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const telegramAuth = localStorage.getItem('telegram_auth');
-    setIsLoggedIn(!!telegramAuth);
+    const checkAuth = () => {
+      const telegramAuth = localStorage.getItem('telegram_auth');
+      setIsLoggedIn(!!telegramAuth);
+    };
+
+    // Check on mount
+    checkAuth();
+
+    // Listen for storage changes (when login happens in another tab/window)
+    window.addEventListener('storage', checkAuth);
+
+    // Listen for custom auth state change event (same window)
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+    window.addEventListener('auth-state-changed', handleAuthChange);
+
+    // Also check periodically in case localStorage was updated in same window
+    const interval = setInterval(checkAuth, 500);
+
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('auth-state-changed', handleAuthChange);
+      clearInterval(interval);
+    };
   }, []);
 
   const navItems = [

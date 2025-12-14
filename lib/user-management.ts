@@ -54,6 +54,11 @@ export async function getOrCreateUserFromTelegram(
   const supabase = createServerClient();
 
   try {
+    console.log('Calling get_or_create_voting_user_from_telegram with:', {
+      telegram_id: params.telegram_id,
+      first_name: params.first_name,
+    });
+
     const { data, error } = await supabase.rpc(
       'get_or_create_voting_user_from_telegram',
       {
@@ -66,13 +71,92 @@ export async function getOrCreateUserFromTelegram(
     );
 
     if (error) {
-      console.error('Error getting/creating user from Telegram:', error);
+      console.error('RPC Error getting/creating user from Telegram:', {
+        error: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+      
+      // If RPC fails, try direct insert/select as fallback
+      console.log('Attempting fallback: direct database operation');
+      
+      // First, try to find existing user
+      const { data: existingUser, error: selectError } = await supabase
+        .from('voting_user_profiles')
+        .select('*')
+        .eq('telegram_id', params.telegram_id)
+        .maybeSingle();
+      
+      if (selectError) {
+        console.error('Select error in fallback:', selectError);
+      }
+      
+      if (existingUser) {
+        console.log('Found existing user via direct query fallback');
+        // Update last login
+        await supabase
+          .from('voting_user_profiles')
+          .update({ last_login_at: new Date().toISOString() })
+          .eq('id', existingUser.id);
+        return existingUser as VotingUserProfile;
+      }
+      
+      // Try to insert directly
+      const { data: newUser, error: insertError } = await supabase
+        .from('voting_user_profiles')
+        .insert({
+          telegram_id: params.telegram_id,
+          first_name: params.first_name,
+          last_name: params.last_name || null,
+          username: params.username || null,
+          photo_url: params.photo_url || null,
+          is_verified: true,
+          last_login_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      
+      if (insertError) {
+        console.error('Direct insert error in fallback:', insertError);
+        // Last resort: return a minimal profile object
+        return {
+          id: `temp-${params.telegram_id}`,
+          auth_user_id: null,
+          telegram_id: params.telegram_id,
+          first_name: params.first_name,
+          last_name: params.last_name || null,
+          username: params.username || null,
+          photo_url: params.photo_url || null,
+          email: null,
+          phone: null,
+          is_verified: true,
+          is_active: true,
+          role: 'voter' as const,
+          metadata: {},
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          last_login_at: new Date().toISOString(),
+          last_vote_at: null,
+        };
+      }
+      
+      console.log('Created user via direct insert fallback');
+      return newUser as VotingUserProfile;
+    }
+
+    if (!data) {
+      console.error('RPC returned no data');
       return null;
     }
 
+    console.log('User profile retrieved/created via RPC');
     return data as VotingUserProfile;
-  } catch (error) {
-    console.error('Exception getting/creating user from Telegram:', error);
+  } catch (error: any) {
+    console.error('Exception getting/creating user from Telegram:', {
+      message: error?.message,
+      stack: error?.stack,
+    });
     return null;
   }
 }

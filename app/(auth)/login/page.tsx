@@ -36,16 +36,46 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        console.error('Auth verification failed:', result);
+        console.error('Auth verification failed:', {
+          status: response.status,
+          result,
+        });
         throw new Error(result.error || 'Неуспешна автентификация');
       }
 
+      if (!result.success || !result.user) {
+        console.error('Invalid response format:', result);
+        throw new Error('Невалиден отговор от сървъра');
+      }
+
       // Store auth data in localStorage
-      localStorage.setItem('telegram_auth', JSON.stringify(authData));
-      localStorage.setItem('telegram_id', result.user.telegramId.toString());
+      try {
+        localStorage.setItem('telegram_auth', JSON.stringify(authData));
+        localStorage.setItem('telegram_id', result.user.telegramId.toString());
+        localStorage.setItem('user_id', result.user.id);
+        localStorage.setItem('user_role', result.user.role || 'voter');
+        
+        console.log('Auth successful, stored in localStorage:', {
+          userId: result.user.id,
+          telegramId: result.user.telegramId,
+          role: result.user.role,
+        });
+      } catch (storageError) {
+        console.error('Failed to store in localStorage:', storageError);
+        throw new Error('Грешка при запазване на сесията');
+      }
+
+      // Trigger custom event to update nav in same window
+      window.dispatchEvent(new CustomEvent('auth-state-changed', { 
+        detail: { isLoggedIn: true } 
+      }));
+
+      // Small delay to ensure localStorage is set and nav updates
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       // Redirect to elections
       router.push('/elections');
+      router.refresh(); // Force refresh to update nav state
     } catch (err: any) {
       console.error('Auth error:', err);
       setError(err.message || 'Грешка при автентификация. Моля, опитайте отново.');

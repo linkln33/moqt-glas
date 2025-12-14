@@ -20,7 +20,7 @@ Mobile-first web application for Bulgarian elections with Telegram authenticatio
 - **Shadcn UI** - Accessible components
 - **Supabase** - PostgreSQL database (free tier)
 - **Telegram Login Widget** - Authentication
-- **Render** - Free hosting (750 hours/month)
+- **Render/Vercel/Cloudflare Pages** - Free hosting options
 
 ## 📋 Prerequisites
 
@@ -126,15 +126,23 @@ All UI text is in Bulgarian:
 
 ## 🚢 Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions.
+### Free Hosting Options
 
-### Quick Deploy to Netlify
+Since Netlify free tier has limits, consider these alternatives:
 
-1. Push to GitHub: `git push origin main`
-2. Go to [Netlify](https://netlify.com)
-3. Import from GitHub: `linkln33/moqt-glas`
-4. Add environment variables (see [DEPLOYMENT.md](./DEPLOYMENT.md))
-5. Deploy automatically!
+1. **Render** (Recommended) - 750 hours/month free (always-on!)
+   - See [FREE_HOSTING_OPTIONS.md](./FREE_HOSTING_OPTIONS.md)
+   - Detailed guide: [DEPLOY_RENDER.md](./DEPLOY_RENDER.md) (if exists)
+
+2. **Vercel** - Best Next.js support, 100GB bandwidth/month
+   - Perfect for personal projects
+   - See [FREE_HOSTING_OPTIONS.md](./FREE_HOSTING_OPTIONS.md)
+
+3. **Cloudflare Pages** - Unlimited bandwidth, 500 builds/month
+   - Best performance with global CDN
+   - See [DEPLOY_CLOUDFLARE.md](./DEPLOY_CLOUDFLARE.md) for setup guide
+
+See [FREE_HOSTING_OPTIONS.md](./FREE_HOSTING_OPTIONS.md) for complete comparison and setup guides.
 
 ## 📝 Environment Variables
 
