@@ -22,6 +22,7 @@ interface TelegramLoginProps {
 export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const errorCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const callbackCalledRef = useRef(false);
   const router = useRouter();
   const [domainError, setDomainError] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -36,12 +37,15 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
 
     // Define global callback FIRST, before loading script
     // This ensures it's available when Telegram calls it
-    (window as any).handleTelegramAuth = (user: TelegramAuthData) => {
+    // Use a wrapper to ensure we always have the latest onAuth reference
+    const callbackWrapper = (user: TelegramAuthData) => {
+      callbackCalledRef.current = true;
       console.log('🔵 Telegram auth callback received:', {
         id: user?.id,
         first_name: user?.first_name,
         hasHash: !!user?.hash,
         keys: user ? Object.keys(user) : [],
+        timestamp: new Date().toISOString(),
       });
       
       if (!user || !user.id || !user.hash) {
@@ -51,17 +55,46 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       }
       
       try {
+        console.log('🔵 Calling onAuth callback...', {
+          onAuthType: typeof onAuth,
+          onAuthExists: !!onAuth,
+        });
         setDomainError(false);
         if (errorCheckIntervalRef.current) {
           clearInterval(errorCheckIntervalRef.current);
           errorCheckIntervalRef.current = null;
         }
-        onAuth(user);
+        
+        // Call the onAuth prop - this should trigger handleTelegramAuth in login page
+        if (typeof onAuth === 'function') {
+          onAuth(user);
+          console.log('✅ onAuth callback completed');
+        } else {
+          console.error('❌ onAuth is not a function!', { onAuth });
+          setDomainError(true);
+        }
       } catch (error) {
         console.error('❌ Error in Telegram auth callback:', error);
+        console.error('Error details:', {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
         setDomainError(true);
       }
     };
+    
+    // Store the callback on window
+    (window as any).handleTelegramAuth = callbackWrapper;
+    
+    // Also store a reference to the latest onAuth in case it changes
+    (window as any).__latestTelegramOnAuth = onAuth;
+    
+    // Log that callback is set up
+    console.log('✅ Telegram callback registered:', {
+      callbackExists: !!(window as any).handleTelegramAuth,
+      botName,
+      onAuthType: typeof onAuth,
+    });
 
     // Clean up any existing script
     const existingScript = containerRef.current.querySelector('script');
@@ -97,6 +130,11 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
 
     script.onload = () => {
       console.log('✅ Telegram widget script loaded');
+      console.log('📋 Callback check:', {
+        callbackExists: !!(window as any).handleTelegramAuth,
+        callbackType: typeof (window as any).handleTelegramAuth,
+        botName,
+      });
       
       // Monitor for domain errors after script loads
       errorCheckIntervalRef.current = setInterval(() => {
@@ -113,6 +151,13 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
           }
         }
       }, 1000);
+      
+      // Also check if callback was called after a delay (for debugging)
+      setTimeout(() => {
+        if (!callbackCalledRef.current) {
+          console.warn('⚠️ Callback not called yet after 5 seconds. This might indicate the widget button was not clicked or there\'s an issue.');
+        }
+      }, 5000);
     };
 
     containerRef.current.appendChild(script);
@@ -125,10 +170,22 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       if (containerRef.current && script.parentNode) {
         script.parentNode.removeChild(script);
       }
+      // Update the callback to use latest onAuth before cleanup
+      if ((window as any).__latestTelegramOnAuth) {
+        (window as any).handleTelegramAuth = (user: TelegramAuthData) => {
+          const latestOnAuth = (window as any).__latestTelegramOnAuth;
+          if (latestOnAuth) {
+            latestOnAuth(user);
+          }
+        };
+      }
       // Keep callback for a bit in case Telegram is still processing
       setTimeout(() => {
         if ((window as any).handleTelegramAuth) {
           delete (window as any).handleTelegramAuth;
+        }
+        if ((window as any).__latestTelegramOnAuth) {
+          delete (window as any).__latestTelegramOnAuth;
         }
       }, 10000);
     };

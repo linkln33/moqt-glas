@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { TelegramLogin } from '@/components/telegram-login';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState<string>('');
 
-  const handleTelegramAuth = async (authData: any) => {
+  const handleTelegramAuth = useCallback(async (authData: any) => {
     console.log('handleTelegramAuth called with:', {
       hasData: !!authData,
       id: authData?.id,
@@ -158,8 +158,9 @@ export default function LoginPage() {
       setError(err.message || 'Грешка при автентификация. Моля, опитайте отново.');
     } finally {
       setLoading(false);
+      setLoadingStep('');
     }
-  };
+  }, [router]);
 
   const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME;
 
