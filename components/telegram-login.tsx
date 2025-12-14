@@ -204,15 +204,18 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
     }
 
     // Create script element
-    // IMPORTANT: Use the latest widget version and ensure callback name matches exactly
-    // Add cache-busting timestamp to force fresh load
+    // IMPORTANT: Use redirect method (data-auth-url) instead of callback (data-onauth)
+    // This works even when browsers block third-party cookies
     const cacheBuster = Date.now();
     const script = document.createElement('script');
     script.src = `https://telegram.org/js/telegram-widget.js?22&cb=${cacheBuster}`;
     script.setAttribute('data-telegram-login', botName);
     script.setAttribute('data-size', 'large');
-    // CRITICAL: data-onauth must match the EXACT function name on window object
-    script.setAttribute('data-onauth', 'handleTelegramAuth'); // Must match window.handleTelegramAuth exactly
+    // Use redirect method - more reliable than callback in modern browsers
+    const callbackUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}/api/auth/telegram/callback`
+      : '/api/auth/telegram/callback';
+    script.setAttribute('data-auth-url', callbackUrl);
     script.setAttribute('data-request-access', 'write');
     
     // Verify the attribute was set correctly

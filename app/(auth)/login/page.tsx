@@ -1,16 +1,106 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { TelegramLogin } from '@/components/telegram-login';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState<string>('');
+
+  // Handle redirect callback from Telegram (data-auth-url method)
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const userId = searchParams.get('userId');
+    const telegramId = searchParams.get('telegramId');
+    const errorParam = searchParams.get('error');
+
+    if (errorParam) {
+      setError(getErrorMessage(errorParam));
+      // Clean URL
+      router.replace('/login');
+      return;
+    }
+
+    if (success === 'true' && userId && telegramId) {
+      console.log('✅ Telegram auth successful via redirect:', { userId, telegramId });
+      setLoading(true);
+      setLoadingStep('Завършване на влизането...');
+
+      // Store session data
+      try {
+        const role = searchParams.get('role') || 'voter';
+        const firstName = searchParams.get('firstName') || '';
+        const lastName = searchParams.get('lastName') || '';
+        const username = searchParams.get('username') || '';
+
+        // Store auth data
+        localStorage.setItem('user_id', userId);
+        localStorage.setItem('telegram_id', telegramId);
+        localStorage.setItem('user_role', role);
+        
+        // Store user info for display
+        if (firstName) {
+          localStorage.setItem('user_first_name', firstName);
+        }
+        if (lastName) {
+          localStorage.setItem('user_last_name', lastName);
+        }
+        if (username) {
+          localStorage.setItem('user_username', username);
+        }
+
+        // Store full auth data for compatibility
+        const authData = {
+          id: parseInt(telegramId, 10),
+          first_name: firstName,
+          last_name: lastName || undefined,
+          username: username || undefined,
+          auth_date: Math.floor(Date.now() / 1000),
+          hash: 'redirect-auth', // Placeholder since we already verified
+        };
+        localStorage.setItem('telegram_auth', JSON.stringify(authData));
+        
+        console.log('✅ Session stored successfully');
+        
+        // Trigger custom event to update nav
+        window.dispatchEvent(new CustomEvent('auth-state-changed', { 
+          detail: { isLoggedIn: true } 
+        }));
+
+        // Small delay then redirect
+        setTimeout(() => {
+          router.push('/elections');
+        }, 500);
+      } catch (err) {
+        console.error('❌ Failed to store session:', err);
+        setError('Грешка при запазване на сесията');
+        router.replace('/login');
+      }
+    }
+  }, [searchParams, router]);
+
+  const getErrorMessage = (error: string): string => {
+    switch (error) {
+      case 'config':
+        return 'Грешка в конфигурацията. Моля, свържете се с администратора.';
+      case 'invalid':
+        return 'Невалидни данни от Telegram. Моля, опитайте отново.';
+      case 'auth':
+        return 'Неуспешна автентификация. Моля, опитайте отново.';
+      case 'user':
+        return 'Грешка при създаване на потребител. Моля, опитайте отново.';
+      case 'server':
+        return 'Сървърна грешка. Моля, опитайте по-късно.';
+      default:
+        return 'Възникна грешка. Моля, опитайте отново.';
+    }
+  };
 
   const handleTelegramAuth = useCallback(async (authData: any) => {
     console.log('🟢 ========================================');
@@ -329,5 +419,17 @@ TELEGRAM_BOT_TOKEN=your_bot_token`}
         </GlassCard>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
+        <div className="text-white">Зареждане...</div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 }
