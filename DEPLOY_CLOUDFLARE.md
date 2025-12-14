@@ -115,14 +115,15 @@ name = "moqt-glas"
    - Select repository: `linkln33/moqt-glas`
    - Click **"Begin setup"**
 
-4. **Configure Build Settings**
+4. **Configure Build Settings** ⚠️ **IMPORTANT**
    - **Project name**: `moqt-glas` (or your choice)
    - **Production branch**: `main`
-   - **Framework preset**: **Next.js (Static HTML Export)** or **None**
-   - **Build command**: 
+   - **Framework preset**: **None** (don't use auto-detection)
+   - **Build command**: ⚠️ **MUST SET THIS MANUALLY**
      ```
      npm install --legacy-peer-deps && npm run build && npm run build:cloudflare
      ```
+     **Note:** Cloudflare's auto-detection uses `npm clean-install` which doesn't respect `.npmrc`. You MUST set this build command manually!
    - **Build output directory**: `.vercel/output/static` (after adapter runs)
    - **Root directory**: `/` (leave empty)
 

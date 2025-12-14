@@ -11,6 +11,8 @@
     "build": "next build",
     "build:cloudflare": "npx @cloudflare/next-on-pages",
     "pages:build": "npm run build && npm run build:cloudflare",
+    "install:cloudflare": "npm install --legacy-peer-deps",
+    "postinstall": "echo 'Installation complete'",
     "start": "next start",
     "lint": "next lint",
     "create-poll": "tsx scripts/create-test-poll.ts",

@@ -10,6 +10,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingStep, setLoadingStep] = useState<string>('');
 
   const handleTelegramAuth = async (authData: any) => {
     console.log('handleTelegramAuth called with:', {
@@ -22,6 +23,7 @@ export default function LoginPage() {
 
     setLoading(true);
     setError(null);
+    setLoadingStep('Проверка на данните...');
 
     try {
       // Validate auth data structure
@@ -30,6 +32,7 @@ export default function LoginPage() {
         throw new Error('Невалидни данни от Telegram. Моля, опитайте отново.');
       }
 
+      setLoadingStep('Изпращане към сървъра...');
       console.log('Sending Telegram auth data to server:', {
         id: authData.id,
         first_name: authData.first_name,
@@ -38,26 +41,70 @@ export default function LoginPage() {
         auth_date: authData.auth_date,
       });
 
-      const response = await fetch('/api/auth/telegram/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(authData),
-      });
+      // Use absolute URL in production to avoid path issues
+      const apiUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/api/auth/telegram/verify`
+        : '/api/auth/telegram/verify';
 
-      const result = await response.json();
+      console.log('🌐 Fetching from:', apiUrl);
+
+      let response: Response;
+      try {
+        response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(authData),
+        });
+        console.log('📡 Response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries()),
+        });
+      } catch (networkError: any) {
+        console.error('❌ Network error:', networkError);
+        throw new Error(`Грешка при свързване със сървъра: ${networkError.message || 'Мрежова грешка'}`);
+      }
+
+      setLoadingStep('Обработка на отговора...');
+
+      // Check if response is ok before parsing JSON
+      let result;
+      try {
+        const text = await response.text();
+        console.log('Response text:', text.substring(0, 200));
+        result = JSON.parse(text);
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        throw new Error('Невалиден отговор от сървъра. Моля, опитайте отново.');
+      }
 
       if (!response.ok) {
-        console.error('Auth verification failed:', {
+        console.error('❌ Auth verification failed:', {
           status: response.status,
+          statusText: response.statusText,
           result,
         });
-        throw new Error(result.error || 'Неуспешна автентификация');
+        const errorMessage = result?.error || `Неуспешна автентификация (${response.status})`;
+        throw new Error(errorMessage);
       }
 
+      console.log('✅ Auth verification successful:', {
+        success: result.success,
+        hasUser: !!result.user,
+        userId: result.user?.id,
+      });
+
       if (!result.success || !result.user) {
-        console.error('Invalid response format:', result);
+        console.error('❌ Invalid response format:', {
+          result,
+          hasSuccess: 'success' in result,
+          hasUser: 'user' in result,
+        });
         throw new Error('Невалиден отговор от сървъра');
       }
+
+      setLoadingStep('Запазване на сесията...');
 
       // Store auth data in localStorage
       try {
@@ -66,15 +113,17 @@ export default function LoginPage() {
         localStorage.setItem('user_id', result.user.id);
         localStorage.setItem('user_role', result.user.role || 'voter');
         
-        console.log('Auth successful, stored in localStorage:', {
+        console.log('✅ Auth successful, stored in localStorage:', {
           userId: result.user.id,
           telegramId: result.user.telegramId,
           role: result.user.role,
         });
       } catch (storageError) {
-        console.error('Failed to store in localStorage:', storageError);
+        console.error('❌ Failed to store in localStorage:', storageError);
         throw new Error('Грешка при запазване на сесията');
       }
+
+      setLoadingStep('Актуализиране на навигацията...');
 
       // Trigger custom event to update nav in same window
       window.dispatchEvent(new CustomEvent('auth-state-changed', { 
@@ -84,9 +133,26 @@ export default function LoginPage() {
       // Small delay to ensure localStorage is set and nav updates
       await new Promise(resolve => setTimeout(resolve, 300));
 
+      setLoadingStep('Пренасочване...');
+      console.log('🔄 Redirecting to /elections...');
+      
       // Redirect to elections
-      router.push('/elections');
-      router.refresh(); // Force refresh to update nav state
+      try {
+        router.push('/elections');
+        router.refresh(); // Force refresh to update nav state
+        
+        // Also try window.location as fallback
+        setTimeout(() => {
+          if (window.location.pathname === '/login') {
+            console.warn('Router push may have failed, using window.location');
+            window.location.href = '/elections';
+          }
+        }, 1000);
+      } catch (redirectError) {
+        console.error('❌ Redirect error:', redirectError);
+        // Fallback to window.location
+        window.location.href = '/elections';
+      }
     } catch (err: any) {
       console.error('Auth error:', err);
       setError(err.message || 'Грешка при автентификация. Моля, опитайте отново.');
@@ -166,7 +232,10 @@ TELEGRAM_BOT_TOKEN=your_bot_token`}
             {loading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-                <p className="mt-4 text-white/80">Проверка на идентичността...</p>
+                <p className="mt-4 text-white/80">{loadingStep || 'Проверка на идентичността...'}</p>
+                {loadingStep && (
+                  <p className="mt-2 text-xs text-white/60">Моля изчакайте...</p>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center space-y-6">
