@@ -25,12 +25,43 @@
     --ring: 142 76% 36%;
     --radius: 0.75rem;
     
-    /* Glassmorphism colors */
+    /* Glassmorphism colors - dark mode */
     --glass-bg: 240 10% 3.9% / 0.8;
     --glass-border: 240 3.7% 15.9% / 0.5;
     --glass-shadow: 0 0% 0% / 0.1;
     
     /* Gradient colors */
+    --gradient-from: 142 76% 36%;
+    --gradient-to: 142 76% 45%;
+  }
+
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 142 76% 36%; /* Bulgarian green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 62.8% 30.6%; /* Bulgarian red */
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142 76% 36%;
+    
+    /* Glassmorphism colors - light mode */
+    --glass-bg: 255 255 255 / 0.8;
+    --glass-border: 240 5.9% 90% / 0.5;
+    --glass-shadow: 0 0% 0% / 0.05;
+    
+    /* Gradient colors - same for light mode */
     --gradient-from: 142 76% 36%;
     --gradient-to: 142 76% 45%;
   }
@@ -50,6 +81,14 @@
     -webkit-backdrop-filter: blur(10px);
   }
   
+  .light .glass {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: 0 8px 32px 0 hsl(var(--glass-shadow));
+  }
+  
   /* Gradient backgrounds */
   .gradient-primary {
     background: linear-gradient(135deg, hsl(var(--gradient-from)), hsl(var(--gradient-to)));
@@ -60,6 +99,14 @@
       hsl(240, 10%, 3.9%) 0%,
       hsl(240, 10%, 8%) 50%,
       hsl(240, 10%, 3.9%) 100%
+    );
+  }
+  
+  .light .gradient-bg {
+    background: linear-gradient(135deg, 
+      hsl(0, 0%, 100%) 0%,
+      hsl(240, 4.8%, 95.9%) 50%,
+      hsl(0, 0%, 100%) 100%
     );
   }
   
@@ -120,6 +167,14 @@
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  /* Light mode body background */
+  .light body {
+    background-image: 
+      radial-gradient(at 0% 0%, hsl(142, 76%, 36%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsl(200, 70%, 50%, 0.05) 0px, transparent 50%);
   }
 }
 

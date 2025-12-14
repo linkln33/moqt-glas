@@ -124,6 +124,20 @@ TELEGRAM_BOT_TOKEN=your_bot_token`}
                     className="w-full"
                   />
                 </div>
+                <div className="w-full bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                  <p className="text-xs text-yellow-300 font-semibold mb-2">⚠️ Домейн не е конфигуриран</p>
+                  <p className="text-xs text-yellow-200/80 mb-3">
+                    За да работи Telegram входа локално, трябва да:
+                  </p>
+                  <ol className="text-xs text-yellow-200/70 space-y-1.5 list-decimal list-inside mb-3">
+                    <li>Използвайте <strong>ngrok</strong> или подобен тунел за HTTPS</li>
+                    <li>Задайте домейна в <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a> с <code className="bg-yellow-500/20 px-1 rounded">/setdomain</code></li>
+                    <li>Или тествайте след като разгърнете в production</li>
+                  </ol>
+                  <p className="text-xs text-yellow-200/60">
+                    За production: Задайте домейна в BotFather след разгръщане.
+                  </p>
+                </div>
                 <p className="text-xs text-center text-white/60 px-4">
                   С натискане на бутона се съгласявате с условията за използване
                 </p>

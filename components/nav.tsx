@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useState, useEffect } from 'react';
 
 export function Nav() {
@@ -58,7 +59,8 @@ export function Nav() {
               ))}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             {isLoggedIn ? (
               <>
                 <Link href="/dashboard/create">

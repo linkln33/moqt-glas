@@ -19,33 +19,32 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholde
 // This allows the app to run and show UI even without database configured
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Server-side client with service role key
-export function createServerClient() {
+// Helper to check if Supabase server client is configured
+export function isServerClientConfigured(): boolean {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   
-  // Check if we have valid configuration (not placeholder values)
-  const isConfigured = !!(
+  return !!(
     url &&
     !url.includes('placeholder') &&
     url !== 'https://placeholder.supabase.co' &&
     serviceRoleKey &&
     serviceRoleKey !== 'placeholder-key'
   );
+}
+
+// Server-side client with service role key
+export function createServerClient() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  
+  // Check if we have valid configuration (not placeholder values)
+  const isConfigured = isServerClientConfigured();
   
   if (!isConfigured) {
-    // Return a client with placeholder values - will fail on actual DB operations
-    // but allows the app to render during build
-    return createClient(
-      'https://placeholder.supabase.co',
-      'placeholder-key',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
+    // Throw error to prevent network calls to placeholder URL
+    // This forces callers to check configuration first
+    throw new Error('Supabase is not configured. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
   }
   
   return createClient(url!, serviceRoleKey!, {
