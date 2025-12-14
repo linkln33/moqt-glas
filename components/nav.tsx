@@ -42,9 +42,8 @@ export function Nav() {
 
   const navItems = [
     { href: '/', label: 'Начало' },
-    { href: '/feed', label: 'Лента' },
+    { href: '/dashboard', label: 'Лента', requiresAuth: true },
     { href: '/elections', label: 'Избори' },
-    { href: '/dashboard', label: 'Табло', requiresAuth: true },
   ];
 
   return (

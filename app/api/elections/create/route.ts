@@ -22,6 +22,10 @@ export async function POST(request: NextRequest) {
       start_date,
       end_date,
       questions,
+      has_fundraising,
+      fundraising_goal,
+      fundraising_currency,
+      fundraising_description_bg,
     } = await request.json();
 
     // Verify Telegram authentication
@@ -56,6 +60,10 @@ export async function POST(request: NextRequest) {
         start_date,
         end_date,
         created_by: telegramId.toString(),
+        has_fundraising: has_fundraising || false,
+        fundraising_goal: has_fundraising && fundraising_goal ? parseFloat(fundraising_goal) : null,
+        fundraising_currency: has_fundraising ? (fundraising_currency || 'BGN') : null,
+        fundraising_description_bg: has_fundraising ? (fundraising_description_bg || null) : null,
       })
       .select()
       .single();

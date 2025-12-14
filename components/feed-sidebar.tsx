@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
-import { User, Settings, LogOut, Plus, BarChart3 } from 'lucide-react';
+import { User, Settings, LogOut, Plus, BarChart3, Home, List, CreditCard, TrendingUp } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 interface UserProfile {
   userId: string;
@@ -18,6 +19,7 @@ interface UserProfile {
 }
 
 export function FeedSidebar() {
+  const pathname = usePathname();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -136,33 +138,62 @@ export function FeedSidebar() {
               )}
             </div>
 
-            <div className="space-y-2 border-t border-border/50 pt-4">
+            <div className="space-y-1 border-t border-border/50 pt-4">
               <Link href="/dashboard" className="block">
-                <Button variant="ghost" className="w-full justify-start">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Табло
+                <Button 
+                  variant="ghost" 
+                  className={`w-full justify-start ${pathname === '/dashboard' ? 'bg-primary/10 text-primary' : ''}`}
+                >
+                  <Home className="w-4 h-4 mr-2" />
+                  Лента
+                </Button>
+              </Link>
+              <Link href="/elections" className="block">
+                <Button 
+                  variant="ghost" 
+                  className={`w-full justify-start ${pathname === '/elections' ? 'bg-primary/10 text-primary' : ''}`}
+                >
+                  <List className="w-4 h-4 mr-2" />
+                  Всички избори
                 </Button>
               </Link>
               <Link href="/dashboard/create" className="block">
-                <Button variant="ghost" className="w-full justify-start">
+                <Button 
+                  variant="ghost" 
+                  className={`w-full justify-start ${pathname === '/dashboard/create' ? 'bg-primary/10 text-primary' : ''}`}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Създай анкета
                 </Button>
               </Link>
-              <Link href="/dashboard/settings" className="block">
-                <Button variant="ghost" className="w-full justify-start">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Настройки
+              <Link href="/dashboard/statistics" className="block">
+                <Button 
+                  variant="ghost" 
+                  className={`w-full justify-start ${pathname === '/dashboard/statistics' ? 'bg-primary/10 text-primary' : ''}`}
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Статистики
                 </Button>
               </Link>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Излез
-              </Button>
+              <Link href="/dashboard/settings" className="block">
+                <Button 
+                  variant="ghost" 
+                  className={`w-full justify-start ${pathname === '/dashboard/settings' ? 'bg-primary/10 text-primary' : ''}`}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Настройки & Платежни данни
+                </Button>
+              </Link>
+              <div className="pt-2 border-t border-border/50 mt-2">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Излез
+                </Button>
+              </div>
             </div>
           </GlassCardContent>
         </GlassCard>

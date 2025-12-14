@@ -74,9 +74,9 @@ function LoginPageContent() {
         }));
 
         // Small delay then redirect to feed
-        setTimeout(() => {
-          router.push('/feed');
-        }, 500);
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 500);
       } catch (err) {
         console.error('❌ Failed to store session:', err);
         setError('Грешка при запазване на сесията');

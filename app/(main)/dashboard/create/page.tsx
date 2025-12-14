@@ -63,6 +63,10 @@ function CreatePollPageContent() {
     description_bg: string;
     start_date: string;
     end_date: string;
+    has_fundraising: boolean;
+    fundraising_goal: string;
+    fundraising_currency: string;
+    fundraising_description_bg: string;
     questions: Array<{
       question_text: string;
       question_text_bg: string;
@@ -76,6 +80,10 @@ function CreatePollPageContent() {
     description_bg: '',
     start_date: '',
     end_date: '',
+    has_fundraising: false,
+    fundraising_goal: '',
+    fundraising_currency: 'BGN',
+    fundraising_description_bg: '',
     questions: [
       {
         question_text: '',
@@ -214,8 +222,8 @@ function CreatePollPageContent() {
   };
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <div className="py-8">
+      <div className="max-w-4xl">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             Създай нова анкета
@@ -297,6 +305,61 @@ function CreatePollPageContent() {
                     onChange={(e) => handleInputChange('end_date', e.target.value)}
                   />
                 </div>
+              </div>
+
+              {/* Fundraising Section */}
+              <div className="space-y-4 p-4 border border-border/50 rounded-lg bg-background/30">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="has_fundraising"
+                    checked={formData.has_fundraising}
+                    onChange={(e) => handleInputChange('has_fundraising', e.target.checked)}
+                    className="w-4 h-4 rounded border-border"
+                  />
+                  <label htmlFor="has_fundraising" className="text-sm font-medium cursor-pointer">
+                    Активирай събиране на средства
+                  </label>
+                </div>
+
+                {formData.has_fundraising && (
+                  <div className="space-y-4 pl-6 border-l-2 border-primary/30">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Цел (сума) *</label>
+                        <Input
+                          type="number"
+                          placeholder="1000"
+                          min="1"
+                          step="0.01"
+                          value={formData.fundraising_goal}
+                          onChange={(e) => handleInputChange('fundraising_goal', e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Валута</label>
+                        <select
+                          value={formData.fundraising_currency}
+                          onChange={(e) => handleInputChange('fundraising_currency', e.target.value)}
+                          className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm"
+                        >
+                          <option value="BGN">BGN (Български лев)</option>
+                          <option value="EUR">EUR (Евро)</option>
+                          <option value="USD">USD (Долар)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Описание на кампанията</label>
+                      <Textarea
+                        placeholder="Опишете за какво се събират средствата..."
+                        rows={3}
+                        value={formData.fundraising_description_bg}
+                        onChange={(e) => handleInputChange('fundraising_description_bg', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-4">

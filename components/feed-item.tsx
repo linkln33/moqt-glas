@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDateBG, formatTimeBG } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils';
-import { Heart, MessageCircle, Share2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Coins } from 'lucide-react';
+import { DonationForm } from '@/components/donation-form';
 
 interface PollWithStats {
   id: string;
@@ -37,6 +38,10 @@ interface PollWithStats {
   commentsCount?: number;
   sharesCount?: number;
   isLiked?: boolean;
+  hasFundraising?: boolean;
+  fundraisingGoal?: number;
+  fundraisingCurrent?: number;
+  fundraisingCurrency?: string;
 }
 
 interface FeedItemProps {
@@ -51,6 +56,8 @@ export function FeedItem({ poll }: FeedItemProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [showDonationForm, setShowDonationForm] = useState(false);
+  const [fundraisingCurrent, setFundraisingCurrent] = useState(poll.fundraisingCurrent || 0);
 
   // Check if user has liked this poll on mount
   useEffect(() => {
@@ -268,6 +275,37 @@ export function FeedItem({ poll }: FeedItemProps) {
           </div>
         </div>
 
+        {/* Fundraising Section */}
+        {poll.hasFundraising && poll.fundraisingGoal && (
+          <div className="mb-4 p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Coins className="w-5 h-5 text-primary" />
+                <span className="font-semibold">Събиране на средства</span>
+              </div>
+              <span className="text-sm font-medium">
+                {fundraisingCurrent.toFixed(2)} {poll.fundraisingCurrency || 'BGN'} / {poll.fundraisingGoal.toFixed(2)} {poll.fundraisingCurrency || 'BGN'}
+              </span>
+            </div>
+            <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden mb-3">
+              <div
+                className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
+                style={{ 
+                  width: `${Math.min((fundraisingCurrent / poll.fundraisingGoal) * 100, 100)}%` 
+                }}
+              />
+            </div>
+            <Button
+              onClick={() => setShowDonationForm(true)}
+              className="w-full gradient-primary text-white shadow-lg"
+              size="sm"
+            >
+              <Heart className="w-4 h-4 mr-2" />
+              Подкрепи
+            </Button>
+          </div>
+        )}
+
         {/* Social Actions */}
         <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border/50">
           <Button
@@ -353,6 +391,28 @@ export function FeedItem({ poll }: FeedItemProps) {
           </Link>
         </div>
       </GlassCardContent>
+
+      {/* Donation Form Modal */}
+      {showDonationForm && (
+        <DonationForm
+          electionId={poll.id}
+          goal={poll.fundraisingGoal}
+          currentAmount={fundraisingCurrent}
+          currency={poll.fundraisingCurrency || 'BGN'}
+          onClose={() => setShowDonationForm(false)}
+          onSuccess={() => {
+            // Refresh fundraising amount after successful donation
+            fetch(`/api/elections/${poll.id}/fundraising`)
+              .then(res => res.json())
+              .then(data => {
+                if (data.totalRaised !== undefined) {
+                  setFundraisingCurrent(data.totalRaised);
+                }
+              })
+              .catch(console.error);
+          }}
+        />
+      )}
     </GlassCard>
   );
 }

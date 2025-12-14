@@ -33,6 +33,10 @@ interface PollWithStats {
   commentsCount?: number;
   sharesCount?: number;
   isLiked?: boolean;
+  hasFundraising?: boolean;
+  fundraisingGoal?: number;
+  fundraisingCurrent?: number;
+  fundraisingCurrency?: string;
 }
 
 async function getFeedPolls(): Promise<PollWithStats[]> {
@@ -94,6 +98,18 @@ async function getFeedPolls(): Promise<PollWithStats[]> {
           .select('*', { count: 'exact', head: true })
           .eq('election_id', election.id);
 
+        // Get fundraising stats if enabled
+        let fundraisingCurrent = 0;
+        if (election.has_fundraising) {
+          const { data: fundraisingStats } = await supabase
+            .from('election_fundraising_stats')
+            .select('total_raised')
+            .eq('election_id', election.id)
+            .single();
+          
+          fundraisingCurrent = parseFloat(fundraisingStats?.total_raised || 0);
+        }
+
         // Check if election is currently active
         const isActive = new Date(election.start_date) <= new Date(now) && 
                         new Date(election.end_date) >= new Date(now);
@@ -107,6 +123,10 @@ async function getFeedPolls(): Promise<PollWithStats[]> {
           commentsCount: commentsCount || 0,
           sharesCount: sharesCount || 0,
           isLiked: false, // Will be set client-side based on user
+          hasFundraising: election.has_fundraising || false,
+          fundraisingGoal: election.fundraising_goal ? parseFloat(election.fundraising_goal) : undefined,
+          fundraisingCurrent,
+          fundraisingCurrency: election.fundraising_currency || 'BGN',
         };
       })
     );

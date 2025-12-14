@@ -8,10 +8,10 @@ export function QuickNav() {
   const pathname = usePathname();
   
   const navItems = [
-    { href: '/dashboard', icon: Home, label: 'Начало' },
+    { href: '/dashboard', icon: Home, label: 'Лента' },
     { href: '/dashboard/create', icon: Plus, label: 'Създай' },
     { href: '/elections', icon: List, label: 'Избори' },
-    { href: '/dashboard/statistics', icon: BarChart3, label: 'Статистики' },
+    { href: '/dashboard/settings', icon: User, label: 'Профил' },
   ];
 
   return (
