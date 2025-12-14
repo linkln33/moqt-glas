@@ -6,6 +6,7 @@ interface PieChartData {
   name: string;
   value: number;
   id?: string;
+  [key: string]: string | number | undefined;
 }
 
 interface PieChartProps {
