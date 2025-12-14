@@ -71,17 +71,14 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent"></div>
         <div className="container mx-auto px-4 py-20 md:py-32 relative">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="mb-6">
-              <Badge variant="info" className="mb-4">Нова платформа</Badge>
-            </div>
             <div className="flex flex-col items-center justify-center mb-6">
               <div className="mb-6">
                 <Image 
                   src="/logo.svg" 
                   alt="Моят Глас" 
-                  width={300}
-                  height={300}
-                  className="object-contain mx-auto drop-shadow-2xl"
+                  width={400}
+                  height={400}
+                  className="object-contain mx-auto drop-shadow-2xl hero-logo"
                   priority
                 />
               </div>

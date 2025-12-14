@@ -25,7 +25,7 @@ export function Nav() {
   return (
     <nav className="sticky top-0 z-50 glass border-b border-border/50 backdrop-blur-xl">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-12">
           <Link href="/" className="flex items-center gap-2">
             <Image 
               src="/logo.svg" 

@@ -155,4 +155,14 @@
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+  
+  /* Bulgarian flag colors for logo shield */
+  .logo-shield {
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+  }
+  
+  /* Hero logo styling */
+  .hero-logo {
+    filter: drop-shadow(0 10px 30px rgba(0, 150, 110, 0.3));
+  }
 }

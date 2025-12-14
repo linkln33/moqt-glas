@@ -151,21 +151,10 @@ NEXT_PUBLIC_APP_URL=https://your-domain.com
 
 ## 📚 Documentation
 
-### Essential Guides
-- [Setup Guide](./SETUP.md) - Complete setup instructions
+- [Setup Guide](./SETUP.md) - Complete setup instructions including Telegram integration
 - [Deployment Guide](./DEPLOYMENT.md) - Deploy to Netlify
-- [Creating Polls](./CREATE_POLLS.md) - How to create polls and example elections
-- [User System Setup](./USER_SYSTEM_SETUP.md) - User management system
-
-### Reference
-- [Tech Stack Recommendation](./TECH_STACK_RECOMMENDATION.md) - Technology choices
-- [Implementation Plan](./IMPLEMENTATION_PLAN.md) - Development phases
-- [Poll Features](./POLL_FEATURES.md) - Multiple questions support
-
-### Research & Planning
-- [Voting App Research](./voting-app-research.md)
-- [Telegram Auth Brainstorm](./telegram-auth-brainstorm.md)
-- [Free Anti-Fraud Solution](./free-anti-fraud-solution.md)
+- [Features Guide](./FEATURES.md) - Poll creation, features, and future enhancements
+- [Research & Analysis](./RESEARCH.md) - Authentication, anti-fraud, and platform research
 
 ## 🐛 Troubleshooting
 
