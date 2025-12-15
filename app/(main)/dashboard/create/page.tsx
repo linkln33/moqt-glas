@@ -988,10 +988,12 @@ function CreatePollPageContent() {
       <div className="w-full max-w-4xl mx-auto">
         <div className="mb-6 lg:mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-            Създай нова анкета
+            {editingElectionId ? 'Редактирай анкета' : 'Създай нова анкета'}
           </h1>
           <p className="text-muted-foreground">
-            Следвайте стъпките, за да създадете вашата анкета
+            {editingElectionId 
+              ? 'Редактирайте детайлите на вашата анкета'
+              : 'Следвайте стъпките, за да създадете вашата анкета'}
           </p>
         </div>
 
