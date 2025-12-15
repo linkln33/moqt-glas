@@ -255,7 +255,14 @@ export function FeedItem({ poll }: FeedItemProps) {
     }
 
     if (!mountedRef.current) return;
-    setSubmittingVote(true);
+    
+    // Use setTimeout to ensure state updates happen after render
+    setTimeout(() => {
+      if (mountedRef.current) {
+        setSubmittingVote(true);
+      }
+    }, 0);
+
     try {
       const behavior = behaviorTracker?.getBehavior();
 
@@ -286,25 +293,29 @@ export function FeedItem({ poll }: FeedItemProps) {
           }),
         });
 
-        const result = await response.json();
-
         if (!response.ok) {
+          const result = await response.json().catch(() => ({ error: 'Грешка при подаване на глас' }));
           throw new Error(result.error || 'Грешка при подаване на глас');
         }
       }
 
-      // Success - show results
-      if (mountedRef.current) {
-        setHasVoted(true);
-        setShowResults(true);
-        await loadResults();
-      }
+      // Success - show results (use setTimeout to avoid hydration errors)
+      setTimeout(async () => {
+        if (mountedRef.current) {
+          setHasVoted(true);
+          setShowResults(true);
+          await loadResults();
+        }
+      }, 0);
     } catch (err: any) {
+      console.error('Vote submission error:', err);
       alert(err.message || 'Грешка при подаване на глас');
     } finally {
-      if (mountedRef.current) {
-        setSubmittingVote(false);
-      }
+      setTimeout(() => {
+        if (mountedRef.current) {
+          setSubmittingVote(false);
+        }
+      }, 0);
     }
   };
 
