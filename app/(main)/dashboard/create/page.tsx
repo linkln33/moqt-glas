@@ -67,6 +67,7 @@ function CreatePollPageContent() {
     fundraising_goal: string;
     fundraising_currency: string;
     fundraising_description_bg: string;
+    fundraising_end_date: string;
     questions: Array<{
       question_text: string;
       question_text_bg: string;
@@ -84,6 +85,7 @@ function CreatePollPageContent() {
     fundraising_goal: '',
     fundraising_currency: 'BGN',
     fundraising_description_bg: '',
+    fundraising_end_date: '',
     questions: [
       {
         question_text: '',
@@ -198,12 +200,20 @@ function CreatePollPageContent() {
     try {
       const telegramAuth = JSON.parse(localStorage.getItem('telegram_auth') || '{}');
       
+      // Prepare form data - use end_date for fundraising_end_date if not set
+      const submitData = {
+        ...formData,
+        fundraising_end_date: formData.has_fundraising && formData.fundraising_end_date 
+          ? formData.fundraising_end_date 
+          : formData.end_date,
+      };
+      
       const response = await fetch('/api/elections/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telegramAuth,
-          ...formData,
+          ...submitData,
         }),
       });
 
@@ -307,41 +317,64 @@ function CreatePollPageContent() {
                 </div>
               </div>
 
-              {/* Fundraising Section */}
-              <div className="space-y-4 p-4 border border-border/50 rounded-lg bg-background/30">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="has_fundraising"
-                    checked={formData.has_fundraising}
-                    onChange={(e) => handleInputChange('has_fundraising', e.target.checked)}
-                    className="w-4 h-4 rounded border-border"
-                  />
-                  <label htmlFor="has_fundraising" className="text-sm font-medium cursor-pointer">
-                    Активирай събиране на средства
-                  </label>
-                </div>
+              {/* Fundraising Card */}
+              <GlassCard className="border-primary/20">
+                <GlassCardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <GlassCardTitle className="flex items-center gap-2">
+                        <span>💰</span>
+                        Събиране на средства
+                      </GlassCardTitle>
+                      <GlassCardDescription className="mt-1">
+                        Активирайте събиране на средства за вашата анкета
+                      </GlassCardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="has_fundraising"
+                        checked={formData.has_fundraising}
+                        onChange={(e) => handleInputChange('has_fundraising', e.target.checked)}
+                        className="w-5 h-5 rounded border-border accent-primary cursor-pointer"
+                      />
+                      <label htmlFor="has_fundraising" className="text-sm font-medium cursor-pointer">
+                        Активирай
+                      </label>
+                    </div>
+                  </div>
+                </GlassCardHeader>
 
                 {formData.has_fundraising && (
-                  <div className="space-y-4 pl-6 border-l-2 border-primary/30">
+                  <GlassCardContent className="space-y-4 pt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Цел (сума) *</label>
+                        <label htmlFor="fundraising_goal" className="text-sm font-medium flex items-center gap-2">
+                          Цел (сума) <span className="text-destructive">*</span>
+                        </label>
                         <Input
+                          id="fundraising_goal"
                           type="number"
                           placeholder="1000"
                           min="1"
                           step="0.01"
                           value={formData.fundraising_goal}
                           onChange={(e) => handleInputChange('fundraising_goal', e.target.value)}
+                          className="w-full"
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Минимална сума: 1 {formData.fundraising_currency || 'BGN'}
+                        </p>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Валута</label>
+                        <label htmlFor="fundraising_currency" className="text-sm font-medium">
+                          Валута
+                        </label>
                         <select
+                          id="fundraising_currency"
                           value={formData.fundraising_currency}
                           onChange={(e) => handleInputChange('fundraising_currency', e.target.value)}
-                          className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm"
+                          className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <option value="BGN">BGN (Български лев)</option>
                           <option value="EUR">EUR (Евро)</option>
@@ -349,18 +382,88 @@ function CreatePollPageContent() {
                         </select>
                       </div>
                     </div>
+
+                    {/* Fundraising Timeframe */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Описание на кампанията</label>
+                      <label htmlFor="fundraising_end_date" className="text-sm font-medium">
+                        Крайна дата за събиране на средства
+                      </label>
+                      <Input
+                        id="fundraising_end_date"
+                        type="datetime-local"
+                        value={formData.fundraising_end_date || formData.end_date}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleInputChange('fundraising_end_date', value || formData.end_date);
+                        }}
+                        min={formData.start_date || undefined}
+                        max={formData.end_date || undefined}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {formData.end_date 
+                          ? `По подразбиране: Крайна дата на анкетата (${new Date(formData.end_date).toLocaleDateString('bg-BG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })})`
+                          : 'Моля, задайте първо крайна дата на анкетата'}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="fundraising_description_bg" className="text-sm font-medium">
+                        Описание на кампанията
+                      </label>
                       <Textarea
-                        placeholder="Опишете за какво се събират средствата..."
-                        rows={3}
+                        id="fundraising_description_bg"
+                        placeholder="Опишете за какво се събират средствата, как ще бъдат използвани и защо е важна подкрепата..."
+                        rows={4}
                         value={formData.fundraising_description_bg}
                         onChange={(e) => handleInputChange('fundraising_description_bg', e.target.value)}
+                        maxLength={500}
                       />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Максимум 500 символа</span>
+                        <span>{formData.fundraising_description_bg.length}/500</span>
+                      </div>
                     </div>
-                  </div>
+
+                    {formData.fundraising_goal && parseFloat(formData.fundraising_goal) > 0 && (
+                      <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-foreground">Цел:</span>
+                          <span className="text-lg font-bold text-primary">
+                            {parseFloat(formData.fundraising_goal || '0').toLocaleString('bg-BG', { 
+                              minimumFractionDigits: 2, 
+                              maximumFractionDigits: 2 
+                            })} {formData.fundraising_currency || 'BGN'}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-300"
+                            style={{ width: '0%' }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Прогресът ще се показва автоматично след първото дарение
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <div className="flex items-start gap-2">
+                        <span className="text-amber-500 text-sm">💡</span>
+                        <div className="text-xs text-amber-500">
+                          <p className="font-semibold mb-1">Важно:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            <li>Моля, добавете платежните си данни в Настройки преди да активирате събиране на средства</li>
+                            <li>Средствата ще бъдат налични за изтегляне след приключване на анкетата</li>
+                            <li>Всички дарения са финални и не подлежат на възстановяване</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </GlassCardContent>
                 )}
-              </div>
+              </GlassCard>
 
               <div className="flex gap-4">
                 <Button onClick={() => router.push('/dashboard')} variant="outline">
