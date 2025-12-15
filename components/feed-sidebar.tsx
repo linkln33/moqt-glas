@@ -148,7 +148,8 @@ export function FeedSidebar() {
                   variant="ghost" 
                   className={`w-full justify-start ${
                     pathname === '/dashboard' || 
-                    (pathname?.startsWith('/dashboard') && 
+                    (pathname && 
+                     pathname.startsWith('/dashboard') && 
                      pathname !== '/dashboard/create' && 
                      pathname !== '/dashboard/settings' && 
                      pathname !== '/dashboard/statistics' && 
