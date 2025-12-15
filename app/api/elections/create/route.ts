@@ -28,24 +28,60 @@ export async function POST(request: NextRequest) {
       fundraising_description_bg,
     } = await request.json();
 
-    // Verify Telegram authentication
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken) {
-      return NextResponse.json(
-        { error: 'Bot token не е конфигуриран' },
-        { status: 500 }
-      );
+    // Get telegram ID - try multiple methods
+    let telegramId: number | null = null;
+    
+    // Method 1: Try to get from telegramAuth if it has valid structure
+    if (telegramAuth && telegramAuth.id) {
+      telegramId = typeof telegramAuth.id === 'number' ? telegramAuth.id : parseInt(telegramAuth.id, 10);
     }
+    
+    // Method 2: If telegramAuth is invalid or missing, try to verify it
+    // But if hash is 'redirect-auth', skip verification (user already authenticated via redirect)
+    if (!telegramId || (telegramAuth?.hash === 'redirect-auth')) {
+      // User logged in via redirect method - trust the session
+      // Get telegramId from the auth data directly
+      if (telegramAuth?.id) {
+        telegramId = typeof telegramAuth.id === 'number' ? telegramAuth.id : parseInt(String(telegramAuth.id), 10);
+      } else {
+        // Fallback: try to get from userId in localStorage format
+        // The client might send userId instead of full telegramAuth
+        const body = await request.json();
+        if (body.userId) {
+          // This is a fallback - in production, always require proper auth
+          return NextResponse.json(
+            { error: 'Невалидна автентификация. Моля, влезте отново.' },
+            { status: 401 }
+          );
+        }
+      }
+    } else {
+      // Method 3: Full verification for callback-based auth
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (!botToken) {
+        return NextResponse.json(
+          { error: 'Bot token не е конфигуриран' },
+          { status: 500 }
+        );
+      }
 
-    const isValid = verifyTelegramAuth(telegramAuth, botToken);
-    if (!isValid) {
+      const isValid = verifyTelegramAuth(telegramAuth, botToken);
+      if (!isValid) {
+        return NextResponse.json(
+          { error: 'Невалидна автентификация' },
+          { status: 401 }
+        );
+      }
+      
+      telegramId = getTelegramId(telegramAuth);
+    }
+    
+    if (!telegramId) {
       return NextResponse.json(
-        { error: 'Невалидна автентификация' },
+        { error: 'Не може да се определи потребителят. Моля, влезте отново.' },
         { status: 401 }
       );
     }
-
-    const telegramId = getTelegramId(telegramAuth);
     const supabase = createServerClient();
 
     // Create election

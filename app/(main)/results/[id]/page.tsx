@@ -107,7 +107,7 @@ export default async function ResultsPage({
             <GlassCardContent className="py-16 text-center">
               <div className="text-6xl mb-4">🔍</div>
               <p className="text-xl text-muted-foreground mb-6">Изборите не са намерени</p>
-              <Link href="/elections">
+              <Link href="/dashboard/elections">
                 <Button className="gradient-primary">Назад към изборите</Button>
               </Link>
             </GlassCardContent>
@@ -210,7 +210,7 @@ export default async function ResultsPage({
         </div>
 
         <div className="mt-8 flex gap-4">
-          <Link href="/elections" className="flex-1">
+          <Link href="/dashboard/elections" className="flex-1">
             <Button variant="outline" className="w-full glass">
               ← Назад към изборите
             </Button>

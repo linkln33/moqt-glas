@@ -36,13 +36,11 @@ export function ElectionsClientPage({ elections: initialElections }: ElectionsCl
   ).length;
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="container mx-auto px-4 max-w-7xl">
-        <div className="mb-12 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-            Избори и анкети
-          </h1>
-          <p className="text-lg text-muted-foreground">
+    <div className="py-8">
+      <div className="max-w-7xl">
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Избори и анкети</h1>
+          <p className="text-muted-foreground">
             Изберете избори, в които да участвате
           </p>
         </div>

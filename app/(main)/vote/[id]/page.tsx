@@ -222,7 +222,7 @@ export default function VotePage() {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-red-600">{error}</p>
-            <Button onClick={() => router.push('/elections')} className="mt-4">
+            <Button onClick={() => router.push('/dashboard/elections')} className="mt-4">
               Назад към изборите
             </Button>
           </CardContent>
@@ -250,7 +250,7 @@ export default function VotePage() {
             <p className="text-sm text-gray-500 mb-4">
               Начало: {formatDateBG(startDate)} {formatTimeBG(startDate)}
             </p>
-            <Button onClick={() => router.push('/elections')}>
+            <Button onClick={() => router.push('/dashboard/elections')}>
               Назад към изборите
             </Button>
           </CardContent>
@@ -488,7 +488,7 @@ export default function VotePage() {
               </Button>
             </div>
             <Button
-              onClick={() => router.push('/elections')}
+              onClick={() => router.push('/dashboard/elections')}
               variant="ghost"
               className="w-full"
             >

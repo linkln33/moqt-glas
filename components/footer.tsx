@@ -6,7 +6,7 @@ export function Footer() {
 
   const footerLinks = {
     platform: [
-      { href: '/elections', label: 'Избори' },
+      { href: '/dashboard/elections', label: 'Избори' },
       { href: '/dashboard', label: 'Табло' },
       { href: '/dashboard/create', label: 'Създай избор' },
     ],

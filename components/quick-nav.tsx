@@ -10,7 +10,7 @@ export function QuickNav() {
   const navItems = [
     { href: '/dashboard', icon: Home, label: 'Лента' },
     { href: '/dashboard/create', icon: Plus, label: 'Създай' },
-    { href: '/elections', icon: List, label: 'Избори' },
+    { href: '/dashboard/elections', icon: List, label: 'Избори' },
     { href: '/dashboard/settings', icon: User, label: 'Профил' },
   ];
 

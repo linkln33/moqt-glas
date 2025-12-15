@@ -98,7 +98,7 @@ export default async function HomePage() {
                   🚀 Започни сега
                 </Button>
               </Link>
-              <Link href="/elections">
+              <Link href="/dashboard/elections">
                 <Button size="lg" variant="outline" className="glass border-primary/50 text-lg px-8 py-6">
                   Виж изборите
                 </Button>
@@ -348,7 +348,7 @@ export default async function HomePage() {
                     Създай първата анкета
                   </Button>
                 </Link>
-                <Link href="/elections">
+                <Link href="/dashboard/elections">
                   <Button variant="outline" className="glass">
                     Виж всички избори
                   </Button>
