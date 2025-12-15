@@ -7,9 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { formatDateBG, formatTimeBG } from '@/lib/utils';
 import { formatRelativeTime, isElectionActive, hasElectionEnded } from '@/lib/utils';
 import { Heart, MessageCircle, Share2, Coins, CheckCircle2 } from 'lucide-react';
-import { DonationForm } from '@/components/donation-form';
 import { useDeviceFingerprint } from '@/lib/device-fingerprint';
 import { trackUserBehavior } from '@/lib/behavioral-analysis';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 interface PollWithStats {
   id: string;
@@ -70,8 +72,16 @@ export function FeedItem({ poll }: FeedItemProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const [showDonationForm, setShowDonationForm] = useState(false);
   const [fundraisingCurrent, setFundraisingCurrent] = useState(poll.fundraisingCurrent || 0);
+  const [donationAmount, setDonationAmount] = useState<number | ''>('');
+  const [customDonationAmount, setCustomDonationAmount] = useState('');
+  const [donorName, setDonorName] = useState('');
+  const [donorMessage, setDonorMessage] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [submittingDonation, setSubmittingDonation] = useState(false);
+  const [donationError, setDonationError] = useState('');
+
+  const presetAmounts = [10, 25, 50, 100, 250, 500];
   
   // Voting state
   const [hasVoted, setHasVoted] = useState(false);
@@ -454,6 +464,94 @@ export function FeedItem({ poll }: FeedItemProps) {
     }
   };
 
+  const handlePresetDonation = (preset: number) => {
+    if (!mountedRef.current) return;
+    setDonationAmount(preset);
+    setCustomDonationAmount('');
+  };
+
+  const handleCustomDonation = (value: string) => {
+    if (!mountedRef.current) return;
+    setCustomDonationAmount(value);
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      setDonationAmount(numValue);
+    } else {
+      setDonationAmount('');
+    }
+  };
+
+  const handleDonationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submittingDonation || !mountedRef.current) return;
+
+    const finalAmount = donationAmount;
+    if (!finalAmount || finalAmount <= 0) {
+      setDonationError('Моля, въведете сума за дарение');
+      return;
+    }
+
+    setSubmittingDonation(true);
+    setDonationError('');
+
+    try {
+      const authData = localStorage.getItem('telegram_auth');
+      if (!authData) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const parsed = JSON.parse(authData);
+      const telegramId = parsed.telegramId || parsed.id;
+      
+      const response = await fetch(`/api/elections/${poll.id}/donate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegramId,
+          amount: finalAmount,
+          currency: poll.fundraisingCurrency || 'BGN',
+          donorName: isAnonymous ? '' : (donorName || parsed.first_name || 'Анонимен'),
+          donorMessage: donorMessage.trim() || null,
+          isAnonymous,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Грешка при обработка на дарението');
+      }
+
+      // Success - refresh fundraising amount
+      if (mountedRef.current) {
+        const fundraisingRes = await fetch(`/api/elections/${poll.id}/fundraising`);
+        if (fundraisingRes.ok) {
+          const fundraisingData = await fundraisingRes.json();
+          if (fundraisingData.totalRaised !== undefined) {
+            setFundraisingCurrent(fundraisingData.totalRaised);
+          }
+        }
+        
+        // Reset form
+        setDonationAmount('');
+        setCustomDonationAmount('');
+        setDonorName('');
+        setDonorMessage('');
+        setIsAnonymous(false);
+        setDonationError('');
+      }
+    } catch (err: any) {
+      if (mountedRef.current) {
+        setDonationError(err.message || 'Грешка при обработка на дарението');
+      }
+    } finally {
+      if (mountedRef.current) {
+        setSubmittingDonation(false);
+      }
+    }
+  };
+
   const isActive = isElectionActive(new Date(poll.start_date), new Date(poll.end_date));
   const isEnded = hasElectionEnded(new Date(poll.end_date));
 
@@ -660,10 +758,10 @@ export function FeedItem({ poll }: FeedItemProps) {
           </div>
         </div>
 
-        {/* Fundraising Section */}
+        {/* Fundraising Section - Integrated directly in card */}
         {poll.hasFundraising && poll.fundraisingGoal && (
-          <div className="mb-4 p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
-            <div className="flex items-center justify-between mb-3">
+          <div className="mb-6 space-y-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Coins className="w-5 h-5 text-primary" />
                 <span className="font-semibold">Събиране на средства</span>
@@ -672,7 +770,7 @@ export function FeedItem({ poll }: FeedItemProps) {
                 {fundraisingCurrent.toFixed(2)} {poll.fundraisingCurrency || 'BGN'} / {poll.fundraisingGoal.toFixed(2)} {poll.fundraisingCurrency || 'BGN'}
               </span>
             </div>
-            <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden mb-3">
+            <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
                 style={{ 
@@ -680,18 +778,115 @@ export function FeedItem({ poll }: FeedItemProps) {
                 }}
               />
             </div>
-            <Button
-              onClick={() => {
-                if (mountedRef.current) {
-                  setShowDonationForm(true);
-                }
-              }}
-              className="w-full gradient-primary text-white shadow-lg"
-              size="sm"
-            >
-              <Heart className="w-4 h-4 mr-2" />
-              Подкрепи
-            </Button>
+            <div className="text-xs text-muted-foreground">
+              {((fundraisingCurrent / poll.fundraisingGoal) * 100).toFixed(1)}% от целта
+            </div>
+
+            {/* Donation Form - Directly integrated */}
+            <form onSubmit={handleDonationSubmit} className="space-y-4 pt-4 border-t border-border/30">
+              {/* Preset Amounts */}
+              <div>
+                <Label className="mb-2 block text-sm">Изберете сума</Label>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {presetAmounts.map((preset) => (
+                    <Button
+                      key={preset}
+                      type="button"
+                      variant={donationAmount === preset ? 'default' : 'outline'}
+                      className={donationAmount === preset ? 'gradient-primary text-white' : ''}
+                      onClick={() => handlePresetDonation(preset)}
+                      size="sm"
+                    >
+                      {preset} {poll.fundraisingCurrency || 'BGN'}
+                    </Button>
+                  ))}
+                </div>
+                <Input
+                  type="number"
+                  placeholder="Или въведете друга сума"
+                  value={customDonationAmount}
+                  onChange={(e) => handleCustomDonation(e.target.value)}
+                  min="1"
+                  step="0.01"
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Donor Name */}
+              {!isAnonymous && (
+                <div>
+                  <Label htmlFor="donorName" className="text-sm">Вашето име (по избор)</Label>
+                  <Input
+                    id="donorName"
+                    value={donorName}
+                    onChange={(e) => {
+                      if (mountedRef.current) {
+                        setDonorName(e.target.value);
+                      }
+                    }}
+                    placeholder="Как искате да се покажете"
+                    className="mt-1"
+                  />
+                </div>
+              )}
+
+              {/* Message */}
+              <div>
+                <Label htmlFor="donorMessage" className="text-sm">Съобщение (по избор)</Label>
+                <Textarea
+                  id="donorMessage"
+                  value={donorMessage}
+                  onChange={(e) => {
+                    if (mountedRef.current) {
+                      setDonorMessage(e.target.value);
+                    }
+                  }}
+                  placeholder="Напишете съобщение за подкрепа..."
+                  rows={3}
+                  maxLength={200}
+                  className="mt-1"
+                />
+                <div className="text-xs text-muted-foreground mt-1 text-right">
+                  {donorMessage.length}/200
+                </div>
+              </div>
+
+              {/* Anonymous Checkbox */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isAnonymous"
+                  checked={isAnonymous}
+                  onChange={(e) => {
+                    if (mountedRef.current) {
+                      setIsAnonymous(e.target.checked);
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-border"
+                />
+                <Label htmlFor="isAnonymous" className="text-sm cursor-pointer">
+                  Анонимно дарение
+                </Label>
+              </div>
+
+              {donationError && (
+                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                  {donationError}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full gradient-primary text-white shadow-lg"
+                disabled={!donationAmount || donationAmount <= 0 || submittingDonation}
+              >
+                {submittingDonation ? 'Обработване...' : `Дари ${donationAmount} ${poll.fundraisingCurrency || 'BGN'}`}
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                * Плащането ще бъде обработено чрез сигурен платежен шлюз
+              </p>
+            </form>
           </div>
         )}
 
@@ -772,31 +967,6 @@ export function FeedItem({ poll }: FeedItemProps) {
         )}
 
       </GlassCardContent>
-
-      {/* Donation Form Modal */}
-      {showDonationForm && (
-        <DonationForm
-          electionId={poll.id}
-          goal={poll.fundraisingGoal}
-          currentAmount={fundraisingCurrent}
-          currency={poll.fundraisingCurrency || 'BGN'}
-          onClose={() => {
-            if (mountedRef.current) {
-              setShowDonationForm(false);
-            }
-          }}
-          onSuccess={() => {
-            fetch(`/api/elections/${poll.id}/fundraising`)
-              .then(res => res.json())
-              .then(data => {
-                if (data.totalRaised !== undefined && mountedRef.current) {
-                  setFundraisingCurrent(data.totalRaised);
-                }
-              })
-              .catch(console.error);
-          }}
-        />
-      )}
     </GlassCard>
   );
 }
