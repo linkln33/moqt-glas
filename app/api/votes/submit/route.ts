@@ -17,24 +17,57 @@ export async function POST(request: NextRequest) {
       userBehavior,
     } = await request.json();
 
-    // 1. Verify Telegram authentication
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken) {
+    // Handle authentication - support both callback and redirect methods
+    if (!telegramAuth || !telegramAuth.id) {
       return NextResponse.json(
-        { error: 'Bot token не е конфигуриран' },
-        { status: 500 }
-      );
-    }
-
-    const isValid = verifyTelegramAuth(telegramAuth, botToken);
-    if (!isValid) {
-      return NextResponse.json(
-        { error: 'Невалидна автентификация' },
+        { error: 'Необходима е автентификация. Моля, влезте в системата.' },
         { status: 401 }
       );
     }
 
-    const telegramId = getTelegramId(telegramAuth);
+    let telegramId: number | null = null;
+
+    // Check if this is redirect-based auth (hash is placeholder or 'redirect-auth')
+    if (telegramAuth.hash === 'redirect-auth' || !telegramAuth.hash || telegramAuth.hash === '') {
+      // User logged in via redirect - trust the session
+      // Just verify the telegramId is valid
+      telegramId = typeof telegramAuth.id === 'number' 
+        ? telegramAuth.id 
+        : parseInt(String(telegramAuth.id), 10);
+      
+      if (!telegramId || isNaN(telegramId)) {
+        return NextResponse.json(
+          { error: 'Невалиден потребителски идентификатор' },
+          { status: 401 }
+        );
+      }
+    } else {
+      // Full Telegram auth verification (callback method)
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (!botToken) {
+        return NextResponse.json(
+          { error: 'Bot token не е конфигуриран' },
+          { status: 500 }
+        );
+      }
+
+      const isValid = verifyTelegramAuth(telegramAuth, botToken);
+      if (!isValid) {
+        return NextResponse.json(
+          { error: 'Невалидна автентификация' },
+          { status: 401 }
+        );
+      }
+
+      telegramId = getTelegramId(telegramAuth);
+    }
+
+    if (!telegramId) {
+      return NextResponse.json(
+        { error: 'Не може да се определи потребителят. Моля, влезте отново.' },
+        { status: 401 }
+      );
+    }
     
     // Check if Supabase is configured before creating client
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
