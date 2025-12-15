@@ -247,7 +247,12 @@ export function FeedItem({ poll }: FeedItemProps) {
     }
 
     // Validate all questions are answered
-    for (const question of poll.questions || []) {
+    if (!poll.questions || poll.questions.length === 0) {
+      alert('Няма въпроси за гласуване');
+      return;
+    }
+
+    for (const question of poll.questions) {
       if (!selectedOptions[question.id] || selectedOptions[question.id].length === 0) {
         alert('Моля, отговорете на всички въпроси');
         return;
@@ -260,7 +265,15 @@ export function FeedItem({ poll }: FeedItemProps) {
     setSubmittingVote(true);
 
     try {
-      const behavior = behaviorTracker?.getBehavior();
+      // Safely get behavior - check if method exists
+      let behavior = null;
+      if (behaviorTracker && typeof behaviorTracker.getBehavior === 'function') {
+        try {
+          behavior = behaviorTracker.getBehavior();
+        } catch (e) {
+          console.warn('Error getting behavior:', e);
+        }
+      }
 
       // Prepare telegramAuth object with correct structure
       const telegramAuth = {
@@ -268,14 +281,14 @@ export function FeedItem({ poll }: FeedItemProps) {
         telegramId: telegramId,
         hash: parsed.hash || 'redirect-auth',
         first_name: parsed.first_name || '',
-        last_name: parsed.last_name,
-        username: parsed.username,
-        photo_url: parsed.photo_url,
-        auth_date: parsed.auth_date,
+        last_name: parsed.last_name || null,
+        username: parsed.username || null,
+        photo_url: parsed.photo_url || null,
+        auth_date: parsed.auth_date || Date.now(),
       };
 
       // Submit votes for all questions
-      for (const question of poll.questions || []) {
+      for (const question of poll.questions) {
         const response = await fetch('/api/votes/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -283,8 +296,8 @@ export function FeedItem({ poll }: FeedItemProps) {
             telegramAuth,
             electionId: poll.id,
             questionId: question.id,
-            selectedOptions: selectedOptions[question.id],
-            deviceFingerprint: fingerprint,
+            selectedOptions: selectedOptions[question.id] || [],
+            deviceFingerprint: fingerprint || null,
             userBehavior: behavior,
           }),
         });
@@ -306,9 +319,21 @@ export function FeedItem({ poll }: FeedItemProps) {
         setHasVoted(true);
         setShowResults(true);
         // Load results after a small delay to ensure state is updated
-        setTimeout(() => {
+        setTimeout(async () => {
           if (mountedRef.current) {
-            loadResults();
+            try {
+              const response = await fetch(`/api/elections/${poll.id}/results`);
+              if (response.ok) {
+                const data = await response.json();
+                if (mountedRef.current) {
+                  setResults(data.questions || []);
+                  const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
+                  setTotalVotes(total);
+                }
+              }
+            } catch (error) {
+              console.error('Error loading results:', error);
+            }
           }
         }, 100);
       }
@@ -320,7 +345,7 @@ export function FeedItem({ poll }: FeedItemProps) {
         setSubmittingVote(false);
       }
     }
-  }, [submittingVote, poll.questions, poll.id, selectedOptions, fingerprint, behaviorTracker, loadResults]);
+  }, [submittingVote, poll.questions, poll.id, selectedOptions, fingerprint, behaviorTracker]);
 
   const handleLike = async () => {
     if (isLoading || !mountedRef.current) return;
