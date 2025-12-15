@@ -611,7 +611,7 @@ export function FeedItem({ poll }: FeedItemProps) {
     const shareUrl = getShareUrl();
     const shareText = getShareText();
     
-    if (navigator.share) {
+    if (typeof navigator !== 'undefined' && 'share' in navigator && navigator.share) {
       try {
         await navigator.share({
           title: poll.title_bg || poll.title,
