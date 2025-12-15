@@ -165,42 +165,6 @@ export function FeedItem({ poll }: FeedItemProps) {
     }
   };
 
-  const handleShare = async () => {
-    if (isLoading) return;
-    
-    setIsLoading(true);
-    try {
-      const authData = localStorage.getItem('telegram_auth');
-      if (!authData) {
-        window.location.href = '/login';
-        return;
-      }
-
-      const parsed = JSON.parse(authData);
-      const response = await fetch(`/api/elections/${poll.id}/share`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId: parsed.telegramId }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSharesCount(data.sharesCount || sharesCount + 1);
-        
-        // Copy link to clipboard
-        const shareUrl = `${window.location.origin}/results/${poll.id}`;
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(shareUrl);
-          alert('Линкът е копиран в клипборда!');
-        }
-      }
-    } catch (error) {
-      console.error('Error sharing:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <GlassCard hover className="overflow-hidden">
       <GlassCardHeader>
