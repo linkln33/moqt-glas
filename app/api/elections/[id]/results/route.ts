@@ -88,7 +88,7 @@ export async function GET(
           questionId: question.id,
           totalVotes,
           optionCounts,
-          optionsWithResults: optionsWithResults.map(o => ({ id: o.id, votes: o.votes, percentage: o.percentage })),
+          optionsWithResults: optionsWithResults.map((o: any) => ({ id: o.id, votes: o.votes, percentage: o.percentage })),
         });
 
         return {
