@@ -208,13 +208,32 @@ export async function POST(request: NextRequest) {
       behaviorScore: behaviorScore.score,
     });
 
+    // Ensure selectedOptions is an array
+    const optionsArray = Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions].filter(Boolean);
+    
+    if (!optionsArray || optionsArray.length === 0) {
+      return NextResponse.json(
+        { error: 'Необходимо е да изберете поне една опция' },
+        { status: 400 }
+      );
+    }
+
+    console.log('Submitting vote with data:', {
+      election_id: electionId,
+      telegram_id: telegramId,
+      question_id: questionId,
+      selected_options: optionsArray,
+      selected_options_type: typeof optionsArray,
+      selected_options_is_array: Array.isArray(optionsArray),
+    });
+
     const { data: vote, error: voteError } = await supabase
       .from('votes')
       .insert({
         election_id: electionId,
         telegram_id: telegramId,
         question_id: questionId,
-        selected_options: selectedOptions,
+        selected_options: optionsArray, // Ensure it's an array
         device_fingerprint: deviceFingerprint || null,
         ip_address: ipAddress,
         risk_score: totalRisk,
@@ -229,6 +248,10 @@ export async function POST(request: NextRequest) {
         message: voteError.message,
         details: voteError.details,
         hint: voteError.hint,
+        election_id: electionId,
+        telegram_id: telegramId,
+        question_id: questionId,
+        selected_options: optionsArray,
       });
       
       // Check if it's a unique constraint violation
@@ -242,15 +265,35 @@ export async function POST(request: NextRequest) {
       // Check for foreign key violations
       if (voteError.code === '23503') {
         return NextResponse.json(
-          { error: 'Невалиден въпрос или избори' },
+          { error: 'Невалиден въпрос или избори', details: voteError.message },
           { status: 400 }
         );
       }
       
-      throw voteError;
+      return NextResponse.json(
+        { 
+          error: 'Грешка при запазване на гласа',
+          details: voteError.message,
+          code: voteError.code,
+        },
+        { status: 500 }
+      );
     }
 
-    console.log('Vote submitted successfully:', vote?.id);
+    if (!vote) {
+      console.error('Vote insertion returned no data');
+      return NextResponse.json(
+        { error: 'Гласът не беше запазен' },
+        { status: 500 }
+      );
+    }
+
+    console.log('Vote submitted successfully:', {
+      voteId: vote.id,
+      electionId: vote.election_id,
+      questionId: vote.question_id,
+      selectedOptions: vote.selected_options,
+    });
 
     // 12. Flag for review if medium/high risk
     if (totalRisk >= 50 || riskScore.recommendation === 'review') {

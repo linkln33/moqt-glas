@@ -328,6 +328,29 @@ export function FeedItem({ poll }: FeedItemProps) {
       let allSuccessful = true;
       for (const question of poll.questions) {
         try {
+          const optionsForQuestion = selectedOptions[question.id];
+          
+          // Ensure options is an array
+          const optionsArray = Array.isArray(optionsForQuestion) 
+            ? optionsForQuestion 
+            : optionsForQuestion 
+              ? [optionsForQuestion] 
+              : [];
+          
+          if (optionsArray.length === 0) {
+            console.error('No options selected for question:', question.id);
+            allSuccessful = false;
+            throw new Error('Моля, изберете опция за всички въпроси');
+          }
+
+          console.log('Submitting vote for question:', {
+            questionId: question.id,
+            questionText: question.question_text_bg,
+            selectedOptions: optionsArray,
+            electionId: poll.id,
+            telegramId: telegramId,
+          });
+
           const response = await fetch('/api/votes/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -335,7 +358,7 @@ export function FeedItem({ poll }: FeedItemProps) {
               telegramAuth,
               electionId: poll.id,
               questionId: question.id,
-              selectedOptions: selectedOptions[question.id] || [],
+              selectedOptions: optionsArray, // Ensure it's always an array
               deviceFingerprint: fingerprint || null,
               userBehavior: behavior,
             }),
