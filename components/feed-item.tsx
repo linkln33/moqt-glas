@@ -433,14 +433,12 @@ export function FeedItem({ poll }: FeedItemProps) {
       </GlassCardHeader>
 
       <GlassCardContent>
-        {/* Voting UI - Always visible when active and not voted */}
+        {/* Voting UI - Directly integrated into card flow */}
         {isActive && !hasVoted && !showResults && poll.questions && poll.questions.length > 0 && (
-          <div className="mb-6 space-y-6">
-            <h3 className="font-semibold text-lg mb-4">Гласувай</h3>
-            
+          <>
             {poll.questions.map((question) => (
-              <div key={question.id} className="space-y-3">
-                <div className="font-medium text-sm">
+              <div key={question.id} className="mb-6 space-y-3">
+                <div className="font-medium text-base mb-3">
                   {question.question_text_bg || question.question_text}
                 </div>
                 <div className="space-y-2">
@@ -470,23 +468,23 @@ export function FeedItem({ poll }: FeedItemProps) {
             <Button
               onClick={handleVoteSubmit}
               disabled={submittingVote}
-              className="w-full gradient-primary text-white shadow-lg"
+              className="w-full gradient-primary text-white shadow-lg mb-6"
             >
               {submittingVote ? 'Изпращане...' : 'Подай глас'}
             </Button>
-          </div>
+          </>
         )}
 
-        {/* Results/Statistics UI - Always visible when voted or ended */}
+        {/* Results/Statistics UI - Directly integrated into card flow */}
         {showResults && results.length > 0 && (
-          <div className="mb-6 space-y-6">
-            <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
-              📊 Резултати
+          <>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="font-semibold text-base">📊 Резултати</span>
               {hasVoted && <Badge variant="success" className="text-xs">Гласували сте</Badge>}
-            </h3>
+            </div>
             
             {results.map((question) => (
-              <div key={question.id} className="space-y-3">
+              <div key={question.id} className="mb-6 space-y-3">
                 <div className="font-medium text-sm mb-3">
                   {question.question_text_bg}
                 </div>
@@ -522,7 +520,7 @@ export function FeedItem({ poll }: FeedItemProps) {
                 </div>
               </div>
             ))}
-          </div>
+          </>
         )}
 
         {/* Stats */}
@@ -653,35 +651,6 @@ export function FeedItem({ poll }: FeedItemProps) {
           </div>
         )}
 
-        {/* Action Buttons */}
-        {!showVoting && !showResults && (
-          <div className="flex gap-3">
-            {isActive && !hasVoted && (
-              <Button
-                onClick={() => {
-                  if (mountedRef.current) {
-                    setShowVoting(true);
-                  }
-                }}
-                className="flex-1 gradient-primary text-white shadow-lg"
-              >
-                🗳️ Гласувай
-              </Button>
-            )}
-            <Button
-              onClick={() => {
-                if (mountedRef.current) {
-                  setShowResults(true);
-                  loadResults();
-                }
-              }}
-              variant={isActive && !hasVoted ? 'outline' : 'default'}
-              className={isActive && !hasVoted ? 'flex-1 glass' : 'w-full gradient-primary text-white shadow-lg'}
-            >
-              📊 Резултати
-            </Button>
-          </div>
-        )}
       </GlassCardContent>
 
       {/* Donation Form Modal */}
