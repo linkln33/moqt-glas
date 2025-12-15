@@ -11,15 +11,15 @@ async function getActiveElections() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!supabaseUrl || supabaseUrl.includes('placeholder') || supabaseUrl === 'https://placeholder.supabase.co') {
     // Return empty array during build if Supabase is not configured
-    return [];
+    return { active: [], upcoming: [] };
   }
 
   try {
     const supabase = createServerClient();
     const now = new Date().toISOString();
 
-    // Get all active elections (based on dates, not just status)
-    const { data: elections, error } = await supabase
+    // Get active elections (started but not ended)
+    const { data: activeElections, error: activeError } = await supabase
       .from('elections')
       .select('*')
       .lte('start_date', now)
@@ -27,41 +27,55 @@ async function getActiveElections() {
       .order('created_at', { ascending: false })
       .limit(6);
 
-    if (error) {
-      console.error('Error fetching elections:', error);
-      return [];
+    if (activeError) {
+      console.error('Error fetching active elections:', activeError);
     }
 
-    if (!elections || elections.length === 0) {
-      return [];
+    // Get upcoming elections (not started yet)
+    const { data: upcomingElections, error: upcomingError } = await supabase
+      .from('elections')
+      .select('*')
+      .gt('start_date', now)
+      .order('start_date', { ascending: true })
+      .limit(6);
+
+    if (upcomingError) {
+      console.error('Error fetching upcoming elections:', upcomingError);
     }
 
-    // Get questions and options for each election
-    const electionsWithDetails = await Promise.all(
-      elections.map(async (election) => {
-        const { data: questions } = await supabase
-          .from('questions')
-          .select('*, options(*)')
-          .eq('election_id', election.id)
-          .order('order_index', { ascending: true });
+    // Helper function to get questions for elections
+    const getElectionsWithDetails = async (elections: any[]) => {
+      if (!elections || elections.length === 0) return [];
+      
+      return await Promise.all(
+        elections.map(async (election) => {
+          const { data: questions } = await supabase
+            .from('questions')
+            .select('*, options(*)')
+            .eq('election_id', election.id)
+            .order('order_index', { ascending: true });
 
-        return {
-          ...election,
-          questions: questions || [],
-          isExample: election.created_by === 'example',
-        };
-      })
-    );
+          return {
+            ...election,
+            questions: questions || [],
+            isExample: election.created_by === 'example',
+          };
+        })
+      );
+    };
 
-    return electionsWithDetails;
+    const active = await getElectionsWithDetails(activeElections || []);
+    const upcoming = await getElectionsWithDetails(upcomingElections || []);
+
+    return { active, upcoming };
   } catch (error) {
     console.error('Error fetching elections:', error);
-    return [];
+    return { active: [], upcoming: [] };
   }
 }
 
 export default async function HomePage() {
-  const activeElections = await getActiveElections();
+  const { active: activeElections, upcoming: upcomingElections } = await getActiveElections();
   const examplePolls = activeElections.filter(e => e.isExample);
   const otherElections = activeElections.filter(e => !e.isExample);
   return (
@@ -109,7 +123,7 @@ export default async function HomePage() {
       </div>
 
       {/* Currently Active Polls and Events Section */}
-      {activeElections.length > 0 ? (
+      {(activeElections.length > 0 || upcomingElections.length > 0) ? (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">

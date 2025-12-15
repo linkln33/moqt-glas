@@ -470,8 +470,14 @@ export function FeedItem({ poll }: FeedItemProps) {
 
       if (response.ok && mountedRef.current) {
         const data = await response.json();
-        setIsLiked(!isLiked);
-        setLikesCount(data.likesCount || likesCount + (isLiked ? -1 : 1));
+        const newLikedState = !isLiked;
+        setIsLiked(newLikedState);
+        setLikesCount(data.likesCount ?? (newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1)));
+      } else if (response.status === 409 && mountedRef.current) {
+        // Already liked - refresh state
+        const data = await response.json().catch(() => ({}));
+        setIsLiked(true);
+        setLikesCount(data.likesCount ?? likesCount);
       }
     } catch (error) {
       console.error('Error toggling like:', error);
@@ -880,21 +886,10 @@ export function FeedItem({ poll }: FeedItemProps) {
                   </span>
                 </div>
                               <div className="flex items-center gap-2">
-                                {/* Always show statistics */}
-                                <span className="text-xs text-muted-foreground">
-                                  {optionVotes} ({optionPercentage.toFixed(1)}%)
-                                </span>
                                 {isSelected && <CheckCircle2 className={`w-5 h-5 ${color.text}`} />}
                               </div>
                             </div>
                           </button>
-                          {/* Progress bar showing statistics - always visible */}
-                          <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden ml-1">
-                            <div
-                              className={`h-full ${color.progress} transition-all duration-500`}
-                              style={{ width: `${Math.max(optionPercentage, 0)}%` }}
-                            />
-                          </div>
                         </div>
                       );
                     })}
@@ -943,47 +938,127 @@ export function FeedItem({ poll }: FeedItemProps) {
               // Find original question to get option order
               const originalQuestion = poll.questions?.find(q => q.id === (question.id || questionData.id));
               
+              // Sort options by votes and get top 2 for competing bar
+              const sortedOptions = [...questionOptions]
+                .sort((a: any, b: any) => (b.votes || 0) - (a.votes || 0))
+                .slice(0, 2);
+              
+              const topOption = sortedOptions[0];
+              const secondOption = sortedOptions[1];
+              const topPercentage = topOption ? (topOption.percentage || 0) : 0;
+              const secondPercentage = secondOption ? (secondOption.percentage || 0) : 0;
+              
+              // Get colors for top 2 options
+              const topOriginalIndex = topOption ? (originalQuestion?.options.findIndex((o: any) => o.id === topOption.id) ?? 0) : 0;
+              const secondOriginalIndex = secondOption ? (originalQuestion?.options.findIndex((o: any) => o.id === secondOption.id) ?? 1) : 1;
+              const topColor = getOptionColor(topOriginalIndex);
+              const secondColor = getOptionColor(secondOriginalIndex);
+              
               return (
                 <div key={question.id || questionData.id} className="mb-6 space-y-3">
                   <div className="font-medium text-sm mb-3">
                     {question.question_text_bg || questionData.question_text_bg || question.question_text || questionData.question_text}
                   </div>
-                  <div className="space-y-3">
+                  
+                  {/* Competing colors bar - showing top 2 options */}
+                  {questionTotalVotes > 0 && sortedOptions.length >= 2 ? (
+                    <div className="space-y-2">
+                      <div className="w-full h-6 bg-background/50 rounded-full overflow-hidden relative">
+                        {/* Top option (left side) */}
+                        <div
+                          className={`h-full ${topColor.progress} transition-all duration-500 flex items-center justify-start px-2`}
+                          style={{ width: `${topPercentage}%` }}
+                        >
+                          {topPercentage > 15 && (
+                            <span className="text-xs font-semibold text-white whitespace-nowrap">
+                              {topOption.option_text_bg || topOption.option_text}
+                            </span>
+                          )}
+                        </div>
+                        {/* Second option (right side) */}
+                        <div
+                          className={`absolute top-0 right-0 h-full ${secondColor.progress} transition-all duration-500 flex items-center justify-end px-2`}
+                          style={{ width: `${secondPercentage}%` }}
+                        >
+                          {secondPercentage > 15 && (
+                            <span className="text-xs font-semibold text-white whitespace-nowrap">
+                              {secondOption.option_text_bg || secondOption.option_text}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Option labels below bar */}
+                      <div className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${topColor.progress}`}></div>
+                          <span className="font-medium">{topOption.option_text_bg || topOption.option_text}</span>
+                          <Badge variant="success" className="text-xs">
+                            {topOption.votes || 0} ({topPercentage.toFixed(1)}%)
+                          </Badge>
+                        </div>
+                        {secondOption && (
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${secondColor.progress}`}></div>
+                            <span className="font-medium">{secondOption.option_text_bg || secondOption.option_text}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {secondOption.votes || 0} ({secondPercentage.toFixed(1)}%)
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : questionTotalVotes > 0 ? (
+                    // Single option bar if only one option has votes
+                    <div className="space-y-2">
+                      <div className="w-full h-6 bg-background/50 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${topColor.progress} transition-all duration-500 flex items-center justify-center`}
+                          style={{ width: `${topPercentage}%` }}
+                        >
+                          <span className="text-xs font-semibold text-white">
+                            {topOption.option_text_bg || topOption.option_text}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <div className={`w-2 h-2 rounded-full ${topColor.progress}`}></div>
+                        <span className="font-medium">{topOption.option_text_bg || topOption.option_text}</span>
+                        <Badge variant="success" className="text-xs">
+                          {topOption.votes || 0} ({topPercentage.toFixed(1)}%)
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : null}
+                  
+                  {/* All options list */}
+                  <div className="space-y-2 pt-2">
                     {questionOptions
                       .sort((a: any, b: any) => (b.votes || 0) - (a.votes || 0))
                       .map((option: any, index: number) => {
-                        // Find original option index for color coding
                         const originalIndex = originalQuestion?.options.findIndex((o: any) => o.id === option.id) ?? index;
                         const color = getOptionColor(originalIndex);
                         const optionVotes = option.votes || 0;
                         const optionPercentage = option.percentage || 0;
                         
                         return (
-                          <div key={option.id} className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-2">
-                                {index === 0 && questionTotalVotes > 0 && (
-                                  <span className="text-xl">🏆</span>
-                                )}
-                                <div className={`w-3 h-3 rounded-full ${color.progress}`}></div>
-                                <span className={`text-sm font-medium ${color.text}`}>
-                                  {option.option_text_bg || option.option_text}
-                                </span>
-                              </div>
-                              <Badge variant={index === 0 && questionTotalVotes > 0 ? 'success' : 'secondary'}>
-                                {optionVotes} ({optionPercentage.toFixed(1)}%)
-                              </Badge>
+                          <div key={option.id} className="flex justify-between items-center text-sm">
+                            <div className="flex items-center gap-2">
+                              {index === 0 && questionTotalVotes > 0 && (
+                                <span className="text-lg">🏆</span>
+                              )}
+                              <div className={`w-2 h-2 rounded-full ${color.progress}`}></div>
+                              <span className={`font-medium ${color.text}`}>
+                                {option.option_text_bg || option.option_text}
+                              </span>
                             </div>
-                            <div className="w-full h-3 bg-background/50 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full ${color.progress} transition-all duration-500`}
-                                style={{ width: `${optionPercentage}%` }}
-                              />
-                            </div>
+                            <Badge variant={index === 0 && questionTotalVotes > 0 ? 'success' : 'secondary'} className="text-xs">
+                              {optionVotes} ({optionPercentage.toFixed(1)}%)
+                            </Badge>
                           </div>
                         );
                       })}
                   </div>
+                  
                   <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
                     Общо гласове: {questionTotalVotes}
                   </div>
