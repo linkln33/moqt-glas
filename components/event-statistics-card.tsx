@@ -202,6 +202,13 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                             </div>
                           )}
                         </div>
+                        {/* Thin progress bar under each option */}
+                        <div className="w-full h-0.5 bg-background/30 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-1000 ease-out rounded-full`}
+                            style={{ width: `${option.percentage}%` }}
+                          />
+                        </div>
                       </div>
                     );
                   })}

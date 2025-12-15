@@ -15,14 +15,11 @@ export default function DashboardLayout({
           </aside>
 
           {/* Main Content - Full width feed */}
-          <main className="flex-1 min-w-0 pb-20 md:pb-8 w-full">
+          <main className="flex-1 min-w-0 pb-20 md:pb-8 w-full max-w-none">
             <div className="w-full">
               {children}
             </div>
           </main>
-
-          {/* Right Sidebar - For future features (ads, suggestions, etc.) */}
-          <aside className="hidden xl:block w-80 2xl:w-96 shrink-0"></aside>
         </div>
       </div>
     </div>
