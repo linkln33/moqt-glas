@@ -5,6 +5,7 @@ import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardFooter, Gla
 import { Badge } from '@/components/ui/badge';
 import { createServerClient } from '@/lib/supabase/client';
 import { formatDateBG } from '@/lib/utils';
+import { EventsCarousel } from '@/components/events-carousel';
 
 async function getHomeStats() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -259,10 +260,10 @@ export default async function HomePage() {
                 Моят Глас
               </h1>
             </div>
-            <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-3 sm:mb-4 px-4">
+            <p className="text-xl sm:text-2xl md:text-3xl text-muted-foreground mb-4 sm:mb-5 md:mb-6 px-4">
               Създавайте и участвайте в избори и анкети
             </p>
-            <p className="text-base sm:text-lg text-muted-foreground/80 mb-8 sm:mb-12 px-4">
+            <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground/80 mb-10 sm:mb-14 md:mb-16 px-4">
               Безопасно, прозрачно и лесно гласуване с Telegram автентификация
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
@@ -323,181 +324,53 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Currently Active Polls and Events Section */}
+          {/* Events Carousel Section */}
           {(activeElections.length > 0 || upcomingElections.length > 0) ? (
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              Текущи активни избори и анкети
-            </h2>
-            <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-              Участвайте в активни избори и анкети. Вашият глас има значение!
-            </p>
-          </div>
+              <div className="text-center mb-10 sm:mb-14 md:mb-16">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-5 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                  Активни и предстоящи събития
+                </h2>
+                <p className="text-muted-foreground text-lg sm:text-xl max-w-2xl mx-auto">
+                  Участвайте в активни избори и анкети. Вашият глас има значение!
+                </p>
+              </div>
 
-          {/* Example Polls */}
-          {examplePolls.length > 0 && (
-            <div className="mb-12">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl sm:text-2xl font-semibold">Примерни анкети</h3>
-                <Badge variant="info" className="text-sm">Опитайте платформата</Badge>
-              </div>
-              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {examplePolls.map((poll) => (
-                  <Link key={poll.id} href={`/dashboard`}>
-                    <GlassCard hover className="flex flex-col cursor-pointer group h-full transition-all hover:scale-[1.02]">
-                      <GlassCardHeader>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <GlassCardTitle className="text-lg sm:text-xl group-hover:text-primary transition-colors line-clamp-2">
-                            {poll.title_bg || poll.title}
-                          </GlassCardTitle>
-                          <Badge variant="info" className="shrink-0 text-xs">Пример</Badge>
-                        </div>
-                        <GlassCardDescription className="line-clamp-2 text-sm">
-                          {poll.description_bg || poll.description}
-                        </GlassCardDescription>
-                      </GlassCardHeader>
-                      <GlassCardContent className="flex-grow space-y-3">
-                        <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <span>📊</span>
-                            <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span>📅</span>
-                            <span>{formatDateBG(poll.end_date)}</span>
-                          </div>
-                        </div>
-                      </GlassCardContent>
-                      <GlassCardFooter className="pt-0">
-                        <Button className="w-full gradient-primary text-white shadow-lg text-sm sm:text-base">
-                          Гласувай →
-                        </Button>
-                      </GlassCardFooter>
-                    </GlassCard>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Other Active Elections */}
-          {otherElections.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl sm:text-2xl font-semibold">Активни избори</h3>
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm" className="text-sm">
-                    Виж всички →
-                  </Button>
-                </Link>
-              </div>
-              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {otherElections.slice(0, 8).map((poll) => (
-                  <Link key={poll.id} href={`/dashboard`}>
-                    <GlassCard hover className="flex flex-col cursor-pointer group h-full transition-all hover:scale-[1.02]">
-                      <GlassCardHeader>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <GlassCardTitle className="text-lg sm:text-xl group-hover:text-primary transition-colors line-clamp-2">
-                            {poll.title_bg || poll.title}
-                          </GlassCardTitle>
-                          <Badge variant="success" className="shrink-0 text-xs">Активни</Badge>
-                        </div>
-                        <GlassCardDescription className="line-clamp-2 text-sm">
-                          {poll.description_bg || poll.description}
-                        </GlassCardDescription>
-                      </GlassCardHeader>
-                      <GlassCardContent className="flex-grow space-y-3">
-                        <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <span>📊</span>
-                            <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span>📅</span>
-                            <span>{formatDateBG(poll.end_date)}</span>
-                          </div>
-                        </div>
-                      </GlassCardContent>
-                      <GlassCardFooter className="pt-0">
-                        <Button className="w-full gradient-primary text-white shadow-lg text-sm sm:text-base">
-                          Гласувай →
-                        </Button>
-                      </GlassCardFooter>
-                    </GlassCard>
-                  </Link>
-                ))}
-              </div>
-              {otherElections.length > 8 && (
-                <div className="text-center mt-8">
-                  <Link href="/dashboard">
-                    <Button variant="outline" size="lg" className="glass">
-                      Виж всички {otherElections.length} активни избори →
-                    </Button>
-                  </Link>
+              {/* Example Polls Carousel */}
+              {examplePolls.length > 0 && (
+                <div className="mb-16">
+                  <EventsCarousel
+                    events={examplePolls}
+                    title="Примерни анкети"
+                    badgeVariant="info"
+                    badgeText="Пример"
+                  />
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Upcoming Polls */}
-          {upcomingElections.length > 0 && (
-            <div className="mt-12">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl sm:text-2xl font-semibold">Предстоящи избори</h3>
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm" className="text-sm">
-                    Виж всички →
-                  </Button>
-                </Link>
-              </div>
-              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {upcomingElections.slice(0, 8).map((poll) => (
-                  <Link key={poll.id} href={`/dashboard`}>
-                    <GlassCard hover className="flex flex-col cursor-pointer group h-full transition-all hover:scale-[1.02]">
-                      <GlassCardHeader>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <GlassCardTitle className="text-lg sm:text-xl group-hover:text-primary transition-colors line-clamp-2">
-                            {poll.title_bg || poll.title}
-                          </GlassCardTitle>
-                          <Badge variant="info" className="shrink-0 text-xs">Предстояща</Badge>
-                        </div>
-                        <GlassCardDescription className="line-clamp-2 text-sm">
-                          {poll.description_bg || poll.description}
-                        </GlassCardDescription>
-                      </GlassCardHeader>
-                      <GlassCardContent className="flex-grow space-y-3">
-                        <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <span>📊</span>
-                            <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span>📅</span>
-                            <span>Започва: {formatDateBG(poll.start_date)}</span>
-                          </div>
-                        </div>
-                      </GlassCardContent>
-                      <GlassCardFooter className="pt-0">
-                        <Button className="w-full gradient-primary text-white shadow-lg text-sm sm:text-base">
-                          Виж детайли →
-                        </Button>
-                      </GlassCardFooter>
-                    </GlassCard>
-                  </Link>
-                ))}
-              </div>
-              {upcomingElections.length > 8 && (
-                <div className="text-center mt-8">
-                  <Link href="/dashboard">
-                    <Button variant="outline" size="lg" className="glass">
-                      Виж всички {upcomingElections.length} предстоящи избори →
-                    </Button>
-                  </Link>
+              {/* Active Elections Carousel */}
+              {otherElections.length > 0 && (
+                <div className="mb-16">
+                  <EventsCarousel
+                    events={otherElections}
+                    title="Активни избори"
+                    badgeVariant="success"
+                    badgeText="Активни"
+                  />
                 </div>
               )}
-            </div>
-          )}
+
+              {/* Upcoming Elections Carousel */}
+              {upcomingElections.length > 0 && (
+                <div>
+                  <EventsCarousel
+                    events={upcomingElections}
+                    title="Предстоящи избори"
+                    badgeVariant="info"
+                    badgeText="Предстояща"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
