@@ -96,15 +96,28 @@ export function FeedItem({ poll }: FeedItemProps) {
     }
   }, [poll.questions]);
 
-  // Check if user has voted
+  // Check if user has voted and load results if needed
   useEffect(() => {
     const checkVoteStatus = async () => {
       try {
         const authData = localStorage.getItem('telegram_auth');
-        if (!authData) return;
+        if (!authData) {
+          // If election ended, show results anyway
+          if (hasElectionEnded(poll.end_date)) {
+            setShowResults(true);
+            loadResults();
+          }
+          return;
+        }
 
         const parsed = JSON.parse(authData);
-        if (!parsed.telegramId) return;
+        if (!parsed.telegramId) {
+          if (hasElectionEnded(poll.end_date)) {
+            setShowResults(true);
+            loadResults();
+          }
+          return;
+        }
 
         // Check if user has voted for this election
         const voteCheck = await fetch(`/api/votes/check?electionId=${poll.id}&telegramId=${parsed.telegramId}`);
@@ -118,15 +131,16 @@ export function FeedItem({ poll }: FeedItemProps) {
         }
       } catch (error) {
         console.error('Error checking vote status:', error);
+        // If election ended, show results anyway
+        if (hasElectionEnded(poll.end_date)) {
+          setShowResults(true);
+          loadResults();
+        }
       }
     };
 
-    if (poll.isActive) {
+    if (poll.isActive || hasElectionEnded(poll.end_date)) {
       checkVoteStatus();
-    } else if (hasElectionEnded(poll.end_date)) {
-      // If election ended, show results
-      setShowResults(true);
-      loadResults();
     }
   }, [poll.id, poll.isActive, poll.end_date]);
 
