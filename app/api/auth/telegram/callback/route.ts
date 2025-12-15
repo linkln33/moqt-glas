@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyTelegramAuth, getTelegramId } from '@/lib/telegram-auth';
-import { createServerClient } from '@/lib/supabase/client';
+import { createServerClient, isServerClientConfigured } from '@/lib/supabase/client';
 import { getOrCreateUserFromTelegram, updateUserLastLogin } from '@/lib/user-management';
 
 // Mark route as dynamic since it uses searchParams
@@ -25,8 +25,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/login?error=config', appUrl));
     }
 
-    if (!serviceRoleKey) {
-      console.error('❌ SUPABASE_SERVICE_ROLE_KEY not configured');
+    // Validate bot token format (should be number:alphanumeric)
+    if (!botToken.includes(':')) {
+      console.error('❌ TELEGRAM_BOT_TOKEN format invalid (should contain colon)');
+      return NextResponse.redirect(new URL('/login?error=config', appUrl));
+    }
+
+    if (!serviceRoleKey || serviceRoleKey === 'your_service_role_key_here' || serviceRoleKey.includes('placeholder')) {
+      console.error('❌ SUPABASE_SERVICE_ROLE_KEY not configured properly', {
+        hasKey: !!serviceRoleKey,
+        keyPreview: serviceRoleKey?.substring(0, 20),
+      });
+      return NextResponse.redirect(new URL('/login?error=config', appUrl));
+    }
+
+    if (!isServerClientConfigured()) {
+      console.error('❌ Supabase server client not configured (URL or key placeholder)');
       return NextResponse.redirect(new URL('/login?error=config', appUrl));
     }
 
@@ -80,8 +94,40 @@ export async function GET(request: NextRequest) {
     });
 
     if (!userProfile) {
-      console.error('❌ Failed to get or create user profile');
-      return NextResponse.redirect(new URL('/login?error=user', appUrl));
+      console.error('❌ Failed to get or create user profile via RPC, attempting voter fallback');
+
+      const { data: fallbackVoter, error: fallbackError } = await supabase
+        .from('voters')
+        .upsert(
+          {
+            telegram_id: telegramId,
+            first_name: authData.first_name,
+            last_name: authData.last_name || null,
+            username: authData.username || null,
+            photo_url: authData.photo_url || null,
+          },
+          { onConflict: 'telegram_id' }
+        )
+        .select()
+        .single();
+
+      if (fallbackError || !fallbackVoter) {
+        console.error('Fallback voter creation also failed:', fallbackError);
+        return NextResponse.redirect(new URL('/login?error=user', appUrl));
+      }
+
+      console.log('✅ Fallback voter created, proceeding with redirect');
+
+      const redirectUrl = new URL('/login', appUrl);
+      redirectUrl.searchParams.set('success', 'true');
+      redirectUrl.searchParams.set('userId', fallbackVoter.telegram_id.toString());
+      redirectUrl.searchParams.set('telegramId', telegramId.toString());
+      redirectUrl.searchParams.set('role', 'voter');
+      redirectUrl.searchParams.set('firstName', authData.first_name);
+      if (authData.last_name) redirectUrl.searchParams.set('lastName', authData.last_name);
+      if (authData.username) redirectUrl.searchParams.set('username', authData.username);
+
+      return NextResponse.redirect(redirectUrl);
     }
 
     console.log('User profile created/retrieved:', {

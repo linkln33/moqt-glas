@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
         hasId: !!authData.id,
         hasFirstName: !!authData.first_name,
         hasAuthDate: !!authData.auth_date,
-        hasHash: !!authData.hash,
-      });
+      hasHash: !!authData.hash,
+    });
       return NextResponse.json(
         { error: 'Липсват задължителни данни от Telegram. Моля, опитайте отново.' },
         { status: 400 }
