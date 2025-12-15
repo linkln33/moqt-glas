@@ -864,65 +864,6 @@ export function FeedItem({ poll }: FeedItemProps) {
           </div>
         )}
 
-        {/* Results/Statistics UI - Directly integrated into card flow with color coding */}
-        {false && (showResults || (results.length > 0 && (hasVoted || isEnded))) && results.length > 0 && (
-          <>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="font-semibold text-base">📊 Резултати</span>
-              {hasVoted && <Badge variant="success" className="text-xs">Гласували сте</Badge>}
-            </div>
-            
-            {results.map((question) => {
-              // Find original question to get option order
-              const originalQuestion = poll.questions?.find(q => q.id === question.id);
-              
-              return (
-                <div key={question.id} className="mb-6 space-y-3">
-                  <div className="font-medium text-sm mb-3">
-                    {question.question_text_bg}
-              </div>
-                  <div className="space-y-3">
-                    {question.options
-                      .sort((a, b) => b.votes - a.votes)
-                      .map((option, index) => {
-                        // Find original option index for color coding
-                        const originalIndex = originalQuestion?.options.findIndex(o => o.id === option.id) ?? index;
-                        const color = getOptionColor(originalIndex);
-                        
-                        return (
-                          <div key={option.id} className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-2">
-                                {index === 0 && question.totalVotes > 0 && (
-                                  <span className="text-xl">🏆</span>
-                                )}
-                                <div className={`w-3 h-3 rounded-full ${color.progress}`}></div>
-                                <span className={`text-sm font-medium ${color.text}`}>
-                                  {option.option_text_bg}
-                                </span>
-                              </div>
-                              <Badge variant={index === 0 && question.totalVotes > 0 ? 'success' : 'secondary'}>
-                                {option.votes} ({option.percentage.toFixed(1)}%)
-                              </Badge>
-                            </div>
-                            <div className="w-full h-3 bg-background/50 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full ${color.progress} transition-all duration-500`}
-                                style={{ width: `${option.percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                  <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
-                    Общо гласове: {question.totalVotes}
-                  </div>
-          </div>
-              );
-            })}
-          </>
-        )}
 
         {/* Stats - Always visible at bottom */}
         <div className="flex items-center justify-between text-sm text-muted-foreground mt-6 pt-4 border-t border-border/50">
