@@ -188,6 +188,22 @@ export async function PUT(
       );
     }
 
+    // Calculate election status based on dates
+    let electionStatus = 'upcoming';
+    if (start_date && end_date) {
+      const start = new Date(start_date);
+      const end = new Date(end_date);
+      const now = new Date();
+      
+      if (now > end) {
+        electionStatus = 'ended';
+      } else if (now >= start && now <= end) {
+        electionStatus = 'active';
+      } else {
+        electionStatus = 'upcoming';
+      }
+    }
+
     // Update election
     const { error: electionError } = await supabase
       .from('elections')
@@ -196,6 +212,7 @@ export async function PUT(
         title_bg,
         description: description || description_bg,
         description_bg,
+        status: electionStatus,
         start_date: start_date || null,
         end_date: end_date || null,
         has_fundraising: has_fundraising || false,

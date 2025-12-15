@@ -504,8 +504,18 @@ export function FeedItem({ poll }: FeedItemProps) {
         const errorData = await response.json().catch(() => ({}));
         console.error('Like error:', response.status, errorData);
         if (mountedRef.current) {
-          // Show user-friendly error message
-          alert(errorData.error || 'Грешка при харесване. Моля, опитайте отново.');
+          // Don't show alert for 503 (service unavailable) - just log it and reset loading state
+          if (response.status === 503) {
+            console.warn('Like functionality not available:', errorData.error);
+            // Silently fail - feature not available, don't change state
+          } else if (response.status >= 500) {
+            // Server errors - show error but don't break UI
+            console.error('Server error when liking:', errorData);
+            // Don't show alert for server errors to avoid annoying users
+          } else {
+            // Show user-friendly error message for client errors (400, 401, etc.)
+            alert(errorData.error || 'Грешка при харесване. Моля, опитайте отново.');
+          }
         }
       }
     } catch (error) {

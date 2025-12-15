@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyTelegramAuth, getTelegramId } from '@/lib/telegram-auth';
 import { createServerClient } from '@/lib/supabase/client';
+import { isElectionActive, hasElectionEnded } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   // Check if Supabase is configured (not placeholder)
@@ -102,6 +103,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Calculate election status based on dates
+    let electionStatus = 'upcoming';
+    if (start_date && end_date) {
+      const start = new Date(start_date);
+      const end = new Date(end_date);
+      const now = new Date();
+      
+      if (hasElectionEnded(end)) {
+        electionStatus = 'ended';
+      } else if (isElectionActive(start, end)) {
+        electionStatus = 'active';
+      } else {
+        electionStatus = 'upcoming';
+      }
+    }
+
     // Create election - convert empty strings to null for timestamp fields
     const { data: election, error: electionError } = await supabase
       .from('elections')
@@ -110,7 +127,7 @@ export async function POST(request: NextRequest) {
         title_bg,
         description: description || description_bg,
         description_bg,
-        status: 'upcoming',
+        status: electionStatus,
         start_date: start_date || null,
         end_date: end_date || null,
         created_by: telegramId.toString(),

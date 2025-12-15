@@ -140,31 +140,55 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                 </div>
 
                 {/* Options Statistics */}
-                {question.type === 'single-choice' && question.options.length === 2 ? (
+                {(() => {
+                  // Check if it's a simple yes/no question (single-choice with exactly 2 options)
+                  const isYesNo = question.type === 'single-choice' && 
+                                  Array.isArray(question.options) && 
+                                  question.options.length === 2;
+                  
+                  // Debug logging
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('Question stats:', {
+                      type: question.type,
+                      optionsLength: question.options?.length,
+                      isYesNo,
+                      options: question.options?.map(o => o.text)
+                    });
+                  }
+                  
+                  return isYesNo ? (
                   // Simple Yes/No - Single progress bar with 2 colors
                   <div className="space-y-3">
                     {/* Combined progress bar for yes/no */}
-                    <div className="w-full h-6 bg-background/50 rounded-full overflow-hidden relative flex">
+                    <div className="w-full h-8 bg-background/50 rounded-full overflow-hidden relative flex">
                       {question.options.map((option, optIndex) => {
                         const colorClass = optIndex === 0 
                           ? 'from-green-500 to-emerald-500' 
                           : 'from-red-500 to-rose-500';
-                        const widthPercentage = option.percentage;
+                        // Ensure percentage is valid and doesn't exceed 100%
+                        const widthPercentage = Math.min(Math.max(option.percentage || 0, 0), 100);
+                        // Ensure minimum width for visibility
+                        const displayWidth = question.totalVotes > 0 ? Math.max(widthPercentage, 0.5) : 50;
                         
                         return (
                           <div
                             key={option.id}
-                            className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-1000 ease-out flex items-center justify-center relative`}
-                            style={{ width: `${widthPercentage}%` }}
+                            className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-1000 ease-out flex items-center justify-center relative ${widthPercentage === 0 ? 'opacity-50' : ''}`}
+                            style={{ width: `${displayWidth}%`, minWidth: widthPercentage > 0 ? '2px' : '0' }}
                           >
-                            {widthPercentage > 10 && (
-                              <span className="text-xs font-semibold text-white z-10">
-                                {option.text}: {option.votes} ({option.percentage.toFixed(1)}%)
+                            {widthPercentage > 8 && (
+                              <span className="text-xs font-semibold text-white z-10 px-1 text-center">
+                                {option.text}: {option.votes} ({widthPercentage.toFixed(1)}%)
                               </span>
                             )}
                           </div>
                         );
                       })}
+                      {question.totalVotes === 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-xs text-muted-foreground">Няма гласове</span>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Option details below */}
@@ -191,9 +215,9 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                       })}
                     </div>
                   </div>
-                ) : (
-                  // Multi-option - Thin colored lines under each option
-                  <div className="space-y-3">
+                  ) : (
+                    // Multi-option - Thin colored lines under each option
+                    <div className="space-y-3">
                     {(question.type === 'rating' 
                       ? [...question.options].sort((a, b) => {
                           // For rating questions, sort by option text/number to show 1-5 in order
@@ -237,7 +261,8 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                       );
                     })}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             ))}
           </div>
