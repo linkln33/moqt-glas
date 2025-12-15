@@ -48,6 +48,13 @@ export async function POST(request: NextRequest) {
 
     if (voterError) {
       console.error('Error checking voter:', voterError);
+      // If voters table doesn't exist, return error
+      if (voterError.code === '42P01' || voterError.code === '42883') {
+        return NextResponse.json(
+          { error: 'Таблицата за потребители не съществува', details: voterError.message },
+          { status: 500 }
+        );
+      }
       return NextResponse.json(
         { error: 'Грешка при проверка на потребителя', details: voterError.message },
         { status: 500 }
@@ -129,6 +136,19 @@ export async function POST(request: NextRequest) {
         details: profileError.details,
         hint: profileError.hint,
       });
+      
+      // If table doesn't exist, return helpful error
+      if (profileError.code === '42P01' || profileError.code === '42883') {
+        return NextResponse.json(
+          { 
+            error: 'Таблицата за профили не съществува',
+            details: 'Моля, създайте таблицата creator_profiles в базата данни',
+            code: profileError.code,
+          },
+          { status: 500 }
+        );
+      }
+      
       return NextResponse.json(
         { 
           error: 'Грешка при създаване на профила',

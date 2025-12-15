@@ -139,80 +139,105 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                   Общо гласове: {question.totalVotes} | Тип: {question.type === 'single-choice' ? 'Един избор' : question.type === 'multiple-choice' ? 'Множествен избор' : 'Ранкиране'}
                 </div>
 
-                {/* Options Progress Bars */}
-                <div className="space-y-3">
-                  {(question.type === 'rating' 
-                    ? [...question.options].sort((a, b) => {
-                        // For rating questions, sort by option text/number to show 1-5 in order
-                        const aNum = parseInt(a.text) || 0;
-                        const bNum = parseInt(b.text) || 0;
-                        return aNum - bNum;
-                      })
-                    : question.options
-                  ).map((option, optIndex) => {
-                    const colorClass = COLORS[optIndex % COLORS.length];
-                    const maxVotes = Math.max(...question.options.map(o => o.votes), 1);
-                    // Ensure minimum width for visibility, especially for rating questions
-                    const widthPercentage = maxVotes > 0 
-                      ? Math.max((option.votes / maxVotes) * 100, option.votes > 0 ? 2 : 0)
-                      : 0;
-
-                    return (
-                      <div key={option.id} className="space-y-1.5">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full bg-gradient-to-r ${colorClass}`} />
-                            {option.text}
-                            {question.type === 'rating' && (() => {
-                              const ratingNum = parseInt(option.text) || 0;
-                              if (ratingNum >= 1 && ratingNum <= 5) {
-                                return <span className="text-xs text-muted-foreground ml-1">{'⭐'.repeat(ratingNum)}</span>;
-                              }
-                              return null;
-                            })()}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">{option.votes} гласа</span>
-                            <Badge variant="info" className="text-xs">
-                              {option.percentage.toFixed(1)}%
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="w-full h-4 bg-background/50 rounded-full overflow-hidden relative">
+                {/* Options Statistics */}
+                {question.type === 'single-choice' && question.options.length === 2 ? (
+                  // Simple Yes/No - Single progress bar with 2 colors
+                  <div className="space-y-3">
+                    {/* Combined progress bar for yes/no */}
+                    <div className="w-full h-6 bg-background/50 rounded-full overflow-hidden relative flex">
+                      {question.options.map((option, optIndex) => {
+                        const colorClass = optIndex === 0 
+                          ? 'from-green-500 to-emerald-500' 
+                          : 'from-red-500 to-rose-500';
+                        const widthPercentage = option.percentage;
+                        
+                        return (
                           <div
-                            className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-1000 ease-out rounded-full shadow-md flex items-center justify-end pr-2 ${widthPercentage === 0 ? 'opacity-30' : ''}`}
-                            style={{ width: `${widthPercentage}%`, minWidth: option.votes > 0 ? '2px' : '0' }}
+                            key={option.id}
+                            className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-1000 ease-out flex items-center justify-center relative`}
+                            style={{ width: `${widthPercentage}%` }}
                           >
-                            {widthPercentage > 15 && (
-                              <span className="text-xs font-semibold text-white">
-                                {option.votes}
+                            {widthPercentage > 10 && (
+                              <span className="text-xs font-semibold text-white z-10">
+                                {option.text}: {option.votes} ({option.percentage.toFixed(1)}%)
                               </span>
                             )}
                           </div>
-                          {widthPercentage <= 15 && widthPercentage > 0 && (
-                            <div className="absolute left-2 top-0 h-full flex items-center">
-                              <span className="text-xs font-semibold text-foreground">
-                                {option.votes}
-                              </span>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Option details below */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {question.options.map((option, optIndex) => {
+                        const colorClass = optIndex === 0 
+                          ? 'from-green-500 to-emerald-500' 
+                          : 'from-red-500 to-rose-500';
+                        
+                        return (
+                          <div key={option.id} className="flex items-center justify-between p-2 rounded-lg glass-light">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-3 h-3 rounded-full bg-gradient-to-r ${colorClass}`} />
+                              <span className="font-medium text-sm">{option.text}</span>
                             </div>
-                          )}
-                          {option.votes === 0 && question.type === 'rating' && (
-                            <div className="absolute left-2 top-0 h-full flex items-center">
-                              <span className="text-xs text-muted-foreground">0</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">{option.votes} гласа</span>
+                              <Badge variant="info" className="text-xs">
+                                {option.percentage.toFixed(1)}%
+                              </Badge>
                             </div>
-                          )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  // Multi-option - Thin colored lines under each option
+                  <div className="space-y-3">
+                    {(question.type === 'rating' 
+                      ? [...question.options].sort((a, b) => {
+                          // For rating questions, sort by option text/number to show 1-5 in order
+                          const aNum = parseInt(a.text) || 0;
+                          const bNum = parseInt(b.text) || 0;
+                          return aNum - bNum;
+                        })
+                      : question.options
+                    ).map((option, optIndex) => {
+                      const colorClass = COLORS[optIndex % COLORS.length];
+                      
+                      return (
+                        <div key={option.id} className="space-y-1.5">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full bg-gradient-to-r ${colorClass}`} />
+                              {option.text}
+                              {question.type === 'rating' && (() => {
+                                const ratingNum = parseInt(option.text) || 0;
+                                if (ratingNum >= 1 && ratingNum <= 5) {
+                                  return <span className="text-xs text-muted-foreground ml-1">{'⭐'.repeat(ratingNum)}</span>;
+                                }
+                                return null;
+                              })()}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{option.votes} гласа</span>
+                              <Badge variant="info" className="text-xs">
+                                {option.percentage.toFixed(1)}%
+                              </Badge>
+                            </div>
+                          </div>
+                          {/* Thin colored progress line under each option */}
+                          <div className="w-full h-1 bg-background/30 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-1000 ease-out rounded-full`}
+                              style={{ width: `${option.percentage}%` }}
+                            />
+                          </div>
                         </div>
-                        {/* Thin progress bar under each option */}
-                        <div className="w-full h-0.5 bg-background/30 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-1000 ease-out rounded-full`}
-                            style={{ width: `${option.percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
           </div>

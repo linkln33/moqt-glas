@@ -31,13 +31,38 @@ export async function POST(
       );
     }
 
+    // Parse telegramId to ensure it's a number
+    const telegramIdInt = typeof telegramId === 'string' ? parseInt(telegramId) : telegramId;
+    if (isNaN(telegramIdInt)) {
+      return NextResponse.json(
+        { error: 'Невалиден потребителски идентификатор' },
+        { status: 400 }
+      );
+    }
+
     // Check if already liked
-    const { data: existingLike } = await supabase
+    const { data: existingLike, error: checkError } = await supabase
       .from('election_likes')
       .select('id')
       .eq('election_id', electionId)
-      .eq('telegram_id', telegramId)
+      .eq('telegram_id', telegramIdInt)
       .maybeSingle();
+
+    if (checkError) {
+      // If table doesn't exist, return error gracefully
+      if (checkError.code === '42P01' || checkError.code === '42883') {
+        console.warn('Election likes table may not exist');
+        return NextResponse.json(
+          { error: 'Функционалността за харесване не е налична', details: 'Таблицата не съществува' },
+          { status: 503 }
+        );
+      }
+      console.error('Error checking like:', checkError);
+      return NextResponse.json(
+        { error: 'Грешка при проверка на харесване' },
+        { status: 500 }
+      );
+    }
 
     if (existingLike) {
       return NextResponse.json(
@@ -51,11 +76,18 @@ export async function POST(
       .from('election_likes')
       .insert({
         election_id: electionId,
-        telegram_id: telegramId,
+        telegram_id: telegramIdInt,
       });
 
     if (likeError) {
       console.error('Error creating like:', likeError);
+      // If table doesn't exist, return error gracefully
+      if (likeError.code === '42P01' || likeError.code === '42883') {
+        return NextResponse.json(
+          { error: 'Функционалността за харесване не е налична', details: 'Таблицата не съществува' },
+          { status: 503 }
+        );
+      }
       return NextResponse.json(
         { error: 'Грешка при харесване' },
         { status: 500 }
@@ -109,15 +141,31 @@ export async function DELETE(
       );
     }
 
+    // Parse telegramId to ensure it's a number
+    const telegramIdInt = typeof telegramId === 'string' ? parseInt(telegramId) : telegramId;
+    if (isNaN(telegramIdInt)) {
+      return NextResponse.json(
+        { error: 'Невалиден потребителски идентификатор' },
+        { status: 400 }
+      );
+    }
+
     // Delete like
     const { error: deleteError } = await supabase
       .from('election_likes')
       .delete()
       .eq('election_id', electionId)
-      .eq('telegram_id', telegramId);
+      .eq('telegram_id', telegramIdInt);
 
     if (deleteError) {
       console.error('Error deleting like:', deleteError);
+      // If table doesn't exist, return error gracefully
+      if (deleteError.code === '42P01' || deleteError.code === '42883') {
+        return NextResponse.json(
+          { error: 'Функционалността за харесване не е налична', details: 'Таблицата не съществува' },
+          { status: 503 }
+        );
+      }
       return NextResponse.json(
         { error: 'Грешка при премахване на харесване' },
         { status: 500 }

@@ -40,6 +40,12 @@ export async function GET(
         return NextResponse.json({ profile: null });
       }
       
+      // If table doesn't exist, return null instead of error
+      if (error.code === '42P01' || error.code === '42883') {
+        console.warn('Creator profiles table may not exist, returning null');
+        return NextResponse.json({ profile: null });
+      }
+      
       return NextResponse.json(
         { 
           error: 'Грешка при зареждане на профила',
