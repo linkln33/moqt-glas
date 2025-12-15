@@ -242,20 +242,20 @@ export default async function HomePage() {
         <div className="relative">
           {/* Hero Section */}
           <div className="relative overflow-hidden border-b border-border/50">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 md:pt-16 pb-12 sm:pb-20 md:pb-32 relative">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 md:pt-20 pb-16 sm:pb-24 md:pb-40 relative">
               <div className="max-w-4xl mx-auto text-center">
                 <div className="flex flex-col items-center justify-center mb-4 sm:mb-6">
-              <div className="mb-4 sm:mb-6">
+              <div className="mb-6 sm:mb-8 md:mb-10">
                 <Image 
                   src="/logo.svg" 
                   alt="Моят Глас" 
                   width={400}
                   height={400}
-                  className="object-contain mx-auto drop-shadow-2xl hero-logo w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96"
+                  className="object-contain mx-auto drop-shadow-2xl hero-logo w-56 h-56 sm:w-72 sm:h-72 md:w-88 md:h-88 lg:w-96 lg:h-96"
                   priority
                 />
               </div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">
+              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent mb-2 sm:mb-3">
                 Моят Глас
               </h1>
             </div>
@@ -282,41 +282,42 @@ export default async function HomePage() {
           </div>
 
           {/* Stats Section */}
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-16 sm:-mt-20 md:-mt-24 relative z-10 pb-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-12 sm:-mt-16 md:-mt-20 lg:-mt-24 relative z-10 pb-6 sm:pb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
               <GlassCard className="border-blue-500/30 shine">
-                <GlassCardContent className="p-4 sm:p-6 text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-blue-400 mb-1">
+                <GlassCardContent className="p-3 sm:p-4 md:p-5 lg:p-6 text-center">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-400 mb-1 sm:mb-2">
                     {stats.totalUsers.toLocaleString()}
                   </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground">Потребители</div>
+                  <div className="text-[10px] xs:text-xs sm:text-sm text-muted-foreground leading-tight">Потребители</div>
                 </GlassCardContent>
               </GlassCard>
 
               <GlassCard className="border-green-500/30 shine">
-                <GlassCardContent className="p-4 sm:p-6 text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-green-400 mb-1">
+                <GlassCardContent className="p-3 sm:p-4 md:p-5 lg:p-6 text-center">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-400 mb-1 sm:mb-2">
                     {stats.totalEvents.toLocaleString()}
                   </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground">Събития</div>
+                  <div className="text-[10px] xs:text-xs sm:text-sm text-muted-foreground leading-tight">Събития</div>
                 </GlassCardContent>
               </GlassCard>
 
               <GlassCard className="border-purple-500/30 shine">
-                <GlassCardContent className="p-4 sm:p-6 text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-purple-400 mb-1">
-                    {stats.moneyRaised.toLocaleString('bg-BG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} BGN
+                <GlassCardContent className="p-3 sm:p-4 md:p-5 lg:p-6 text-center">
+                  <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-purple-400 mb-1 sm:mb-2 leading-tight">
+                    <span className="block sm:inline">{stats.moneyRaised.toLocaleString('bg-BG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="block sm:inline text-xs sm:text-sm md:text-base lg:text-lg"> BGN</span>
                   </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground">Събрани средства</div>
+                  <div className="text-[10px] xs:text-xs sm:text-sm text-muted-foreground leading-tight mt-1">Събрани средства</div>
                 </GlassCardContent>
               </GlassCard>
 
               <GlassCard className="border-orange-500/30 shine">
-                <GlassCardContent className="p-4 sm:p-6 text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-orange-400 mb-1">
+                <GlassCardContent className="p-3 sm:p-4 md:p-5 lg:p-6 text-center">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-orange-400 mb-1 sm:mb-2">
                     {stats.accuracy.toFixed(1)}%
                   </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground">Точност</div>
+                  <div className="text-[10px] xs:text-xs sm:text-sm text-muted-foreground leading-tight">Точност</div>
                 </GlassCardContent>
               </GlassCard>
             </div>
