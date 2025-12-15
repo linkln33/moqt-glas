@@ -19,6 +19,7 @@ export async function POST(
       donorName,
       donorMessage,
       isAnonymous = false,
+      paymentMethod = 'card',
     } = body;
 
     if (!telegramId) {
@@ -67,8 +68,8 @@ export async function POST(
         donor_name: isAnonymous ? null : (donorName || null),
         donor_message: donorMessage || null,
         is_anonymous: isAnonymous,
-        payment_status: 'pending', // Will be updated to 'completed' when payment is processed
-        payment_method: 'card', // Default, can be updated based on payment provider
+        payment_status: paymentMethod === 'card' ? 'pending' : 'pending',
+        payment_method: paymentMethod,
       })
       .select()
       .single();
@@ -81,25 +82,21 @@ export async function POST(
       );
     }
 
-    // TODO: Integrate with payment provider (Stripe, PayPal, etc.)
-    // For now, we'll simulate payment processing
-    // In production, you would:
-    // 1. Create payment intent with Stripe/PayPal
-    // 2. Return payment URL to client
-    // 3. Update donation status when payment is confirmed via webhook
+    // TODO: Integrate with payment providers.
+    // For card payments, simulate success until Stripe is wired.
+    if (paymentMethod === 'card') {
+      const { error: updateError } = await supabase
+        .from('election_donations')
+        .update({ 
+          payment_status: 'completed',
+          payment_provider: 'local',
+          payment_provider_transaction_id: `sim_${donation.id}`,
+        })
+        .eq('id', donation.id);
 
-    // Simulate successful payment for now (remove in production)
-    const { error: updateError } = await supabase
-      .from('election_donations')
-      .update({ 
-        payment_status: 'completed',
-        payment_provider: 'local',
-        payment_provider_transaction_id: `sim_${donation.id}`,
-      })
-      .eq('id', donation.id);
-
-    if (updateError) {
-      console.error('Error updating donation status:', updateError);
+      if (updateError) {
+        console.error('Error updating donation status:', updateError);
+      }
     }
 
     // Get updated fundraising stats
@@ -115,9 +112,13 @@ export async function POST(
         id: donation.id,
         amount: donation.amount,
         currency: donation.currency,
+        paymentMethod,
+        paymentStatus: paymentMethod === 'card' ? 'completed' : 'pending',
       },
       totalRaised: stats?.total_raised || 0,
-      message: 'Дарението е успешно обработено!',
+      message: paymentMethod === 'card'
+        ? 'Дарението е успешно обработено!'
+        : 'Заявката за USDC е записана. Ще получите инструкции за плащане.',
     });
   } catch (error) {
     console.error('Error in POST /api/elections/[id]/donate:', error);

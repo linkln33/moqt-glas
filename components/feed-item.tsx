@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDateBG, formatTimeBG } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils';
-import { Heart, MessageCircle, Share2, Coins } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Coins, Copy, Link as LinkIcon } from 'lucide-react';
 import { DonationForm } from '@/components/donation-form';
 
 interface PollWithStats {
@@ -58,6 +58,21 @@ export function FeedItem({ poll }: FeedItemProps) {
   const [commentText, setCommentText] = useState('');
   const [showDonationForm, setShowDonationForm] = useState(false);
   const [fundraisingCurrent, setFundraisingCurrent] = useState(poll.fundraisingCurrent || 0);
+  const fundraisingGoal = poll.fundraisingGoal || 0;
+  const fundraisingCurrency = poll.fundraisingCurrency || 'BGN';
+
+  const progress =
+    fundraisingGoal > 0 ? Math.min((fundraisingCurrent / fundraisingGoal) * 100, 100) : 0;
+
+  const handleShare = useCallback(() => {
+    const url = typeof window !== 'undefined'
+      ? `${window.location.origin}/elections/${poll.id}`
+      : `/elections/${poll.id}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).catch(() => {});
+    }
+    setSharesCount((prev) => prev + 1);
+  }, [poll.id]);
 
   // Check if user has liked this poll on mount
   useEffect(() => {
@@ -284,16 +299,18 @@ export function FeedItem({ poll }: FeedItemProps) {
                 <span className="font-semibold">Събиране на средства</span>
               </div>
               <span className="text-sm font-medium">
-                {fundraisingCurrent.toFixed(2)} {poll.fundraisingCurrency || 'BGN'} / {poll.fundraisingGoal.toFixed(2)} {poll.fundraisingCurrency || 'BGN'}
+                {fundraisingCurrent.toFixed(2)} {fundraisingCurrency} / {fundraisingGoal.toFixed(2)} {fundraisingCurrency}
               </span>
             </div>
             <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden mb-3">
               <div
                 className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
-                style={{ 
-                  width: `${Math.min((fundraisingCurrent / poll.fundraisingGoal) * 100, 100)}%` 
-                }}
+                style={{ width: `${progress}%` }}
               />
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+              <span>Прогрес</span>
+              <span>{progress.toFixed(1)}%</span>
             </div>
             <Button
               onClick={() => setShowDonationForm(true)}
@@ -303,6 +320,19 @@ export function FeedItem({ poll }: FeedItemProps) {
               <Heart className="w-4 h-4 mr-2" />
               Подкрепи
             </Button>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <Button variant="secondary" size="sm" onClick={handleShare} className="gap-1">
+                <Copy className="w-3 h-3" />
+                Копирай линк
+              </Button>
+              <Link
+                href={`/elections/${poll.id}`}
+                className="flex items-center gap-1 text-primary hover:underline"
+              >
+                <LinkIcon className="w-3 h-3" />
+                Виж детайли
+              </Link>
+            </div>
           </div>
         )}
 

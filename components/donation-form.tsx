@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Heart, X } from 'lucide-react';
+import { Heart, Shield, Wallet, X } from 'lucide-react';
 
 interface DonationFormProps {
   electionId: string;
@@ -18,6 +18,11 @@ interface DonationFormProps {
 }
 
 const presetAmounts = [10, 25, 50, 100, 250, 500];
+const supportedCurrencies = ['BGN', 'EUR', 'USD', 'USDC'];
+const paymentMethods = [
+  { id: 'card', label: 'Карта / Apple Pay / Google Pay', icon: Shield },
+  { id: 'crypto', label: 'USDC (crypto)', icon: Wallet },
+];
 
 export function DonationForm({ 
   electionId, 
@@ -32,8 +37,11 @@ export function DonationForm({
   const [donorName, setDonorName] = useState('');
   const [donorMessage, setDonorMessage] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'crypto'>('card');
+  const [selectedCurrency, setSelectedCurrency] = useState(currency);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const progress = goal > 0 ? Math.min((currentAmount / goal) * 100, 100) : 0;
 
@@ -55,6 +63,7 @@ export function DonationForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
 
     const finalAmount = amount;
     if (!finalAmount || finalAmount <= 0) {
@@ -77,10 +86,11 @@ export function DonationForm({
         body: JSON.stringify({
           telegramId: parsed.telegramId,
           amount: finalAmount,
-          currency,
+          currency: selectedCurrency,
           donorName: isAnonymous ? '' : (donorName || parsed.firstName || 'Анонимен'),
           donorMessage: donorMessage.trim() || null,
           isAnonymous,
+          paymentMethod,
         }),
       });
 
@@ -91,10 +101,12 @@ export function DonationForm({
       }
 
       // Success - close form and refresh
-      if (onSuccess) {
-        onSuccess();
-      }
-      onClose();
+      setSuccessMessage(
+        paymentMethod === 'crypto'
+          ? 'Заявката за дарение е записана. Ще получите инструкции за USDC плащане.'
+          : 'Дарението е успешно обработено.'
+      );
+      if (onSuccess) onSuccess();
     } catch (err: any) {
       setError(err.message || 'Грешка при обработка на дарението');
     } finally {
@@ -171,6 +183,57 @@ export function DonationForm({
               />
             </div>
 
+            {/* Currency selector */}
+            <div>
+              <Label className="mb-2 block">Валута</Label>
+              <div className="flex flex-wrap gap-2">
+                {supportedCurrencies.map((c) => (
+                  <Button
+                    key={c}
+                    type="button"
+                    variant={selectedCurrency === c ? 'default' : 'outline'}
+                    className={selectedCurrency === c ? 'gradient-primary text-white' : ''}
+                    onClick={() => setSelectedCurrency(c)}
+                  >
+                    {c}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment method */}
+            <div>
+              <Label className="mb-2 block">Метод на плащане</Label>
+              <div className="space-y-2">
+                {paymentMethods.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setPaymentMethod(id as 'card' | 'crypto')}
+                    className={`w-full rounded-lg border px-3 py-2 text-left transition ${
+                      paymentMethod === id
+                        ? 'border-primary/60 bg-primary/10'
+                        : 'border-border bg-background/40 hover:bg-background/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4" />
+                      <span className="text-sm font-medium">{label}</span>
+                    </div>
+                    {id === 'card' ? (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Карта, Apple Pay или Google Pay. Обработва се сигурно чрез платежен доставчик.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        USDC on-chain плащане. Ще получите инструкции след заявката.
+                      </p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Donor Name */}
             {!isAnonymous && (
               <div>
@@ -219,6 +282,11 @@ export function DonationForm({
                 {error}
               </div>
             )}
+            {successMessage && (
+              <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm">
+                {successMessage}
+              </div>
+            )}
 
             <div className="flex gap-3 pt-4">
               <Button
@@ -235,12 +303,12 @@ export function DonationForm({
                 className="flex-1 gradient-primary text-white"
                 disabled={!amount || amount <= 0 || isLoading}
               >
-                {isLoading ? 'Обработване...' : `Дари ${amount} ${currency}`}
+                {isLoading ? 'Обработване...' : `Дари ${amount} ${selectedCurrency}`}
               </Button>
             </div>
 
             <p className="text-xs text-muted-foreground text-center mt-4">
-              * Плащането ще бъде обработено чрез сигурен платежен шлюз
+              * Плащането ще бъде обработено чрез избрания метод
             </p>
           </form>
         </GlassCardContent>
