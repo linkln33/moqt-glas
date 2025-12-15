@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Nav } from '@/components/nav';
@@ -11,16 +11,21 @@ const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter' }
 export const metadata: Metadata = {
   title: 'Моят Глас - Български избори',
   description: 'Платформа за гласуване в българските избори',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
-    { media: '(prefers-color-scheme: dark)', color: '#00966E' },
-  ],
   icons: {
     icon: '/logo.svg',
     apple: '/logo.svg',
     shortcut: '/logo.svg',
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
+    { media: '(prefers-color-scheme: dark)', color: '#00966E' },
+  ],
 };
 
 export default function RootLayout({
