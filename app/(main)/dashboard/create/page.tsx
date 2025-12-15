@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { convertBulgariaDateTimeToUTC } from '@/lib/utils';
+import { convertBulgariaDateTimeToUTC, convertUTCToBulgariaDateTime } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Check, Plus, X } from 'lucide-react';
 
 const templates = [
@@ -92,7 +92,9 @@ function CreatePollPageContent() {
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
+  const [loadingElection, setLoadingElection] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [editingElectionId, setEditingElectionId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<{
     title: string;
@@ -144,10 +146,15 @@ function CreatePollPageContent() {
     ],
   });
 
-  // Check for template parameter in URL
+  // Check for template or edit parameter in URL
   useEffect(() => {
     const templateParam = searchParams.get('template');
-    if (templateParam) {
+    const editParam = searchParams.get('edit');
+    
+    if (editParam) {
+      setEditingElectionId(editParam);
+      loadElectionForEdit(editParam);
+    } else if (templateParam) {
       const selectedTemplate = templates.find(t => t.id === templateParam);
       if (selectedTemplate) {
         applyTemplate(selectedTemplate);
@@ -155,6 +162,69 @@ function CreatePollPageContent() {
       }
     }
   }, [searchParams]);
+
+  const loadElectionForEdit = async (electionId: string) => {
+    setLoadingElection(true);
+    try {
+      const response = await fetch(`/api/elections/${electionId}`);
+      if (!response.ok) {
+        throw new Error('Не може да се зареди анкетата за редактиране');
+      }
+      
+      const data = await response.json();
+      
+      // Convert dates from UTC to datetime-local format
+      const startDate = data.start_date ? convertUTCToBulgariaDateTime(data.start_date) : '';
+      const endDate = data.end_date ? convertUTCToBulgariaDateTime(data.end_date) : '';
+      const fundraisingEndDate = data.fundraising_end_date 
+        ? convertUTCToBulgariaDateTime(data.fundraising_end_date) 
+        : '';
+      
+      // Transform questions and options
+      const questions = (data.questions || []).map((q: any) => ({
+        question_text: q.question_text || '',
+        question_text_bg: q.question_text_bg || '',
+        question_type: q.question_type || 'single-choice',
+        options: (q.options || []).map((o: any) => ({
+          option_text: o.option_text || '',
+          option_text_bg: o.option_text_bg || '',
+        })),
+      }));
+      
+      setFormData({
+        title: data.title || '',
+        title_bg: data.title_bg || '',
+        description: data.description || '',
+        description_bg: data.description_bg || '',
+        start_date: startDate,
+        end_date: endDate,
+        has_fundraising: data.has_fundraising || false,
+        fundraising_goal: data.fundraising_goal?.toString() || '',
+        fundraising_currency: data.fundraising_currency || 'BGN',
+        fundraising_description_bg: data.fundraising_description_bg || '',
+        fundraising_end_date: fundraisingEndDate,
+        fundraising_purpose: data.fundraising_purpose || '',
+        fundraising_min_amount: data.fundraising_min_amount?.toString() || '',
+        fundraising_suggested_amounts: data.fundraising_suggested_amounts || '',
+        fundraising_payment_methods: data.fundraising_payment_methods || [],
+        fundraising_show_donors: data.fundraising_show_donors !== undefined ? data.fundraising_show_donors : true,
+        questions: questions.length > 0 ? questions : [{
+          question_text: '',
+          question_text_bg: '',
+          question_type: 'single-choice',
+          options: [{ option_text: '', option_text_bg: '' }],
+        }],
+      });
+      
+      // Skip to step 2 if editing
+      setCurrentStep(2);
+    } catch (error: any) {
+      console.error('Error loading election:', error);
+      alert(error.message || 'Грешка при зареждане на анкетата');
+    } finally {
+      setLoadingElection(false);
+    }
+  };
 
   const applyTemplate = (template: typeof templates[0]) => {
     setFormData(prev => ({
@@ -311,8 +381,14 @@ function CreatePollPageContent() {
           : null,
       };
       
-      const response = await fetch('/api/elections/create', {
-        method: 'POST',
+      // Use update endpoint if editing, otherwise create
+      const url = editingElectionId 
+        ? `/api/elections/${editingElectionId}`
+        : '/api/elections/create';
+      const method = editingElectionId ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telegramAuth,
@@ -323,13 +399,13 @@ function CreatePollPageContent() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Грешка при създаване на изборите');
+        throw new Error(result.error || (editingElectionId ? 'Грешка при обновяване на изборите' : 'Грешка при създаване на изборите'));
       }
 
       router.push(`/dashboard`);
       router.refresh();
     } catch (error: any) {
-      alert(error.message || 'Грешка при създаване на изборите');
+      alert(error.message || (editingElectionId ? 'Грешка при обновяване на изборите' : 'Грешка при създаване на изборите'));
     } finally {
       setLoading(false);
     }
