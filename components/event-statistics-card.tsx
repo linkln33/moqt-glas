@@ -141,9 +141,14 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
 
                 {/* Options Statistics */}
                 {(() => {
-                  // Check if it's a simple yes/no question (single-choice with exactly 2 options)
+                  // Check if it's a simple yes/no question
+                  // ONLY show two-colored bar if:
+                  // 1. It's single-choice type
+                  // 2. Has exactly 2 options (no more, no less)
+                  // 3. Options array is valid
+                  const hasValidOptions = Array.isArray(question.options) && question.options.length > 0;
                   const isYesNo = question.type === 'single-choice' && 
-                                  Array.isArray(question.options) && 
+                                  hasValidOptions && 
                                   question.options.length === 2;
                   
                   // Debug logging
@@ -152,11 +157,16 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                       type: question.type,
                       optionsLength: question.options?.length,
                       isYesNo,
-                      options: question.options?.map(o => o.text)
+                      hasValidOptions,
+                      options: question.options?.map(o => ({ id: o.id, text: o.text, votes: o.votes })),
                     });
                   }
                   
-                  return isYesNo ? (
+                  // Only show two-colored thick bar for true yes/no (exactly 2 options, single-choice)
+                  // For ALL other cases (3+ options, multiple-choice, rating, etc.), show thin bars
+                  if (isYesNo) {
+                    // Yes/No question - show two-colored thick bar
+                    return (
                   // Simple Yes/No - Single progress bar with 2 colors
                   <div className="space-y-3">
                     {/* Combined progress bar for yes/no */}
@@ -215,8 +225,10 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                       })}
                     </div>
                   </div>
-                  ) : (
-                    // Multi-option - Thin colored lines under each option
+                  );
+                  } else {
+                    // Multi-option, rating, or any other type - Thin colored lines under each option
+                    return (
                     <div className="space-y-3">
                     {(question.type === 'rating' 
                       ? [...question.options].sort((a, b) => {
@@ -261,7 +273,8 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                       );
                     })}
                   </div>
-                  );
+                    );
+                  }
                 })()}
               </div>
             ))}
