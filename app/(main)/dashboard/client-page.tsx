@@ -62,43 +62,12 @@ export function DashboardClientPage({ initialPolls }: DashboardClientPageProps) 
     };
   }, [initialPolls]);
 
-  // Refetch polls when component mounts or window gains focus
+  // Refetch polls when window gains focus (optional - can be removed if not needed)
   useEffect(() => {
     mountedRef.current = true;
     
-    const fetchPolls = async () => {
-      if (!mountedRef.current) return;
-      
-      setLoading(true);
-      try {
-        // Refresh the page data by reloading
-        const response = await fetch('/api/elections');
-        if (!mountedRef.current) return;
-        
-        if (response.ok) {
-          const data = await response.json();
-          // Just refresh the page to get full server-side data
-          window.location.reload();
-        }
-      } catch (error) {
-        if (mountedRef.current) {
-          console.error('Error fetching polls:', error);
-          setLoading(false);
-        }
-      }
-    };
-
-    // Listen for focus events to refetch when user returns to tab
-    const handleFocus = () => {
-      if (mountedRef.current) {
-        fetchPolls();
-      }
-    };
-    window.addEventListener('focus', handleFocus);
-    
     return () => {
       mountedRef.current = false;
-      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
