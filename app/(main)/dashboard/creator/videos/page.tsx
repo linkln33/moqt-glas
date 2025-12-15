@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,24 @@ interface Video {
 }
 
 export default function CreatorVideosPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="py-6">
+          <GlassCard>
+            <GlassCardContent className="py-16 text-center">
+              <p>Зареждане...</p>
+            </GlassCardContent>
+          </GlassCard>
+        </div>
+      }
+    >
+      <CreatorVideosContent />
+    </Suspense>
+  );
+}
+
+function CreatorVideosContent() {
   const searchParams = useSearchParams();
   const telegramId = searchParams.get('telegramId');
   const [videos, setVideos] = useState<Video[]>([]);
