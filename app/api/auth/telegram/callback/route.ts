@@ -75,7 +75,10 @@ export async function GET(request: NextRequest) {
 
     if (!isValid) {
       console.error('❌ Telegram auth verification failed');
-      return NextResponse.redirect(new URL('/login?error=auth', appUrl));
+      const redirectUrl = new URL('/login', appUrl);
+      redirectUrl.searchParams.set('error', 'auth');
+      redirectUrl.searchParams.set('reason', 'invalid_hash');
+      return NextResponse.redirect(redirectUrl);
     }
 
     console.log('✅ Telegram authentication verified');
@@ -113,7 +116,10 @@ export async function GET(request: NextRequest) {
 
       if (fallbackError || !fallbackVoter) {
         console.error('Fallback voter creation also failed:', fallbackError);
-        return NextResponse.redirect(new URL('/login?error=user', appUrl));
+        const redirectUrl = new URL('/login', appUrl);
+        redirectUrl.searchParams.set('error', 'user');
+        redirectUrl.searchParams.set('reason', fallbackError?.code || fallbackError?.message ? 'fallback_failed' : 'fallback_unknown');
+        return NextResponse.redirect(redirectUrl);
       }
 
       console.log('✅ Fallback voter created, proceeding with redirect');
