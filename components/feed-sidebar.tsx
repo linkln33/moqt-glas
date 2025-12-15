@@ -213,7 +213,6 @@ export function FeedSidebar() {
             </div>
           </GlassCardContent>
         </GlassCard>
-      </div>
     </div>
   );
 }
