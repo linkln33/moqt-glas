@@ -34,24 +34,40 @@ export async function GET(
     // Get vote counts for each option
     const questionsWithResults = await Promise.all(
       (questions || []).map(async (question) => {
-        const { data: votes } = await supabase
+        const { data: votes, error: votesError } = await supabase
           .from('votes')
           .select('selected_options')
           .eq('election_id', params.id)
           .eq('question_id', question.id);
 
+        if (votesError) {
+          console.error('Error fetching votes for question:', question.id, votesError);
+        }
+
         // Count votes per option
         const optionCounts: Record<string, number> = {};
         const totalVotes = votes?.length || 0;
 
+        // Initialize all options with 0 votes
         (question.options || []).forEach((option: any) => {
           optionCounts[option.id] = 0;
         });
 
+        // Count votes for each option
         votes?.forEach((vote) => {
-          const selected = Array.isArray(vote.selected_options)
-            ? vote.selected_options
-            : [];
+          let selected: string[] = [];
+          
+          // Handle different formats of selected_options
+          if (Array.isArray(vote.selected_options)) {
+            selected = vote.selected_options;
+          } else if (typeof vote.selected_options === 'string') {
+            try {
+              selected = JSON.parse(vote.selected_options);
+            } catch {
+              selected = [vote.selected_options];
+            }
+          }
+          
           selected.forEach((optionId: string) => {
             if (optionCounts[optionId] !== undefined) {
               optionCounts[optionId]++;
@@ -67,6 +83,13 @@ export async function GET(
             ? ((optionCounts[option.id] || 0) / totalVotes) * 100 
             : 0,
         }));
+
+        console.log('Question results:', {
+          questionId: question.id,
+          totalVotes,
+          optionCounts,
+          optionsWithResults: optionsWithResults.map(o => ({ id: o.id, votes: o.votes, percentage: o.percentage })),
+        });
 
         return {
           ...question,

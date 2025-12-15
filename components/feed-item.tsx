@@ -82,6 +82,7 @@ export function FeedItem({ poll }: FeedItemProps) {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submittingDonation, setSubmittingDonation] = useState(false);
   const [donationError, setDonationError] = useState('');
+  const [showFundraising, setShowFundraising] = useState(false);
 
   const presetAmounts = [10, 25, 50, 100, 250, 500];
   
@@ -342,15 +343,30 @@ export function FeedItem({ poll }: FeedItemProps) {
 
           if (!response.ok) {
             let errorMessage = 'Грешка при подаване на глас';
+            let errorData: any = {};
             try {
               const result = await response.json();
               errorMessage = result.error || errorMessage;
+              errorData = result;
             } catch {
               // If JSON parsing fails, use default message
             }
-            console.error('Vote submission failed:', errorMessage, 'Status:', response.status);
+            console.error('Vote submission failed:', {
+              errorMessage,
+              status: response.status,
+              questionId: question.id,
+              selectedOptions: selectedOptions[question.id],
+              errorData,
+            });
             allSuccessful = false;
             throw new Error(errorMessage);
+          } else {
+            // Log successful vote submission
+            const result = await response.json().catch(() => ({}));
+            console.log('Vote submitted successfully:', {
+              questionId: question.id,
+              result,
+            });
           }
         } catch (err: any) {
           console.error('Error submitting vote for question:', question.id, err);
@@ -363,22 +379,38 @@ export function FeedItem({ poll }: FeedItemProps) {
       if (allSuccessful && mountedRef.current) {
         setHasVoted(true);
         setShowResults(true);
-        // Load results immediately
-        try {
-          const response = await fetch(`/api/elections/${poll.id}/results`);
-          if (response.ok) {
-            const data = await response.json();
-            if (mountedRef.current) {
-              setResults(data.questions || []);
-              const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
-              setTotalVotes(total);
+        // Load results immediately with retry
+        let retries = 0;
+        const loadResultsWithRetry = async () => {
+          try {
+            const response = await fetch(`/api/elections/${poll.id}/results`);
+            if (response.ok) {
+              const data = await response.json();
+              if (mountedRef.current) {
+                setResults(data.questions || []);
+                const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
+                setTotalVotes(total);
+                console.log('Results loaded successfully:', { total, questions: data.questions?.length });
+              }
+            } else {
+              const errorData = await response.json().catch(() => ({}));
+              console.error('Failed to load results:', response.status, errorData);
+              // Retry once after a short delay
+              if (retries < 1) {
+                retries++;
+                setTimeout(loadResultsWithRetry, 500);
+              }
             }
-          } else {
-            console.error('Failed to load results:', response.status);
+          } catch (error) {
+            console.error('Error loading results:', error);
+            // Retry once after a short delay
+            if (retries < 1) {
+              retries++;
+              setTimeout(loadResultsWithRetry, 500);
+            }
           }
-        } catch (error) {
-          console.error('Error loading results:', error);
-        }
+        };
+        loadResultsWithRetry();
       }
     } catch (err: any) {
       console.error('Vote submission error:', err);
@@ -729,33 +761,29 @@ export function FeedItem({ poll }: FeedItemProps) {
                   </span>
                 </div>
                               <div className="flex items-center gap-2">
-                                {questionTotalVotes > 0 && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {optionVotes} ({optionPercentage.toFixed(1)}%)
-                                  </span>
-                                )}
+                                {/* Always show statistics */}
+                                <span className="text-xs text-muted-foreground">
+                                  {optionVotes} ({optionPercentage.toFixed(1)}%)
+                                </span>
                                 {isSelected && <CheckCircle2 className={`w-5 h-5 ${color.text}`} />}
                               </div>
                             </div>
                           </button>
-                          {/* Progress bar showing statistics */}
-                          {questionTotalVotes > 0 && (
-                            <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden ml-1">
-                              <div
-                                className={`h-full ${color.progress} transition-all duration-500`}
-                                style={{ width: `${optionPercentage}%` }}
-                              />
-                            </div>
-                          )}
+                          {/* Progress bar showing statistics - always visible */}
+                          <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden ml-1">
+                            <div
+                              className={`h-full ${color.progress} transition-all duration-500`}
+                              style={{ width: `${Math.max(optionPercentage, 0)}%` }}
+                            />
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-                  {questionTotalVotes > 0 && (
-                    <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
-                      Общо гласове: {questionTotalVotes}
-                    </div>
-                  )}
+                  {/* Always show total votes */}
+                  <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
+                    Общо гласове: {questionTotalVotes || 0}
+                  </div>
                 </div>
               );
             })}
@@ -775,8 +803,69 @@ export function FeedItem({ poll }: FeedItemProps) {
           </>
         )}
 
+        {/* Voting Statistics - Always visible when results are loaded */}
+        {results.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="font-semibold text-base">📊 Статистика</span>
+              {hasVoted && <Badge variant="success" className="text-xs">Гласували сте</Badge>}
+              {isEnded && <Badge variant="secondary" className="text-xs">Приключила</Badge>}
+            </div>
+            
+            {results.map((question) => {
+              // Find original question to get option order
+              const originalQuestion = poll.questions?.find(q => q.id === question.id);
+              
+              return (
+                <div key={question.id} className="mb-6 space-y-3">
+                  <div className="font-medium text-sm mb-3">
+                    {question.question_text_bg}
+                  </div>
+                  <div className="space-y-3">
+                    {question.options
+                      .sort((a, b) => b.votes - a.votes)
+                      .map((option, index) => {
+                        // Find original option index for color coding
+                        const originalIndex = originalQuestion?.options.findIndex(o => o.id === option.id) ?? index;
+                        const color = getOptionColor(originalIndex);
+                        
+                        return (
+                          <div key={option.id} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                {index === 0 && question.totalVotes > 0 && (
+                                  <span className="text-xl">🏆</span>
+                                )}
+                                <div className={`w-3 h-3 rounded-full ${color.progress}`}></div>
+                                <span className={`text-sm font-medium ${color.text}`}>
+                                  {option.option_text_bg}
+                                </span>
+                              </div>
+                              <Badge variant={index === 0 && question.totalVotes > 0 ? 'success' : 'secondary'}>
+                                {option.votes} ({option.percentage.toFixed(1)}%)
+                              </Badge>
+                            </div>
+                            <div className="w-full h-3 bg-background/50 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${color.progress} transition-all duration-500`}
+                                style={{ width: `${option.percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                  <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
+                    Общо гласове: {question.totalVotes}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Results/Statistics UI - Directly integrated into card flow with color coding */}
-        {(showResults || (results.length > 0 && (hasVoted || isEnded))) && results.length > 0 && (
+        {false && (showResults || (results.length > 0 && (hasVoted || isEnded))) && results.length > 0 && (
           <>
             <div className="flex items-center gap-2 mb-4">
               <span className="font-semibold text-base">📊 Резултати</span>
@@ -868,32 +957,43 @@ export function FeedItem({ poll }: FeedItemProps) {
           </div>
         </div>
 
-        {/* Fundraising Section - Integrated directly in card */}
+        {/* Fundraising Section - Collapsible */}
         {poll.hasFundraising && poll.fundraisingGoal && (
-          <div className="mb-6 space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="mb-6">
+            <button
+              onClick={() => setShowFundraising(!showFundraising)}
+              className="w-full flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-background/50 transition-colors mb-3"
+            >
               <div className="flex items-center gap-2">
                 <Coins className="w-5 h-5 text-primary" />
                 <span className="font-semibold">Събиране на средства</span>
               </div>
-              <span className="text-sm font-medium">
-                {fundraisingCurrent.toFixed(2)} {poll.fundraisingCurrency || 'BGN'} / {poll.fundraisingGoal.toFixed(2)} {poll.fundraisingCurrency || 'BGN'}
-              </span>
-            </div>
-            <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
-                style={{ 
-                  width: `${Math.min((fundraisingCurrent / poll.fundraisingGoal) * 100, 100)}%` 
-                }}
-              />
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {((fundraisingCurrent / poll.fundraisingGoal) * 100).toFixed(1)}% от целта
-            </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium">
+                  {fundraisingCurrent.toFixed(2)} {poll.fundraisingCurrency || 'BGN'} / {poll.fundraisingGoal.toFixed(2)} {poll.fundraisingCurrency || 'BGN'}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {showFundraising ? '▼' : '▶'}
+                </span>
+              </div>
+            </button>
+            
+            {showFundraising && (
+              <div className="space-y-4 pl-2 border-l-2 border-primary/30">
+                <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
+                    style={{ 
+                      width: `${Math.min((fundraisingCurrent / poll.fundraisingGoal) * 100, 100)}%` 
+                    }}
+                  />
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {((fundraisingCurrent / poll.fundraisingGoal) * 100).toFixed(1)}% от целта
+                </div>
 
-            {/* Donation Form - Directly integrated */}
-            <form onSubmit={handleDonationSubmit} className="space-y-4 pt-4 border-t border-border/30">
+                {/* Donation Form - Directly integrated */}
+                <form onSubmit={handleDonationSubmit} className="space-y-4 pt-4 border-t border-border/30">
               {/* Preset Amounts */}
               <div>
                 <Label className="mb-2 block text-sm">Изберете сума</Label>
@@ -997,6 +1097,8 @@ export function FeedItem({ poll }: FeedItemProps) {
                 * Плащането ще бъде обработено чрез сигурен платежен шлюз
               </p>
             </form>
+              </div>
+            )}
           </div>
         )}
 
