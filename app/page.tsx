@@ -108,68 +108,140 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Quick Templates Section */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
-        <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Бързи шаблони</h2>
-          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-            Създайте анкета за секунди с готови шаблони
-          </p>
+      {/* Currently Active Polls and Events Section */}
+      {activeElections.length > 0 ? (
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              Текущи активни избори и анкети
+            </h2>
+            <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
+              Участвайте в активни избори и анкети. Вашият глас има значение!
+            </p>
+          </div>
+
+          {/* Example Polls */}
+          {examplePolls.length > 0 && (
+            <div className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl sm:text-2xl font-semibold">Примерни анкети</h3>
+                <Badge variant="info" className="text-sm">Опитайте платформата</Badge>
+              </div>
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {examplePolls.map((poll) => (
+                  <Link key={poll.id} href={`/dashboard`}>
+                    <GlassCard hover className="flex flex-col cursor-pointer group h-full transition-all hover:scale-[1.02]">
+                      <GlassCardHeader>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <GlassCardTitle className="text-lg sm:text-xl group-hover:text-primary transition-colors line-clamp-2">
+                            {poll.title_bg || poll.title}
+                          </GlassCardTitle>
+                          <Badge variant="info" className="shrink-0 text-xs">Пример</Badge>
+                        </div>
+                        <GlassCardDescription className="line-clamp-2 text-sm">
+                          {poll.description_bg || poll.description}
+                        </GlassCardDescription>
+                      </GlassCardHeader>
+                      <GlassCardContent className="flex-grow space-y-3">
+                        <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <span>📊</span>
+                            <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span>📅</span>
+                            <span>{formatDateBG(poll.end_date)}</span>
+                          </div>
+                        </div>
+                      </GlassCardContent>
+                      <GlassCardFooter className="pt-0">
+                        <Button className="w-full gradient-primary text-white shadow-lg text-sm sm:text-base">
+                          Гласувай →
+                        </Button>
+                      </GlassCardFooter>
+                    </GlassCard>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Other Active Elections */}
+          {otherElections.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl sm:text-2xl font-semibold">Активни избори</h3>
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm" className="text-sm">
+                    Виж всички →
+                  </Button>
+                </Link>
+              </div>
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {otherElections.slice(0, 8).map((poll) => (
+                  <Link key={poll.id} href={`/dashboard`}>
+                    <GlassCard hover className="flex flex-col cursor-pointer group h-full transition-all hover:scale-[1.02]">
+                      <GlassCardHeader>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <GlassCardTitle className="text-lg sm:text-xl group-hover:text-primary transition-colors line-clamp-2">
+                            {poll.title_bg || poll.title}
+                          </GlassCardTitle>
+                          <Badge variant="success" className="shrink-0 text-xs">Активни</Badge>
+                        </div>
+                        <GlassCardDescription className="line-clamp-2 text-sm">
+                          {poll.description_bg || poll.description}
+                        </GlassCardDescription>
+                      </GlassCardHeader>
+                      <GlassCardContent className="flex-grow space-y-3">
+                        <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <span>📊</span>
+                            <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span>📅</span>
+                            <span>{formatDateBG(poll.end_date)}</span>
+                          </div>
+                        </div>
+                      </GlassCardContent>
+                      <GlassCardFooter className="pt-0">
+                        <Button className="w-full gradient-primary text-white shadow-lg text-sm sm:text-base">
+                          Гласувай →
+                        </Button>
+                      </GlassCardFooter>
+                    </GlassCard>
+                  </Link>
+                ))}
+              </div>
+              {otherElections.length > 8 && (
+                <div className="text-center mt-8">
+                  <Link href="/dashboard">
+                    <Button variant="outline" size="lg" className="glass">
+                      Виж всички {otherElections.length} активни избори →
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-12 sm:mb-16">
-          <Link href="/dashboard/create?template=yesno">
-            <GlassCard hover className="cursor-pointer h-full text-center shine">
-              <GlassCardHeader>
-                <div className="text-6xl mb-4">✅</div>
-                <GlassCardTitle className="text-2xl">Да/Не</GlassCardTitle>
-                <GlassCardDescription>
-                  Бърза анкета с две опции - идеална за бързи решения
-                </GlassCardDescription>
-              </GlassCardHeader>
-              <GlassCardContent>
-                <Button variant="outline" className="w-full">
-                  Използвай шаблон →
-                </Button>
-              </GlassCardContent>
-            </GlassCard>
-          </Link>
-
-          <Link href="/dashboard/create?template=rating">
-            <GlassCard hover className="cursor-pointer h-full text-center shine">
-              <GlassCardHeader>
-                <div className="text-6xl mb-4">⭐</div>
-                <GlassCardTitle className="text-2xl">Рейтинг</GlassCardTitle>
-                <GlassCardDescription>
-                  Оценка от 1 до 5 - перфектна за обратна връзка
-                </GlassCardDescription>
-              </GlassCardHeader>
-              <GlassCardContent>
-                <Button variant="outline" className="w-full">
-                  Използвай шаблон →
-                </Button>
-              </GlassCardContent>
-            </GlassCard>
-          </Link>
-
-          <Link href="/dashboard/create?template=candidate">
-            <GlassCard hover className="cursor-pointer h-full text-center shine">
-              <GlassCardHeader>
-                <div className="text-6xl mb-4">👤</div>
-                <GlassCardTitle className="text-2xl">Избор на кандидат</GlassCardTitle>
-                <GlassCardDescription>
-                  Избор между няколко кандидата - за избори и гласувания
-                </GlassCardDescription>
-              </GlassCardHeader>
-              <GlassCardContent>
-                <Button variant="outline" className="w-full">
-                  Използвай шаблон →
-                </Button>
-              </GlassCardContent>
-            </GlassCard>
-          </Link>
+      ) : (
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Текущи активни избори и анкети</h2>
+            <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
+              В момента няма активни избори. Създайте първата анкета!
+            </p>
+          </div>
+          <div className="text-center">
+            <Link href="/dashboard/create">
+              <Button size="lg" className="gradient-primary text-white shadow-lg">
+                Създай първата анкета
+              </Button>
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Features Section */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
@@ -234,153 +306,6 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Current Events Section - Prominent for new users */}
-      {activeElections.length > 0 && (
-        <div className="w-full bg-gradient-to-b from-background via-background/95 to-background border-y border-border/50 py-16 md:py-20">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                Текущи събития
-              </h2>
-              <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-                Участвайте в активни избори и анкети. Вашият глас има значение!
-              </p>
-            </div>
-
-            {/* Example Polls */}
-            {examplePolls.length > 0 && (
-              <div className="mb-16">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl sm:text-2xl font-semibold">Примерни анкети</h3>
-                  <Badge variant="info" className="text-sm">Опитайте платформата</Badge>
-                </div>
-                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {examplePolls.map((poll) => (
-                    <Link key={poll.id} href={`/dashboard`}>
-                      <GlassCard hover className="flex flex-col cursor-pointer group h-full transition-all hover:scale-[1.02]">
-                        <GlassCardHeader>
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <GlassCardTitle className="text-lg sm:text-xl group-hover:text-primary transition-colors line-clamp-2">
-                              {poll.title_bg || poll.title}
-                            </GlassCardTitle>
-                            <Badge variant="info" className="shrink-0 text-xs">Пример</Badge>
-                          </div>
-                          <GlassCardDescription className="line-clamp-2 text-sm">
-                            {poll.description_bg || poll.description}
-                          </GlassCardDescription>
-                        </GlassCardHeader>
-                        <GlassCardContent className="flex-grow space-y-3">
-                          <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <span>📊</span>
-                              <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span>📅</span>
-                              <span>{formatDateBG(poll.end_date)}</span>
-                            </div>
-                          </div>
-                        </GlassCardContent>
-                        <GlassCardFooter className="pt-0">
-                          <Button className="w-full gradient-primary text-white shadow-lg text-sm sm:text-base">
-                            Гласувай →
-                          </Button>
-                        </GlassCardFooter>
-                      </GlassCard>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Other Active Elections */}
-            {otherElections.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl sm:text-2xl font-semibold">Активни избори</h3>
-                  <Link href="/dashboard">
-                    <Button variant="ghost" size="sm" className="text-sm">
-                      Виж всички →
-                    </Button>
-                  </Link>
-                </div>
-                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {otherElections.slice(0, 8).map((poll) => (
-                    <Link key={poll.id} href={`/dashboard`}>
-                      <GlassCard hover className="flex flex-col cursor-pointer group h-full transition-all hover:scale-[1.02]">
-                        <GlassCardHeader>
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <GlassCardTitle className="text-lg sm:text-xl group-hover:text-primary transition-colors line-clamp-2">
-                              {poll.title_bg || poll.title}
-                            </GlassCardTitle>
-                            <Badge variant="success" className="shrink-0 text-xs">Активни</Badge>
-                          </div>
-                          <GlassCardDescription className="line-clamp-2 text-sm">
-                            {poll.description_bg || poll.description}
-                          </GlassCardDescription>
-                        </GlassCardHeader>
-                        <GlassCardContent className="flex-grow space-y-3">
-                          <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <span>📊</span>
-                              <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span>📅</span>
-                              <span>{formatDateBG(poll.end_date)}</span>
-                            </div>
-                          </div>
-                        </GlassCardContent>
-                        <GlassCardFooter className="pt-0">
-                          <Button className="w-full gradient-primary text-white shadow-lg text-sm sm:text-base">
-                            Гласувай →
-                          </Button>
-                        </GlassCardFooter>
-                      </GlassCard>
-                    </Link>
-                  ))}
-                </div>
-                {otherElections.length > 8 && (
-                  <div className="text-center mt-8">
-                    <Link href="/dashboard">
-                      <Button variant="outline" size="lg" className="glass">
-                        Виж всички {otherElections.length} активни избори →
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* No Active Elections */}
-      {activeElections.length === 0 && (
-        <div className="container mx-auto px-4 py-16 max-w-4xl">
-          <GlassCard className="text-center">
-            <GlassCardContent className="py-12">
-              <div className="text-6xl mb-4">📊</div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">Няма активни избори</h2>
-              <p className="text-muted-foreground mb-6">
-                Създайте първата си анкета или изчакайте да започнат изборите
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/dashboard/create">
-                  <Button className="gradient-primary">
-                    Създай първата анкета
-                  </Button>
-                </Link>
-                <Link href="/dashboard/elections">
-                  <Button variant="outline" className="glass">
-                    Виж всички избори
-                  </Button>
-                </Link>
-              </div>
-            </GlassCardContent>
-          </GlassCard>
-        </div>
-      )}
 
       {/* CTA Section */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-4xl">
