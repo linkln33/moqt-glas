@@ -48,6 +48,19 @@ const templates = [
         { option_text_bg: 'Кандидат В' }
       ]
     }]
+  },
+  {
+    name: 'Събиране на средства',
+    icon: '💰',
+    hasFundraising: true,
+    questions: [{
+      question_text_bg: 'Подкрепяте ли тази кампания?',
+      question_type: 'single-choice' as const,
+      options: [
+        { option_text_bg: 'Да, подкрепям' },
+        { option_text_bg: 'Не, не подкрепям' }
+      ]
+    }]
   }
 ];
 
@@ -99,6 +112,10 @@ function CreatePollPageContent() {
   const useTemplate = (template: typeof templates[0]) => {
     setFormData(prev => ({
       ...prev,
+      has_fundraising: template.hasFundraising || false,
+      fundraising_goal: template.hasFundraising ? '1000' : prev.fundraising_goal,
+      fundraising_currency: template.hasFundraising ? 'BGN' : prev.fundraising_currency,
+      fundraising_description_bg: template.hasFundraising ? 'Подкрепете нашата кампания!' : prev.fundraising_description_bg,
       questions: template.questions.map(q => ({
         question_text: '',
         question_text_bg: q.question_text_bg,
@@ -117,6 +134,7 @@ function CreatePollPageContent() {
         'yesno': templates[0],
         'rating': templates[1],
         'candidate': templates[2],
+        'fundraising': templates[3],
       };
       const selectedTemplate = templateMap[templateParam];
       if (selectedTemplate) {
@@ -254,17 +272,25 @@ function CreatePollPageContent() {
                 </GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {templates.map((template, i) => (
                     <button
                       key={i}
                       onClick={() => useTemplate(template)}
-                      className="p-6 border-2 border-border rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-center group"
+                      className="p-6 border-2 border-border rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-center group relative"
                     >
+                      {template.hasFundraising && (
+                        <div className="absolute top-2 right-2">
+                          <Badge className="bg-primary/20 text-primary text-xs">💰</Badge>
+                        </div>
+                      )}
                       <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">
                         {template.icon}
                       </div>
                       <div className="text-sm font-semibold">{template.name}</div>
+                      {template.hasFundraising && (
+                        <div className="text-xs text-muted-foreground mt-1">Събиране на средства</div>
+                      )}
                     </button>
                   ))}
                 </div>
