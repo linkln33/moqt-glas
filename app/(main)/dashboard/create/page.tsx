@@ -96,6 +96,11 @@ function CreatePollPageContent() {
     fundraising_currency: string;
     fundraising_description_bg: string;
     fundraising_end_date: string;
+    fundraising_purpose: string;
+    fundraising_min_amount: string;
+    fundraising_suggested_amounts: string;
+    fundraising_payment_methods: string[];
+    fundraising_show_donors: boolean;
     questions: Array<{
       question_text: string;
       question_text_bg: string;
@@ -114,6 +119,11 @@ function CreatePollPageContent() {
     fundraising_currency: 'BGN',
     fundraising_description_bg: '',
     fundraising_end_date: '',
+    fundraising_purpose: '',
+    fundraising_min_amount: '',
+    fundraising_suggested_amounts: '',
+    fundraising_payment_methods: [],
+    fundraising_show_donors: true,
     questions: [
       {
         question_text: '',
@@ -132,6 +142,11 @@ function CreatePollPageContent() {
       fundraising_currency: template.hasFundraising ? 'BGN' : prev.fundraising_currency,
       fundraising_description_bg: template.hasFundraising ? 'Подкрепете нашата кампания!' : prev.fundraising_description_bg,
       fundraising_end_date: template.hasFundraising ? prev.end_date || '' : prev.fundraising_end_date,
+      fundraising_purpose: template.hasFundraising ? 'charity' : prev.fundraising_purpose,
+      fundraising_min_amount: template.hasFundraising ? '10' : prev.fundraising_min_amount,
+      fundraising_suggested_amounts: template.hasFundraising ? '10, 25, 50, 100, 250' : prev.fundraising_suggested_amounts,
+      fundraising_payment_methods: template.hasFundraising ? ['card', 'bank_transfer'] : prev.fundraising_payment_methods,
+      fundraising_show_donors: template.hasFundraising ? true : prev.fundraising_show_donors,
       questions: template.questions.map(q => ({
         question_text: '',
         question_text_bg: q.question_text_bg,
@@ -154,6 +169,11 @@ function CreatePollPageContent() {
           fundraising_goal: selectedTemplate.hasFundraising ? '1000' : prev.fundraising_goal,
           fundraising_currency: selectedTemplate.hasFundraising ? 'BGN' : prev.fundraising_currency,
           fundraising_description_bg: selectedTemplate.hasFundraising ? 'Подкрепете нашата кампания!' : prev.fundraising_description_bg,
+          fundraising_purpose: selectedTemplate.hasFundraising ? 'charity' : prev.fundraising_purpose,
+          fundraising_min_amount: selectedTemplate.hasFundraising ? '10' : prev.fundraising_min_amount,
+          fundraising_suggested_amounts: selectedTemplate.hasFundraising ? '10, 25, 50, 100, 250' : prev.fundraising_suggested_amounts,
+          fundraising_payment_methods: selectedTemplate.hasFundraising ? ['card', 'bank_transfer'] : prev.fundraising_payment_methods,
+          fundraising_show_donors: selectedTemplate.hasFundraising ? true : prev.fundraising_show_donors,
           questions: selectedTemplate.questions.map(q => ({
             question_text: '',
             question_text_bg: q.question_text_bg,
@@ -166,7 +186,7 @@ function CreatePollPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const handleInputChange = (field: string, value: string | boolean | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -420,6 +440,31 @@ function CreatePollPageContent() {
 
               {formData.has_fundraising && (
                 <GlassCardContent className="space-y-4 pt-4">
+                  {/* Purpose/Category */}
+                  <div className="space-y-2">
+                    <label htmlFor="fundraising_purpose" className="text-sm font-medium flex items-center gap-2">
+                      Цел на кампанията <span className="text-destructive">*</span>
+                    </label>
+                    <select
+                      id="fundraising_purpose"
+                      value={formData.fundraising_purpose}
+                      onChange={(e) => handleInputChange('fundraising_purpose', e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="">Изберете цел...</option>
+                      <option value="charity">Благотворителност</option>
+                      <option value="political">Политическа кампания</option>
+                      <option value="community">Обществен проект</option>
+                      <option value="education">Образование</option>
+                      <option value="healthcare">Здравеопазване</option>
+                      <option value="environment">Околна среда</option>
+                      <option value="arts">Изкуство и култура</option>
+                      <option value="sports">Спорт</option>
+                      <option value="other">Друго</option>
+                    </select>
+                  </div>
+
+                  {/* Goal Amount and Currency */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label htmlFor="fundraising_goal" className="text-sm font-medium flex items-center gap-2">
@@ -436,12 +481,12 @@ function CreatePollPageContent() {
                         className="w-full"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Минимална сума: 1 {formData.fundraising_currency || 'BGN'}
+                        Обща цел за събиране
                       </p>
                     </div>
                     <div className="space-y-2">
                       <label htmlFor="fundraising_currency" className="text-sm font-medium">
-                        Валута
+                        Валута <span className="text-destructive">*</span>
                       </label>
                       <select
                         id="fundraising_currency"
@@ -452,8 +497,85 @@ function CreatePollPageContent() {
                         <option value="BGN">BGN (Български лев)</option>
                         <option value="EUR">EUR (Евро)</option>
                         <option value="USD">USD (Долар)</option>
+                        <option value="GBP">GBP (Британска лира)</option>
                       </select>
                     </div>
+                  </div>
+
+                  {/* Minimum Amount and Suggested Amounts */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="fundraising_min_amount" className="text-sm font-medium">
+                        Минимална дарена сума
+                      </label>
+                      <Input
+                        id="fundraising_min_amount"
+                        type="number"
+                        placeholder="10"
+                        min="0.01"
+                        step="0.01"
+                        value={formData.fundraising_min_amount}
+                        onChange={(e) => handleInputChange('fundraising_min_amount', e.target.value)}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Минимална сума за дарение (по подразбиране: 1 {formData.fundraising_currency || 'BGN'})
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="fundraising_suggested_amounts" className="text-sm font-medium">
+                        Предложени суми
+                      </label>
+                      <Input
+                        id="fundraising_suggested_amounts"
+                        type="text"
+                        placeholder="10, 25, 50, 100, 250"
+                        value={formData.fundraising_suggested_amounts}
+                        onChange={(e) => handleInputChange('fundraising_suggested_amounts', e.target.value)}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Разделени със запетая (напр: 10, 25, 50, 100)
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Payment Methods */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Методи на плащане</label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {['card', 'bank_transfer', 'paypal', 'crypto'].map((method) => {
+                        const methodLabels: Record<string, string> = {
+                          card: '💳 Карта',
+                          bank_transfer: '🏦 Банков превод',
+                          paypal: '📧 PayPal',
+                          crypto: '₿ Криптовалута',
+                        };
+                        const isSelected = formData.fundraising_payment_methods.includes(method);
+                        return (
+                          <button
+                            key={method}
+                            type="button"
+                            onClick={() => {
+                              const methods = formData.fundraising_payment_methods.includes(method)
+                                ? formData.fundraising_payment_methods.filter(m => m !== method)
+                                : [...formData.fundraising_payment_methods, method];
+                              handleInputChange('fundraising_payment_methods', methods);
+                            }}
+                            className={`p-3 border-2 rounded-lg text-sm transition-all ${
+                              isSelected
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            {methodLabels[method] || method}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Изберете поне един метод на плащане
+                    </p>
                   </div>
 
                   {/* Fundraising Timeframe */}
@@ -480,9 +602,10 @@ function CreatePollPageContent() {
                     </p>
                   </div>
 
+                  {/* Description */}
                   <div className="space-y-2">
-                    <label htmlFor="fundraising_description_bg" className="text-sm font-medium">
-                      Описание на кампанията
+                    <label htmlFor="fundraising_description_bg" className="text-sm font-medium flex items-center gap-2">
+                      Описание на кампанията <span className="text-destructive">*</span>
                     </label>
                     <Textarea
                       id="fundraising_description_bg"
@@ -490,12 +613,31 @@ function CreatePollPageContent() {
                       rows={4}
                       value={formData.fundraising_description_bg}
                       onChange={(e) => handleInputChange('fundraising_description_bg', e.target.value)}
-                      maxLength={500}
+                      maxLength={1000}
                     />
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Максимум 500 символа</span>
-                      <span>{formData.fundraising_description_bg.length}/500</span>
+                      <span>Максимум 1000 символа</span>
+                      <span>{formData.fundraising_description_bg.length}/1000</span>
                     </div>
+                  </div>
+
+                  {/* Show Donors Option */}
+                  <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div>
+                      <label htmlFor="fundraising_show_donors" className="text-sm font-medium cursor-pointer">
+                        Показване на дарители
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Показване на имената на дарителите публично (ако не са анонимни)
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      id="fundraising_show_donors"
+                      checked={formData.fundraising_show_donors}
+                      onChange={(e) => handleInputChange('fundraising_show_donors', e.target.checked)}
+                      className="w-5 h-5 rounded border-border accent-primary cursor-pointer"
+                    />
                   </div>
 
                   {formData.fundraising_goal && parseFloat(formData.fundraising_goal) > 0 && (

@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
       fundraising_currency,
       fundraising_description_bg,
       fundraising_end_date,
+      fundraising_purpose,
+      fundraising_min_amount,
+      fundraising_suggested_amounts,
+      fundraising_payment_methods,
+      fundraising_show_donors,
     } = body;
 
     const supabase = createServerClient();
@@ -116,6 +121,13 @@ export async function POST(request: NextRequest) {
         fundraising_end_date: has_fundraising && fundraising_end_date && fundraising_end_date.trim() !== '' 
           ? fundraising_end_date 
           : null,
+        fundraising_purpose: has_fundraising && fundraising_purpose ? fundraising_purpose : null,
+        fundraising_min_amount: has_fundraising && fundraising_min_amount ? parseFloat(fundraising_min_amount) : null,
+        fundraising_suggested_amounts: has_fundraising && fundraising_suggested_amounts ? fundraising_suggested_amounts : null,
+        fundraising_payment_methods: has_fundraising && fundraising_payment_methods && fundraising_payment_methods.length > 0 
+          ? fundraising_payment_methods 
+          : null,
+        fundraising_show_donors: has_fundraising ? (fundraising_show_donors !== undefined ? fundraising_show_donors : true) : null,
       })
       .select()
       .single();
