@@ -67,40 +67,36 @@ export function FeedSidebar() {
 
   if (isLoading) {
     return (
-      <aside className="hidden lg:block w-80 shrink-0">
-        <div className="sticky top-20 space-y-4">
-          <GlassCard>
-            <GlassCardContent className="p-6">
-              <div className="animate-pulse space-y-4">
-                <div className="h-16 bg-muted rounded-full"></div>
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-                <div className="h-4 bg-muted rounded w-1/2"></div>
-              </div>
-            </GlassCardContent>
-          </GlassCard>
-        </div>
-      </aside>
+      <div className="sticky top-20 space-y-4">
+        <GlassCard>
+          <GlassCardContent className="p-6">
+            <div className="animate-pulse space-y-4">
+              <div className="h-16 bg-muted rounded-full"></div>
+              <div className="h-4 bg-muted rounded w-3/4"></div>
+              <div className="h-4 bg-muted rounded w-1/2"></div>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
     );
   }
 
   if (!user) {
     return (
-      <aside className="hidden lg:block w-80 shrink-0">
-        <div className="sticky top-20 space-y-4">
-          <GlassCard>
-            <GlassCardContent className="p-6 text-center">
-              <p className="text-muted-foreground mb-4">
-                Влезте, за да видите профила си
-              </p>
-              <Link href="/login">
-                <Button className="w-full gradient-primary text-white">
-                  Влез
-                </Button>
-              </Link>
-            </GlassCardContent>
-          </GlassCard>
-        </div>
-      </aside>
+      <div className="sticky top-20 space-y-4">
+        <GlassCard>
+          <GlassCardContent className="p-6 text-center">
+            <p className="text-muted-foreground mb-4">
+              Влезте, за да видите профила си
+            </p>
+            <Link href="/login">
+              <Button className="w-full gradient-primary text-white">
+                Влез
+              </Button>
+            </Link>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
     );
   }
 
@@ -108,8 +104,7 @@ export function FeedSidebar() {
   const initials = user.firstName.charAt(0).toUpperCase() + (user.lastName?.charAt(0).toUpperCase() || '');
 
   return (
-    <aside className="hidden lg:block w-80 shrink-0">
-      <div className="sticky top-20 space-y-4">
+    <div className="sticky top-20 space-y-4">
         {/* User Profile Card */}
         <GlassCard>
           <GlassCardContent className="p-6">
@@ -138,7 +133,7 @@ export function FeedSidebar() {
               )}
             </div>
 
-            <div className="space-y-1 border-t border-border/50 pt-4">
+            <div className="space-y-1.5 border-t border-border/50 pt-4">
               <Link href="/dashboard" className="block">
                 <Button 
                   variant="ghost" 
@@ -219,6 +214,6 @@ export function FeedSidebar() {
           </GlassCardContent>
         </GlassCard>
       </div>
-    </aside>
+    </div>
   );
 }

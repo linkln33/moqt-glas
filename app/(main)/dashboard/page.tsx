@@ -141,9 +141,9 @@ export default async function DashboardPage() {
   const polls = await getFeedPolls();
 
   return (
-    <div className="py-8">
+    <div className="py-6 lg:py-8">
       {/* Feed Header */}
-      <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="mb-6 lg:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl sm:text-4xl font-bold mb-2">Лента</h1>
           <p className="text-muted-foreground">
@@ -159,7 +159,7 @@ export default async function DashboardPage() {
 
       {/* Feed Items */}
       {polls.length > 0 ? (
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
           {polls.map((poll) => (
             <FeedItem key={poll.id} poll={poll} />
           ))}

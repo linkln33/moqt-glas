@@ -36,9 +36,9 @@ export function ElectionsClientPage({ elections: initialElections }: ElectionsCl
   ).length;
 
   return (
-    <div className="py-8">
-      <div className="max-w-7xl">
-        <div className="mb-8">
+    <div className="py-6 lg:py-8">
+      <div className="w-full">
+        <div className="mb-6 lg:mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold mb-2">Избори и анкети</h1>
           <p className="text-muted-foreground">
             Изберете избори, в които да участвате
@@ -46,7 +46,7 @@ export function ElectionsClientPage({ elections: initialElections }: ElectionsCl
         </div>
 
         {/* Quick Filters */}
-        <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
+        <div className="mb-6 lg:mb-8 flex gap-2 overflow-x-auto pb-2">
           <Button
             onClick={() => setFilter('all')}
             variant={filter === 'all' ? 'default' : 'outline'}
@@ -83,7 +83,7 @@ export function ElectionsClientPage({ elections: initialElections }: ElectionsCl
 
         {/* Elections Grid */}
         {filteredElections.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 lg:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredElections.map((election) => (
               <ElectionCard key={election.id} election={election} />
             ))}

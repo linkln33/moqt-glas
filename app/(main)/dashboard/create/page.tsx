@@ -222,9 +222,9 @@ function CreatePollPageContent() {
   };
 
   return (
-    <div className="py-8">
-      <div className="max-w-4xl">
-        <div className="mb-8">
+    <div className="py-6 lg:py-8">
+      <div className="w-full">
+        <div className="mb-6 lg:mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             Създай нова анкета
           </h1>
@@ -236,7 +236,7 @@ function CreatePollPageContent() {
         {step === 1 && (
           <>
             {/* Quick Templates */}
-            <GlassCard className="mb-6">
+            <GlassCard className="mb-4 lg:mb-6">
               <GlassCardHeader>
                 <GlassCardTitle>Бързи шаблони</GlassCardTitle>
                 <GlassCardDescription>
@@ -268,7 +268,7 @@ function CreatePollPageContent() {
                   Въведете информация за вашата анкета
                 </GlassCardDescription>
               </GlassCardHeader>
-              <GlassCardContent className="space-y-6">
+              <GlassCardContent className="space-y-4 lg:space-y-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Заглавие (Български) *</label>
                 <Input
@@ -376,7 +376,7 @@ function CreatePollPageContent() {
         )}
 
         {step === 2 && (
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6">
             {formData.questions.map((question, qIndex) => (
               <GlassCard key={qIndex}>
                 <GlassCardHeader>

@@ -75,9 +75,9 @@ export default function StatisticsPage() {
   }
 
   return (
-    <div className="py-8">
-      <div className="max-w-7xl">
-        <div className="mb-8">
+    <div className="py-6 lg:py-8">
+      <div className="w-full">
+        <div className="mb-6 lg:mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             Статистики
           </h1>
@@ -87,7 +87,7 @@ export default function StatisticsPage() {
         </div>
 
         {/* Main Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
           <GlassCard variant="gradient" className="shine">
             <GlassCardContent className="p-6">
               <div className="text-3xl font-bold text-white mb-1">
@@ -126,7 +126,7 @@ export default function StatisticsPage() {
         </div>
 
         {/* Charts Section */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+        <div className="grid gap-4 lg:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6 lg:mb-8">
           {/* Election Status Distribution */}
           <GlassCard>
             <GlassCardHeader>
@@ -212,7 +212,7 @@ export default function StatisticsPage() {
 
         {/* Additional Charts Row */}
         {stats.fundraisingStats && stats.fundraisingStats.totalRaised > 0 && (
-          <div className="grid gap-6 md:grid-cols-2 mb-8">
+          <div className="grid gap-4 lg:gap-6 md:grid-cols-2 mb-6 lg:mb-8">
             <GlassCard>
               <GlassCardHeader>
                 <GlassCardTitle>Кампании за средства</GlassCardTitle>
