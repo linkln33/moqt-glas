@@ -170,7 +170,7 @@ export async function GET() {
 
     popularElections.sort((a, b) => b.vote_count - a.vote_count);
 
-    // Get votes over time (last 7 days)
+    // Get votes over time (last 7 days) - for pie chart
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
@@ -180,7 +180,8 @@ export async function GET() {
       .gte('created_at', sevenDaysAgo.toISOString())
       .order('created_at', { ascending: true });
 
-    const votesOverTime: Array<{ name: string; value: number }> = [];
+    const votesOverTimeLine: Array<{ name: string; value: number }> = [];
+    const votesOverTimePie: Array<{ name: string; value: number }> = [];
     const votesByDate: Record<string, number> = {};
     
     (votesOverTimeData || []).forEach((vote) => {
@@ -192,17 +193,19 @@ export async function GET() {
     });
 
     Object.entries(votesByDate).forEach(([date, count]) => {
-      votesOverTime.push({ name: date, value: count });
+      votesOverTimeLine.push({ name: date, value: count });
+      votesOverTimePie.push({ name: date, value: count });
     });
 
-    // Get elections over time (last 7 days)
+    // Get elections over time (last 7 days) - for pie chart
     const { data: electionsOverTimeData } = await supabase
       .from('elections')
       .select('created_at')
       .gte('created_at', sevenDaysAgo.toISOString())
       .order('created_at', { ascending: true });
 
-    const electionsOverTime: Array<{ name: string; value: number }> = [];
+    const electionsOverTimeLine: Array<{ name: string; value: number }> = [];
+    const electionsOverTimePie: Array<{ name: string; value: number }> = [];
     const electionsByDate: Record<string, number> = {};
     
     (electionsOverTimeData || []).forEach((election) => {
@@ -214,7 +217,8 @@ export async function GET() {
     });
 
     Object.entries(electionsByDate).forEach(([date, count]) => {
-      electionsOverTime.push({ name: date, value: count });
+      electionsOverTimeLine.push({ name: date, value: count });
+      electionsOverTimePie.push({ name: date, value: count });
     });
 
     return NextResponse.json({
@@ -231,8 +235,10 @@ export async function GET() {
       },
       voteDistribution: top5Votes,
       fundraisingStats,
-      votesOverTime: votesOverTime.length > 0 ? votesOverTime : undefined,
-      electionsOverTime: electionsOverTime.length > 0 ? electionsOverTime : undefined,
+      votesOverTime: votesOverTimeLine.length > 0 ? votesOverTimeLine : undefined,
+      electionsOverTime: electionsOverTimeLine.length > 0 ? electionsOverTimeLine : undefined,
+      votesOverTimePie: votesOverTimePie.length > 0 ? votesOverTimePie : undefined,
+      electionsOverTimePie: electionsOverTimePie.length > 0 ? electionsOverTimePie : undefined,
     });
   } catch (error: any) {
     console.error('Statistics error:', error);

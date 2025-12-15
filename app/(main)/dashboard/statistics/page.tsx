@@ -41,6 +41,14 @@ interface Stats {
     name: string;
     value: number;
   }>;
+  votesOverTimePie?: Array<{
+    name: string;
+    value: number;
+  }>;
+  electionsOverTimePie?: Array<{
+    name: string;
+    value: number;
+  }>;
 }
 
 export default function StatisticsPage() {
@@ -220,13 +228,13 @@ export default function StatisticsPage() {
           </GlassCard>
         </div>
 
-        {/* Time Series Charts */}
+        {/* Time Series Charts - Line/Bar */}
         {(stats.votesOverTime || stats.electionsOverTime) && (
           <div className="grid gap-4 lg:gap-6 md:grid-cols-2 mb-6 lg:mb-8">
             {stats.votesOverTime && stats.votesOverTime.length > 0 && (
               <GlassCard>
                 <GlassCardHeader>
-                  <GlassCardTitle>Гласове във времето</GlassCardTitle>
+                  <GlassCardTitle>Гласове във времето (Графика)</GlassCardTitle>
                 </GlassCardHeader>
                 <GlassCardContent>
                   <LineChartComponent
@@ -244,13 +252,47 @@ export default function StatisticsPage() {
             {stats.electionsOverTime && stats.electionsOverTime.length > 0 && (
               <GlassCard>
                 <GlassCardHeader>
-                  <GlassCardTitle>Избори във времето</GlassCardTitle>
+                  <GlassCardTitle>Избори във времето (Графика)</GlassCardTitle>
                 </GlassCardHeader>
                 <GlassCardContent>
                   <BarChartComponent
                     data={stats.electionsOverTime}
                     xAxisLabel="Дата"
                     yAxisLabel="Брой избори"
+                    height={300}
+                  />
+                </GlassCardContent>
+              </GlassCard>
+            )}
+          </div>
+        )}
+
+        {/* Time Series Pie Charts */}
+        {(stats.votesOverTimePie || stats.electionsOverTimePie) && (
+          <div className="grid gap-4 lg:gap-6 md:grid-cols-2 mb-6 lg:mb-8">
+            {stats.votesOverTimePie && stats.votesOverTimePie.length > 0 && (
+              <GlassCard>
+                <GlassCardHeader>
+                  <GlassCardTitle>Гласове във времето</GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent>
+                  <PieChartComponent
+                    data={stats.votesOverTimePie}
+                    colors={['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899']}
+                    height={300}
+                  />
+                </GlassCardContent>
+              </GlassCard>
+            )}
+            {stats.electionsOverTimePie && stats.electionsOverTimePie.length > 0 && (
+              <GlassCard>
+                <GlassCardHeader>
+                  <GlassCardTitle>Избори във времето</GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent>
+                  <PieChartComponent
+                    data={stats.electionsOverTimePie}
+                    colors={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899']}
                     height={300}
                   />
                 </GlassCardContent>
