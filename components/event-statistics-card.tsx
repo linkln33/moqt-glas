@@ -141,10 +141,21 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
 
                 {/* Options Progress Bars */}
                 <div className="space-y-3">
-                  {question.options.map((option, optIndex) => {
+                  {(question.type === 'rating' 
+                    ? [...question.options].sort((a, b) => {
+                        // For rating questions, sort by option text/number to show 1-5 in order
+                        const aNum = parseInt(a.text) || 0;
+                        const bNum = parseInt(b.text) || 0;
+                        return aNum - bNum;
+                      })
+                    : question.options
+                  ).map((option, optIndex) => {
                     const colorClass = COLORS[optIndex % COLORS.length];
                     const maxVotes = Math.max(...question.options.map(o => o.votes), 1);
-                    const widthPercentage = maxVotes > 0 ? (option.votes / maxVotes) * 100 : 0;
+                    // Ensure minimum width for visibility, especially for rating questions
+                    const widthPercentage = maxVotes > 0 
+                      ? Math.max((option.votes / maxVotes) * 100, option.votes > 0 ? 2 : 0)
+                      : 0;
 
                     return (
                       <div key={option.id} className="space-y-1.5">
@@ -152,6 +163,13 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                           <span className="font-medium flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full bg-gradient-to-r ${colorClass}`} />
                             {option.text}
+                            {question.type === 'rating' && (() => {
+                              const ratingNum = parseInt(option.text) || 0;
+                              if (ratingNum >= 1 && ratingNum <= 5) {
+                                return <span className="text-xs text-muted-foreground ml-1">{'⭐'.repeat(ratingNum)}</span>;
+                              }
+                              return null;
+                            })()}
                           </span>
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">{option.votes} гласа</span>
@@ -162,8 +180,8 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                         </div>
                         <div className="w-full h-4 bg-background/50 rounded-full overflow-hidden relative">
                           <div
-                            className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-1000 ease-out rounded-full shadow-md flex items-center justify-end pr-2`}
-                            style={{ width: `${widthPercentage}%` }}
+                            className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-1000 ease-out rounded-full shadow-md flex items-center justify-end pr-2 ${widthPercentage === 0 ? 'opacity-30' : ''}`}
+                            style={{ width: `${widthPercentage}%`, minWidth: option.votes > 0 ? '2px' : '0' }}
                           >
                             {widthPercentage > 15 && (
                               <span className="text-xs font-semibold text-white">
@@ -171,11 +189,16 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                               </span>
                             )}
                           </div>
-                          {widthPercentage <= 15 && option.votes > 0 && (
+                          {widthPercentage <= 15 && widthPercentage > 0 && (
                             <div className="absolute left-2 top-0 h-full flex items-center">
                               <span className="text-xs font-semibold text-foreground">
                                 {option.votes}
                               </span>
+                            </div>
+                          )}
+                          {option.votes === 0 && question.type === 'rating' && (
+                            <div className="absolute left-2 top-0 h-full flex items-center">
+                              <span className="text-xs text-muted-foreground">0</span>
                             </div>
                           )}
                         </div>

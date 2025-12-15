@@ -132,6 +132,23 @@ export default function StatisticsPage() {
     }
   };
 
+  const handleTabChange = (value: string) => {
+    // Prevent scroll jump when switching tabs
+    const currentScrollY = window.scrollY;
+    const scrollContainer = document.documentElement || document.body;
+    
+    setActiveTab(value);
+    
+    // Use multiple attempts to preserve scroll position
+    // This handles React's async rendering
+    requestAnimationFrame(() => {
+      scrollContainer.scrollTop = currentScrollY;
+      setTimeout(() => {
+        scrollContainer.scrollTop = currentScrollY;
+      }, 10);
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -211,28 +228,28 @@ export default function StatisticsPage() {
         </div>
 
         {/* Tabs Navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-3 lg:mb-4 glass-light">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Общ преглед</span>
-            </TabsTrigger>
-            <TabsTrigger value="events" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Събития</span>
-            </TabsTrigger>
-            <TabsTrigger value="engagement" className="flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">Активност</span>
-            </TabsTrigger>
-            <TabsTrigger value="fundraising" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              <span className="hidden sm:inline">Средства</span>
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger value="overview" className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Общ преглед</span>
+              </TabsTrigger>
+              <TabsTrigger value="events" className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <span className="hidden sm:inline">Събития</span>
+              </TabsTrigger>
+              <TabsTrigger value="engagement" className="flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                <span className="hidden sm:inline">Активност</span>
+              </TabsTrigger>
+              <TabsTrigger value="fundraising" className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                <span className="hidden sm:inline">Средства</span>
+              </TabsTrigger>
+            </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-3 lg:space-y-4">
+          <TabsContent value="overview" className="space-y-3 lg:space-y-4 min-h-[400px]">
             <div className="grid gap-2 lg:gap-3 md:grid-cols-2 lg:grid-cols-3">
               {/* Election Status Distribution */}
               {stats.statusDistribution && (
@@ -397,7 +414,7 @@ export default function StatisticsPage() {
           </TabsContent>
 
           {/* Events Tab */}
-          <TabsContent value="events" className="space-y-3 lg:space-y-4">
+          <TabsContent value="events" className="space-y-3 lg:space-y-4 min-h-[400px]">
             {stats.eventsStats && stats.eventsStats.length > 0 ? (
               <div className="space-y-3 lg:space-y-4">
                 {stats.eventsStats.map((event) => (
@@ -415,7 +432,7 @@ export default function StatisticsPage() {
           </TabsContent>
 
           {/* Engagement Tab */}
-          <TabsContent value="engagement" className="space-y-3 lg:space-y-4">
+          <TabsContent value="engagement" className="space-y-3 lg:space-y-4 min-h-[400px]">
             <div className="grid gap-2 lg:gap-3 md:grid-cols-2">
               {/* User Participation */}
               <GlassCard>
@@ -501,7 +518,7 @@ export default function StatisticsPage() {
           </TabsContent>
 
           {/* Fundraising Tab */}
-          <TabsContent value="fundraising" className="space-y-3 lg:space-y-4">
+          <TabsContent value="fundraising" className="space-y-3 lg:space-y-4 min-h-[400px]">
             {stats.fundraisingStats && stats.fundraisingStats.totalRaised > 0 ? (
               <div className="grid gap-2 lg:gap-3 md:grid-cols-2">
                 <GlassCard>
