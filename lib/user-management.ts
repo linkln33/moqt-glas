@@ -92,26 +92,38 @@ export async function getOrCreateUserFromTelegram(
     }
 
     // 3) Insert new user if none exists
-    const { data: newUser, error: insertError } = await supabase
+    const insertPayload = {
+      telegram_id: params.telegram_id,
+      first_name: params.first_name,
+      last_name: params.last_name || null,
+      username: params.username || null,
+      photo_url: params.photo_url || null,
+      is_verified: true,
+      last_login_at: now,
+    };
+
+    let insertResult = await supabase
       .from('voting_user_profiles')
-      .insert({
-        telegram_id: params.telegram_id,
-        first_name: params.first_name,
-        last_name: params.last_name || null,
-        username: params.username || null,
-        photo_url: params.photo_url || null,
-        is_verified: true,
-        last_login_at: now,
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
-    if (insertError) {
-      console.error('Insert error creating user from Telegram:', insertError);
+    // If username uniqueness causes conflict, retry with username null
+    if (insertResult.error && insertResult.error.code === '23505') {
+      console.warn('Username conflict detected, retrying insert without username');
+      insertResult = await supabase
+        .from('voting_user_profiles')
+        .insert({ ...insertPayload, username: null })
+        .select()
+        .single();
+    }
+
+    if (insertResult.error) {
+      console.error('Insert error creating user from Telegram:', insertResult.error);
       return null;
     }
 
-    return newUser as VotingUserProfile;
+    return insertResult.data as VotingUserProfile;
   } catch (error: any) {
     console.error('Exception getting/creating user from Telegram:', {
       message: error?.message,
