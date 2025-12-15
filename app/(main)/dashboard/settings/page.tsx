@@ -24,11 +24,23 @@ interface PaymentDetails {
   is_active: boolean;
 }
 
+interface UserProfile {
+  telegram_id: string;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  description?: string;
+  bio?: string;
+}
+
 export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [availableFunds, setAvailableFunds] = useState<{ total: number; currency: string } | null>(null);
 
   useEffect(() => {
@@ -36,6 +48,7 @@ export default function SettingsPage() {
     document.title = 'Настройки - Моят Глас';
     
     loadUserData();
+    loadUserProfile();
     loadPaymentDetails();
     loadAvailableFunds();
   }, []);
@@ -48,6 +61,26 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error loading user:', error);
+    }
+  };
+
+  const loadUserProfile = async () => {
+    setLoading(true);
+    try {
+      const authData = localStorage.getItem('telegram_auth');
+      if (!authData) return;
+
+      const parsed = JSON.parse(authData);
+      const response = await fetch(`/api/user/profile?telegramId=${parsed.telegramId || parsed.id}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data.profile || null);
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -137,6 +170,75 @@ export default function SettingsPage() {
     }));
   };
 
+  const handleProfileInputChange = (field: keyof UserProfile, value: any) => {
+    setUserProfile((prev) => ({
+      ...prev || {
+        telegram_id: user?.telegramId || user?.id || '',
+        first_name: user?.firstName || user?.first_name || '',
+        last_name: user?.lastName || user?.last_name || '',
+        username: user?.username || '',
+        photo_url: user?.photoUrl || user?.photo_url || '',
+        description: '',
+        bio: '',
+      },
+      [field]: value,
+    }));
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    
+    try {
+      const authData = localStorage.getItem('telegram_auth');
+      if (!authData) {
+        alert('Моля, влезте в системата');
+        return;
+      }
+
+      const parsed = JSON.parse(authData);
+      const telegramId = parsed.telegramId || parsed.id;
+
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegramId,
+          first_name: userProfile?.first_name,
+          last_name: userProfile?.last_name,
+          username: userProfile?.username,
+          description: userProfile?.description,
+          bio: userProfile?.bio,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Грешка при запазване');
+      }
+
+      // Update localStorage with new username if changed
+      if (userProfile?.username && userProfile.username !== parsed.username) {
+        const updatedAuth = {
+          ...parsed,
+          username: userProfile.username,
+          firstName: userProfile.first_name,
+          lastName: userProfile.last_name,
+        };
+        localStorage.setItem('telegram_auth', JSON.stringify(updatedAuth));
+        window.dispatchEvent(new CustomEvent('auth-state-changed'));
+      }
+
+      alert('Профилът е обновен успешно!');
+      loadUserProfile();
+    } catch (error: any) {
+      alert(error.message || 'Грешка при запазване на профила');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen py-8 flex items-center justify-center">
@@ -159,6 +261,95 @@ export default function SettingsPage() {
             Управление на профила и платежни данни
           </p>
         </div>
+
+        {/* Profile Settings */}
+        <GlassCard className="mb-6">
+          <GlassCardHeader>
+            <GlassCardTitle>Профил</GlassCardTitle>
+            <GlassCardDescription>
+              Редактирайте вашата основна информация и описание
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <form onSubmit={handleProfileSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Име *</Label>
+                  <Input
+                    value={userProfile?.first_name || ''}
+                    onChange={(e) => handleProfileInputChange('first_name', e.target.value)}
+                    placeholder="Вашето име"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Фамилия</Label>
+                  <Input
+                    value={userProfile?.last_name || ''}
+                    onChange={(e) => handleProfileInputChange('last_name', e.target.value)}
+                    placeholder="Вашата фамилия"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Потребителско име</Label>
+                <Input
+                  value={userProfile?.username || ''}
+                  onChange={(e) => handleProfileInputChange('username', e.target.value)}
+                  placeholder="username"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Вашето потребителско име ще се показва в публичните профили
+                </p>
+              </div>
+
+              <div>
+                <Label>Кратко описание</Label>
+                <Input
+                  value={userProfile?.description || ''}
+                  onChange={(e) => handleProfileInputChange('description', e.target.value)}
+                  placeholder="Кратко описание за вас..."
+                  maxLength={100}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Максимум 100 символа. Ще се показва под вашето име.
+                </p>
+              </div>
+
+              <div>
+                <Label>Биография</Label>
+                <Textarea
+                  value={userProfile?.bio || ''}
+                  onChange={(e) => handleProfileInputChange('bio', e.target.value)}
+                  placeholder="Разкажете повече за себе си..."
+                  rows={4}
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Максимум 500 символа. Ще се показва в профила ви.
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => loadUserProfile()}
+                >
+                  Отказ
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 gradient-primary text-white"
+                  disabled={savingProfile}
+                >
+                  {savingProfile ? 'Запазване...' : 'Запази профила'}
+                </Button>
+              </div>
+            </form>
+          </GlassCardContent>
+        </GlassCard>
 
         {/* Available Funds */}
         {availableFunds && availableFunds.total > 0 && (

@@ -626,7 +626,7 @@ export function FeedItem({ poll }: FeedItemProps) {
   const isEnded = hasElectionEnded(new Date(poll.end_date));
 
   return (
-    <GlassCard hover className="overflow-hidden">
+    <GlassCard hover className="overflow-hidden" data-poll-id={poll.id}>
       <GlassCardHeader>
         <div className="flex items-start justify-between gap-4 mb-2">
           <div className="flex-1">
