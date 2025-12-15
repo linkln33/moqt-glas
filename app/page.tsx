@@ -138,12 +138,18 @@ export default async function HomePage() {
   const { active: activeElections, upcoming: upcomingElections } = await getActiveElections();
   const examplePolls = activeElections.filter(e => e.isExample);
   const otherElections = activeElections.filter(e => !e.isExample);
+  const stats = await getHomeStats();
+  
   return (
     <main className="min-h-screen">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden gradient-bg border-b border-border/50">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent"></div>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 md:pt-16 pb-12 sm:pb-20 md:pb-32 relative">
+      {/* Unified Background Layout */}
+      <div className="relative overflow-hidden gradient-bg">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent"></div>
+        
+        <div className="relative">
+          {/* Hero Section */}
+          <div className="relative overflow-hidden border-b border-border/50">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 md:pt-16 pb-12 sm:pb-20 md:pb-32 relative">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex flex-col items-center justify-center mb-4 sm:mb-6">
               <div className="mb-4 sm:mb-6">
@@ -179,12 +185,52 @@ export default async function HomePage() {
               </Link>
             </div>
           </div>
-        </div>
-      </div>
+          </div>
 
-      {/* Currently Active Polls and Events Section */}
-      {(activeElections.length > 0 || upcomingElections.length > 0) ? (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
+          {/* Stats Section */}
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-16 sm:-mt-20 md:-mt-24 relative z-10 pb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+              <GlassCard className="border-blue-500/30 shine">
+                <GlassCardContent className="p-4 sm:p-6 text-center">
+                  <div className="text-2xl sm:text-3xl font-bold text-blue-400 mb-1">
+                    {stats.totalUsers.toLocaleString()}
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Потребители</div>
+                </GlassCardContent>
+              </GlassCard>
+
+              <GlassCard className="border-green-500/30 shine">
+                <GlassCardContent className="p-4 sm:p-6 text-center">
+                  <div className="text-2xl sm:text-3xl font-bold text-green-400 mb-1">
+                    {stats.totalEvents.toLocaleString()}
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Събития</div>
+                </GlassCardContent>
+              </GlassCard>
+
+              <GlassCard className="border-purple-500/30 shine">
+                <GlassCardContent className="p-4 sm:p-6 text-center">
+                  <div className="text-2xl sm:text-3xl font-bold text-purple-400 mb-1">
+                    {stats.moneyRaised.toLocaleString('bg-BG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} BGN
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Събрани средства</div>
+                </GlassCardContent>
+              </GlassCard>
+
+              <GlassCard className="border-orange-500/30 shine">
+                <GlassCardContent className="p-4 sm:p-6 text-center">
+                  <div className="text-2xl sm:text-3xl font-bold text-orange-400 mb-1">
+                    {stats.accuracy.toFixed(1)}%
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Точност</div>
+                </GlassCardContent>
+              </GlassCard>
+            </div>
+          </div>
+
+          {/* Currently Active Polls and Events Section */}
+          {(activeElections.length > 0 || upcomingElections.length > 0) ? (
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               Текущи активни избори и анкети
@@ -357,9 +403,9 @@ export default async function HomePage() {
               )}
             </div>
           )}
-        </div>
-      ) : (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
+            </div>
+          ) : (
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Текущи активни избори и анкети</h2>
             <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
@@ -373,11 +419,11 @@ export default async function HomePage() {
               </Button>
             </Link>
           </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Features Section */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
+          {/* Features Section */}
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
         <div className="text-center mb-8 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Защо Моят Глас?</h2>
           <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
@@ -437,11 +483,10 @@ export default async function HomePage() {
             </GlassCardContent>
           </GlassCard>
         </div>
-      </div>
+          </div>
 
-
-      {/* CTA Section */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-4xl">
+          {/* CTA Section */}
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-4xl">
         <GlassCard variant="gradient" className="text-center">
           <GlassCardContent className="p-8 sm:p-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-3 sm:mb-4">
@@ -457,6 +502,8 @@ export default async function HomePage() {
             </Link>
           </GlassCardContent>
         </GlassCard>
+          </div>
+        </div>
       </div>
     </main>
   );
