@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
 import { PieChartComponent } from '@/components/pie-chart';
+import { BarChartComponent } from '@/components/bar-chart';
+import { LineChartComponent } from '@/components/line-chart';
 
 interface Stats {
   totalElections: number;
@@ -31,6 +33,14 @@ interface Stats {
     successfulCampaigns: number;
     pendingCampaigns: number;
   };
+  votesOverTime?: Array<{
+    name: string;
+    value: number;
+  }>;
+  electionsOverTime?: Array<{
+    name: string;
+    value: number;
+  }>;
 }
 
 export default function StatisticsPage() {
@@ -209,6 +219,45 @@ export default function StatisticsPage() {
             </GlassCardContent>
           </GlassCard>
         </div>
+
+        {/* Time Series Charts */}
+        {(stats.votesOverTime || stats.electionsOverTime) && (
+          <div className="grid gap-4 lg:gap-6 md:grid-cols-2 mb-6 lg:mb-8">
+            {stats.votesOverTime && stats.votesOverTime.length > 0 && (
+              <GlassCard>
+                <GlassCardHeader>
+                  <GlassCardTitle>Гласове във времето</GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent>
+                  <LineChartComponent
+                    data={stats.votesOverTime}
+                    xAxisLabel="Дата"
+                    yAxisLabel="Брой гласове"
+                    height={300}
+                    color="#3b82f6"
+                    smooth={true}
+                    area={true}
+                  />
+                </GlassCardContent>
+              </GlassCard>
+            )}
+            {stats.electionsOverTime && stats.electionsOverTime.length > 0 && (
+              <GlassCard>
+                <GlassCardHeader>
+                  <GlassCardTitle>Избори във времето</GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent>
+                  <BarChartComponent
+                    data={stats.electionsOverTime}
+                    xAxisLabel="Дата"
+                    yAxisLabel="Брой избори"
+                    height={300}
+                  />
+                </GlassCardContent>
+              </GlassCard>
+            )}
+          </div>
+        )}
 
         {/* Additional Charts Row */}
         {stats.fundraisingStats && stats.fundraisingStats.totalRaised > 0 && (

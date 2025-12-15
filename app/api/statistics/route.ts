@@ -170,6 +170,53 @@ export async function GET() {
 
     popularElections.sort((a, b) => b.vote_count - a.vote_count);
 
+    // Get votes over time (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const { data: votesOverTimeData } = await supabase
+      .from('votes')
+      .select('created_at')
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .order('created_at', { ascending: true });
+
+    const votesOverTime: Array<{ name: string; value: number }> = [];
+    const votesByDate: Record<string, number> = {};
+    
+    (votesOverTimeData || []).forEach((vote) => {
+      const date = new Date(vote.created_at).toLocaleDateString('bg-BG', { 
+        day: '2-digit', 
+        month: '2-digit' 
+      });
+      votesByDate[date] = (votesByDate[date] || 0) + 1;
+    });
+
+    Object.entries(votesByDate).forEach(([date, count]) => {
+      votesOverTime.push({ name: date, value: count });
+    });
+
+    // Get elections over time (last 7 days)
+    const { data: electionsOverTimeData } = await supabase
+      .from('elections')
+      .select('created_at')
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .order('created_at', { ascending: true });
+
+    const electionsOverTime: Array<{ name: string; value: number }> = [];
+    const electionsByDate: Record<string, number> = {};
+    
+    (electionsOverTimeData || []).forEach((election) => {
+      const date = new Date(election.created_at).toLocaleDateString('bg-BG', { 
+        day: '2-digit', 
+        month: '2-digit' 
+      });
+      electionsByDate[date] = (electionsByDate[date] || 0) + 1;
+    });
+
+    Object.entries(electionsByDate).forEach(([date, count]) => {
+      electionsOverTime.push({ name: date, value: count });
+    });
+
     return NextResponse.json({
       totalElections: totalElections || 0,
       activeElections: activeElections || 0,
@@ -184,6 +231,8 @@ export async function GET() {
       },
       voteDistribution: top5Votes,
       fundraisingStats,
+      votesOverTime: votesOverTime.length > 0 ? votesOverTime : undefined,
+      electionsOverTime: electionsOverTime.length > 0 ? electionsOverTime : undefined,
     });
   } catch (error: any) {
     console.error('Statistics error:', error);
