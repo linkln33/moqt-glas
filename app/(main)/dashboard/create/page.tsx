@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { convertBulgariaDateTimeToUTC } from '@/lib/utils';
+import { ChevronLeft, ChevronRight, Check, Plus, X } from 'lucide-react';
 
 const templates = [
   {
@@ -15,8 +16,6 @@ const templates = [
     name: 'Да/Не',
     icon: '✅',
     description: 'Проста анкета с два отговора',
-    features: ['Бързо създаване', 'Лесно разбиране', 'Бързи резултати'],
-    analytics: ['Процентно разпределение', 'Общ брой гласове', 'Времеви график'],
     questions: [{
       question_text_bg: 'Съгласни ли сте?',
       question_type: 'single-choice' as const,
@@ -31,8 +30,6 @@ const templates = [
     name: 'Рейтинг',
     icon: '⭐',
     description: 'Оценка от 1 до 5 или по скала',
-    features: ['Скалиране от 1-5', 'Средна оценка', 'Разпределение по рейтинг'],
-    analytics: ['Средна стойност', 'Медиана', 'Мода', 'Разпределение'],
     questions: [{
       question_text_bg: 'Оценете от 1 до 5',
       question_type: 'single-choice' as const,
@@ -50,8 +47,6 @@ const templates = [
     name: 'Избори',
     icon: '🗳️',
     description: 'Избор между множество кандидати или опции',
-    features: ['Множество кандидати', 'Ранкиране', 'Статистика по кандидат'],
-    analytics: ['Процент на всеки кандидат', 'Лидер в реално време', 'Географско разпределение'],
     questions: [{
       question_text_bg: 'Изберете кандидат',
       question_type: 'single-choice' as const,
@@ -67,8 +62,6 @@ const templates = [
     name: 'Събиране на средства',
     icon: '💰',
     description: 'Кампания за събиране на средства с анкета',
-    features: ['Събиране на дарения', 'Прогрес бар', 'Списък с дарители'],
-    analytics: ['Обща събрана сума', 'Брой дарители', 'Средна дарена сума', 'Прогрес към цел'],
     hasFundraising: true,
     questions: [{
       question_text_bg: 'Подкрепяте ли тази кампания?',
@@ -78,13 +71,29 @@ const templates = [
         { option_text_bg: 'Не, не подкрепям' }
       ]
     }]
+  },
+  {
+    id: 'blank',
+    name: 'Празен шаблон',
+    icon: '📝',
+    description: 'Започнете от нулата',
+    questions: [{
+      question_text_bg: '',
+      question_type: 'single-choice' as const,
+      options: [{ option_text_bg: '' }]
+    }]
   }
 ];
+
+type Step = 1 | 2 | 3 | 4 | 5;
 
 function CreatePollPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [currentStep, setCurrentStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState<{
     title: string;
     title_bg: string;
@@ -135,7 +144,19 @@ function CreatePollPageContent() {
     ],
   });
 
-  const useTemplate = (template: typeof templates[0]) => {
+  // Check for template parameter in URL
+  useEffect(() => {
+    const templateParam = searchParams.get('template');
+    if (templateParam) {
+      const selectedTemplate = templates.find(t => t.id === templateParam);
+      if (selectedTemplate) {
+        applyTemplate(selectedTemplate);
+        setSelectedTemplate(templateParam);
+      }
+    }
+  }, [searchParams]);
+
+  const applyTemplate = (template: typeof templates[0]) => {
     setFormData(prev => ({
       ...prev,
       has_fundraising: template.hasFundraising || false,
@@ -155,37 +176,7 @@ function CreatePollPageContent() {
         options: q.options.map(o => ({ option_text: '', option_text_bg: o.option_text_bg }))
       }))
     }));
-    // Don't change step - keep both visible
   };
-
-  // Check for template parameter in URL
-  useEffect(() => {
-    const templateParam = searchParams.get('template');
-    if (templateParam) {
-      const selectedTemplate = templates.find(t => t.id === templateParam);
-      if (selectedTemplate) {
-        setFormData(prev => ({
-          ...prev,
-          has_fundraising: selectedTemplate.hasFundraising || false,
-          fundraising_goal: selectedTemplate.hasFundraising ? '1000' : prev.fundraising_goal,
-          fundraising_currency: selectedTemplate.hasFundraising ? 'BGN' : prev.fundraising_currency,
-          fundraising_description_bg: selectedTemplate.hasFundraising ? 'Подкрепете нашата кампания!' : prev.fundraising_description_bg,
-          fundraising_purpose: selectedTemplate.hasFundraising ? 'charity' : prev.fundraising_purpose,
-          fundraising_min_amount: selectedTemplate.hasFundraising ? '10' : prev.fundraising_min_amount,
-          fundraising_suggested_amounts: selectedTemplate.hasFundraising ? '10, 25, 50, 100, 250' : prev.fundraising_suggested_amounts,
-          fundraising_payment_methods: selectedTemplate.hasFundraising ? ['card', 'bank_transfer'] : prev.fundraising_payment_methods,
-          fundraising_show_donors: selectedTemplate.hasFundraising ? true : prev.fundraising_show_donors,
-          questions: selectedTemplate.questions.map(q => ({
-            question_text: '',
-            question_text_bg: q.question_text_bg,
-            question_type: q.question_type,
-            options: q.options.map(o => ({ option_text: '', option_text_bg: o.option_text_bg }))
-          }))
-        }));
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
 
   const handleInputChange = (field: string, value: string | boolean | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -247,12 +238,68 @@ function CreatePollPageContent() {
     }));
   };
 
+  const removeQuestion = (index: number) => {
+    setFormData((prev) => {
+      const questions = [...prev.questions];
+      if (questions.length > 1) {
+        questions.splice(index, 1);
+      }
+      return { ...prev, questions };
+    });
+  };
+
+  const validateStep = (step: Step): boolean => {
+    switch (step) {
+      case 1:
+        return true; // Template selection is optional
+      case 2:
+        return !!(formData.title_bg && formData.start_date && formData.end_date);
+      case 3:
+        return formData.questions.every(q => 
+          q.question_text_bg && 
+          q.options.length > 0 && 
+          q.options.every(o => o.option_text_bg)
+        );
+      case 4:
+        if (!formData.has_fundraising) return true;
+        return !!(formData.fundraising_goal && 
+                  formData.fundraising_purpose && 
+                  formData.fundraising_description_bg &&
+                  formData.fundraising_payment_methods.length > 0);
+      case 5:
+        return true; // Review step
+      default:
+        return false;
+    }
+  };
+
+  const nextStep = () => {
+    if (validateStep(currentStep) && currentStep < 5) {
+      // Skip fundraising step if not enabled
+      if (currentStep === 3 && !formData.has_fundraising) {
+        setCurrentStep(5);
+      } else {
+        setCurrentStep((prev) => (prev + 1) as Step);
+      }
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      // Skip fundraising step if not enabled when going back
+      if (currentStep === 5 && !formData.has_fundraising) {
+        setCurrentStep(3);
+      } else {
+        setCurrentStep((prev) => (prev - 1) as Step);
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     try {
       const telegramAuth = JSON.parse(localStorage.getItem('telegram_auth') || '{}');
       
-      // Prepare form data - convert datetime-local (Bulgaria timezone) to UTC ISO strings
       const submitData = {
         ...formData,
         start_date: formData.start_date ? convertBulgariaDateTimeToUTC(formData.start_date) : null,
@@ -279,9 +326,7 @@ function CreatePollPageContent() {
         throw new Error(result.error || 'Грешка при създаване на изборите');
       }
 
-      // Redirect to elections page to see the new election
-      router.push(`/dashboard/elections`);
-      // Also refresh the router to ensure latest data
+      router.push(`/dashboard`);
       router.refresh();
     } catch (error: any) {
       alert(error.message || 'Грешка при създаване на изборите');
@@ -290,508 +335,633 @@ function CreatePollPageContent() {
     }
   };
 
+  const steps = [
+    { number: 1, title: 'Шаблон', icon: '📋' },
+    { number: 2, title: 'Детайли', icon: '📝' },
+    { number: 3, title: 'Въпроси', icon: '❓' },
+    { number: 4, title: 'Средства', icon: '💰' },
+    { number: 5, title: 'Преглед', icon: '👁️' },
+  ];
+
+  const renderStepIndicator = () => {
+    return (
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          {steps.map((step, index) => {
+            const isActive = currentStep === step.number;
+            const isCompleted = currentStep > step.number;
+            const isSkipped = step.number === 4 && !formData.has_fundraising && currentStep > 4;
+            
+            if (isSkipped) return null;
+
+            return (
+              <div key={step.number} className="flex items-center flex-1">
+                <div className="flex flex-col items-center flex-1">
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
+                      isActive
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : isCompleted
+                        ? 'border-primary bg-primary/20 text-primary'
+                        : 'border-border bg-background text-muted-foreground'
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <Check className="w-6 h-6" />
+                    ) : (
+                      <span className="text-lg">{step.icon}</span>
+                    )}
+                  </div>
+                  <span className={`text-xs mt-2 text-center ${isActive ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    {step.title}
+                  </span>
+                </div>
+                {index < steps.length - 1 && (
+                  <div className={`h-0.5 flex-1 mx-2 ${isCompleted ? 'bg-primary' : 'bg-border'}`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Step 1: Choose Template
+  const renderStep1 = () => (
+    <GlassCard>
+      <GlassCardHeader>
+        <GlassCardTitle>Изберете шаблон</GlassCardTitle>
+        <GlassCardDescription>
+          Изберете готов шаблон или започнете от нулата
+        </GlassCardDescription>
+      </GlassCardHeader>
+      <GlassCardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {templates.map((template) => {
+            const isSelected = selectedTemplate === template.id;
+            return (
+              <button
+                key={template.id}
+                onClick={() => {
+                  applyTemplate(template);
+                  setSelectedTemplate(template.id);
+                }}
+                className={`p-6 border-2 rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-left group relative h-full flex flex-col ${
+                  isSelected ? 'border-primary bg-primary/10' : 'border-border'
+                }`}
+              >
+                {template.hasFundraising && (
+                  <div className="absolute top-3 right-3">
+                    <Badge className="bg-primary/20 text-primary text-xs">💰</Badge>
+                  </div>
+                )}
+                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
+                  {template.icon}
+                </div>
+                <div className="text-lg font-bold mb-2">{template.name}</div>
+                <p className="text-sm text-muted-foreground">{template.description}</p>
+                {isSelected && (
+                  <div className="mt-4 flex items-center gap-2 text-primary">
+                    <Check className="w-4 h-4" />
+                    <span className="text-sm font-medium">Избран</span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </GlassCardContent>
+    </GlassCard>
+  );
+
+  // Step 2: Basic Details
+  const renderStep2 = () => (
+    <GlassCard>
+      <GlassCardHeader>
+        <GlassCardTitle>Основна информация</GlassCardTitle>
+        <GlassCardDescription>
+          Въведете заглавие, описание и дати за вашата анкета
+        </GlassCardDescription>
+      </GlassCardHeader>
+      <GlassCardContent className="space-y-6">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Заглавие (Български) *</label>
+          <Input
+            placeholder="Напр: Анкета за политически партии"
+            value={formData.title_bg}
+            onChange={(e) => handleInputChange('title_bg', e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Описание (Български)</label>
+          <Textarea
+            placeholder="Опишете вашата анкета..."
+            rows={4}
+            value={formData.description_bg}
+            onChange={(e) => handleInputChange('description_bg', e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Начална дата *</label>
+            <Input
+              type="datetime-local"
+              value={formData.start_date}
+              onChange={(e) => handleInputChange('start_date', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Крайна дата *</label>
+            <Input
+              type="datetime-local"
+              value={formData.end_date}
+              onChange={(e) => handleInputChange('end_date', e.target.value)}
+              min={formData.start_date || undefined}
+            />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="has_fundraising"
+              checked={formData.has_fundraising}
+              onChange={(e) => handleInputChange('has_fundraising', e.target.checked)}
+              className="w-5 h-5 rounded border-border accent-primary cursor-pointer mt-0.5"
+            />
+            <div>
+              <label htmlFor="has_fundraising" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                <span>💰</span>
+                <span>Активирай събиране на средства</span>
+              </label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Ако активирате това, ще можете да конфигурирате събиране на средства в следващата стъпка
+              </p>
+            </div>
+          </div>
+        </div>
+      </GlassCardContent>
+    </GlassCard>
+  );
+
+  // Step 3: Questions & Options
+  const renderStep3 = () => (
+    <div className="space-y-6">
+      {formData.questions.map((question, qIndex) => (
+        <GlassCard key={qIndex}>
+          <GlassCardHeader>
+            <div className="flex items-center justify-between">
+              <GlassCardTitle>Въпрос {qIndex + 1}</GlassCardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">
+                  {question.question_type === 'single-choice' ? 'Един избор' : 'Множествен избор'}
+                </Badge>
+                {formData.questions.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeQuestion(qIndex)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Текст на въпроса (Български) *</label>
+              <Input
+                placeholder="Напр: За коя партия бихте гласували?"
+                value={question.question_text_bg}
+                onChange={(e) =>
+                  handleQuestionChange(qIndex, 'question_text_bg', e.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Тип въпрос</label>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant={question.question_type === 'single-choice' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() =>
+                    handleQuestionChange(qIndex, 'question_type', 'single-choice')
+                  }
+                >
+                  Един избор
+                </Button>
+                <Button
+                  type="button"
+                  variant={question.question_type === 'multiple-choice' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() =>
+                    handleQuestionChange(qIndex, 'question_type', 'multiple-choice')
+                  }
+                >
+                  Множествен избор
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-sm font-medium">Опции *</label>
+              {question.options.map((option, oIndex) => (
+                <div key={oIndex} className="flex gap-2">
+                  <Input
+                    placeholder={`Опция ${oIndex + 1}`}
+                    value={option.option_text_bg}
+                    onChange={(e) =>
+                      handleOptionChange(qIndex, oIndex, 'option_text_bg', e.target.value)
+                    }
+                    className="flex-1"
+                  />
+                  {question.options.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeOption(qIndex, oIndex)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addOption(qIndex)}
+                className="w-full"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Добави опция
+              </Button>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+      ))}
+
+      <Button
+        type="button"
+        variant="outline"
+        onClick={addQuestion}
+        className="w-full"
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        Добави въпрос
+      </Button>
+    </div>
+  );
+
+  // Step 4: Fundraising
+  const renderStep4 = () => (
+    <GlassCard>
+      <GlassCardHeader>
+        <GlassCardTitle>Събиране на средства</GlassCardTitle>
+        <GlassCardDescription>
+          Конфигурирайте събирането на средства за вашата кампания
+        </GlassCardDescription>
+      </GlassCardHeader>
+      <GlassCardContent className="space-y-6">
+        <div className="space-y-2">
+          <label htmlFor="fundraising_purpose" className="text-sm font-medium flex items-center gap-2">
+            Цел на кампанията <span className="text-destructive">*</span>
+          </label>
+          <select
+            id="fundraising_purpose"
+            value={formData.fundraising_purpose}
+            onChange={(e) => handleInputChange('fundraising_purpose', e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Изберете цел...</option>
+            <option value="charity">Благотворителност</option>
+            <option value="political">Политическа кампания</option>
+            <option value="community">Обществен проект</option>
+            <option value="education">Образование</option>
+            <option value="healthcare">Здравеопазване</option>
+            <option value="environment">Околна среда</option>
+            <option value="arts">Изкуство и култура</option>
+            <option value="sports">Спорт</option>
+            <option value="other">Друго</option>
+          </select>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="fundraising_goal" className="text-sm font-medium flex items-center gap-2">
+              Цел (сума) <span className="text-destructive">*</span>
+            </label>
+            <Input
+              id="fundraising_goal"
+              type="number"
+              placeholder="1000"
+              min="1"
+              step="0.01"
+              value={formData.fundraising_goal}
+              onChange={(e) => handleInputChange('fundraising_goal', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="fundraising_currency" className="text-sm font-medium">
+              Валута <span className="text-destructive">*</span>
+            </label>
+            <select
+              id="fundraising_currency"
+              value={formData.fundraising_currency}
+              onChange={(e) => handleInputChange('fundraising_currency', e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="BGN">BGN (Български лев)</option>
+              <option value="EUR">EUR (Евро)</option>
+              <option value="USD">USD (Долар)</option>
+              <option value="GBP">GBP (Британска лира)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="fundraising_min_amount" className="text-sm font-medium">
+              Минимална дарена сума
+            </label>
+            <Input
+              id="fundraising_min_amount"
+              type="number"
+              placeholder="10"
+              min="0.01"
+              step="0.01"
+              value={formData.fundraising_min_amount}
+              onChange={(e) => handleInputChange('fundraising_min_amount', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="fundraising_suggested_amounts" className="text-sm font-medium">
+              Предложени суми
+            </label>
+            <Input
+              id="fundraising_suggested_amounts"
+              type="text"
+              placeholder="10, 25, 50, 100, 250"
+              value={formData.fundraising_suggested_amounts}
+              onChange={(e) => handleInputChange('fundraising_suggested_amounts', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Методи на плащане *</label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {['card', 'bank_transfer', 'paypal', 'crypto'].map((method) => {
+              const methodLabels: Record<string, string> = {
+                card: '💳 Карта',
+                bank_transfer: '🏦 Банков превод',
+                paypal: '📧 PayPal',
+                crypto: '₿ Криптовалута',
+              };
+              const isSelected = formData.fundraising_payment_methods.includes(method);
+              return (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => {
+                    const methods = formData.fundraising_payment_methods.includes(method)
+                      ? formData.fundraising_payment_methods.filter(m => m !== method)
+                      : [...formData.fundraising_payment_methods, method];
+                    handleInputChange('fundraising_payment_methods', methods);
+                  }}
+                  className={`p-3 border-2 rounded-lg text-sm transition-all ${
+                    isSelected
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  {methodLabels[method] || method}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="fundraising_end_date" className="text-sm font-medium">
+            Крайна дата за събиране на средства
+          </label>
+          <Input
+            id="fundraising_end_date"
+            type="datetime-local"
+            value={formData.fundraising_end_date || formData.end_date || ''}
+            onChange={(e) => handleInputChange('fundraising_end_date', e.target.value || '')}
+            min={formData.start_date || undefined}
+            max={formData.end_date || undefined}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="fundraising_description_bg" className="text-sm font-medium flex items-center gap-2">
+            Описание на кампанията <span className="text-destructive">*</span>
+          </label>
+          <Textarea
+            id="fundraising_description_bg"
+            placeholder="Опишете за какво се събират средствата..."
+            rows={4}
+            value={formData.fundraising_description_bg}
+            onChange={(e) => handleInputChange('fundraising_description_bg', e.target.value)}
+            maxLength={1000}
+          />
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Максимум 1000 символа</span>
+            <span>{formData.fundraising_description_bg.length}/1000</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+          <div>
+            <label htmlFor="fundraising_show_donors" className="text-sm font-medium cursor-pointer">
+              Показване на дарители
+            </label>
+            <p className="text-xs text-muted-foreground mt-1">
+              Показване на имената на дарителите публично
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            id="fundraising_show_donors"
+            checked={formData.fundraising_show_donors}
+            onChange={(e) => handleInputChange('fundraising_show_donors', e.target.checked)}
+            className="w-5 h-5 rounded border-border accent-primary cursor-pointer"
+          />
+        </div>
+      </GlassCardContent>
+    </GlassCard>
+  );
+
+  // Step 5: Review & Publish
+  const renderStep5 = () => (
+    <GlassCard>
+      <GlassCardHeader>
+        <GlassCardTitle>Преглед и публикуване</GlassCardTitle>
+        <GlassCardDescription>
+          Проверете информацията преди да публикувате анкетата
+        </GlassCardDescription>
+      </GlassCardHeader>
+      <GlassCardContent className="space-y-6">
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-semibold mb-2">Заглавие</h3>
+            <p className="text-muted-foreground">{formData.title_bg || 'Не е въведено'}</p>
+          </div>
+
+          {formData.description_bg && (
+            <div>
+              <h3 className="font-semibold mb-2">Описание</h3>
+              <p className="text-muted-foreground">{formData.description_bg}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-semibold mb-2">Начална дата</h3>
+              <p className="text-muted-foreground">
+                {formData.start_date 
+                  ? new Date(formData.start_date).toLocaleString('bg-BG')
+                  : 'Не е зададена'}
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">Крайна дата</h3>
+              <p className="text-muted-foreground">
+                {formData.end_date 
+                  ? new Date(formData.end_date).toLocaleString('bg-BG')
+                  : 'Не е зададена'}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-semibold mb-2">Въпроси ({formData.questions.length})</h3>
+            <div className="space-y-3">
+              {formData.questions.map((question, qIndex) => (
+                <div key={qIndex} className="p-3 border border-border rounded-lg">
+                  <p className="font-medium mb-2">{qIndex + 1}. {question.question_text_bg}</p>
+                  <div className="text-sm text-muted-foreground">
+                    Тип: {question.question_type === 'single-choice' ? 'Един избор' : 'Множествен избор'}
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-xs text-muted-foreground mb-1">Опции:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {question.options.map((option, oIndex) => (
+                        <Badge key={oIndex} variant="secondary">
+                          {option.option_text_bg}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {formData.has_fundraising && (
+            <div>
+              <h3 className="font-semibold mb-2">Събиране на средства</h3>
+              <div className="p-3 border border-border rounded-lg space-y-2">
+                <p className="text-sm">
+                  <span className="font-medium">Цел:</span> {formData.fundraising_goal} {formData.fundraising_currency}
+                </p>
+                <p className="text-sm">
+                  <span className="font-medium">Цел:</span> {formData.fundraising_purpose}
+                </p>
+                <p className="text-sm text-muted-foreground">{formData.fundraising_description_bg}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </GlassCardContent>
+    </GlassCard>
+  );
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        return renderStep1();
+      case 2:
+        return renderStep2();
+      case 3:
+        return renderStep3();
+      case 4:
+        return renderStep4();
+      case 5:
+        return renderStep5();
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="py-6 lg:py-8">
-      <div className="w-full">
+      <div className="w-full max-w-4xl mx-auto">
         <div className="mb-6 lg:mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             Създай нова анкета
           </h1>
           <p className="text-muted-foreground">
-            Изберете шаблон и попълнете информацията
+            Следвайте стъпките, за да създадете вашата анкета
           </p>
         </div>
 
-        {/* Quick Templates - Always visible */}
-            <GlassCard className="mb-4 lg:mb-6">
-              <GlassCardHeader>
-                <GlassCardTitle>Бързи шаблони</GlassCardTitle>
-                <GlassCardDescription>
-                  Изберете шаблон за бързо създаване
-                </GlassCardDescription>
-              </GlassCardHeader>
-              <GlassCardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-              {templates.map((template, i) => {
-                const isSelected = formData.questions.some(q => 
-                  template.questions.some(tq => q.question_text_bg === tq.question_text_bg)
-                );
-                return (
-                    <button
-                      key={i}
-                      onClick={() => useTemplate(template)}
-                    className={`p-6 border-2 rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-left group relative h-full flex flex-col ${
-                      isSelected ? 'border-primary bg-primary/10' : 'border-border'
-                    }`}
-                    >
-                      {template.hasFundraising && (
-                      <div className="absolute top-3 right-3">
-                          <Badge className="bg-primary/20 text-primary text-xs">💰</Badge>
-                        </div>
-                      )}
-                    <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
-                        {template.icon}
-                    </div>
-                    <div className="text-lg font-bold mb-2">{template.name}</div>
-                    <p className="text-sm text-muted-foreground mb-4 flex-1">
-                      {template.description}
-                    </p>
-                    
-                    <div className="space-y-3 mt-auto">
-                      <div>
-                        <div className="text-xs font-semibold text-primary mb-2">Възможности:</div>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          {template.features.map((feature, idx) => (
-                            <li key={idx} className="flex items-center gap-1.5">
-                              <span className="text-primary">•</span>
-                              <span>{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      <div>
-                        <div className="text-xs font-semibold text-primary mb-2">Статистики:</div>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          {template.analytics.map((stat, idx) => (
-                            <li key={idx} className="flex items-center gap-1.5">
-                              <span className="text-primary">📊</span>
-                              <span>{stat}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                    </button>
-                );
-              })}
-                </div>
-              </GlassCardContent>
-            </GlassCard>
+        {renderStepIndicator()}
 
-        {/* Basic Information - Always visible */}
-        <GlassCard className="mb-4 lg:mb-6">
-              <GlassCardHeader>
-                <GlassCardTitle>Основна информация</GlassCardTitle>
-                <GlassCardDescription>
-                  Въведете информация за вашата анкета
-                </GlassCardDescription>
-              </GlassCardHeader>
-              <GlassCardContent className="space-y-4 lg:space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Заглавие (Български) *</label>
-                <Input
-                  placeholder="Напр: Анкета за политически партии"
-                  value={formData.title_bg}
-                  onChange={(e) => handleInputChange('title_bg', e.target.value)}
-                />
-              </div>
+        <div className="mb-6">
+          {renderCurrentStep()}
+        </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Описание (Български)</label>
-                <Textarea
-                  placeholder="Опишете вашата анкета..."
-                  rows={4}
-                  value={formData.description_bg}
-                  onChange={(e) => handleInputChange('description_bg', e.target.value)}
-                />
-              </div>
+        <div className="flex items-center justify-between gap-4">
+          <Button
+            onClick={() => {
+              if (currentStep === 1) {
+                router.push('/dashboard');
+              } else {
+                prevStep();
+              }
+            }}
+            variant="outline"
+            disabled={loading}
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            {currentStep === 1 ? 'Отказ' : 'Назад'}
+          </Button>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Начална дата *</label>
-                  <Input
-                    type="datetime-local"
-                    value={formData.start_date}
-                    onChange={(e) => handleInputChange('start_date', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Крайна дата *</label>
-                  <Input
-                    type="datetime-local"
-                    value={formData.end_date}
-                    onChange={(e) => handleInputChange('end_date', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Fundraising Card */}
-              <GlassCard className="border-primary/20">
-                <GlassCardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <GlassCardTitle className="flex items-center gap-2">
-                        <span>💰</span>
-                        Събиране на средства
-                      </GlassCardTitle>
-                      <GlassCardDescription className="mt-1">
-                        Активирайте събиране на средства за вашата анкета
-                      </GlassCardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="has_fundraising"
-                        checked={formData.has_fundraising}
-                        onChange={(e) => handleInputChange('has_fundraising', e.target.checked)}
-                        className="w-5 h-5 rounded border-border accent-primary cursor-pointer"
-                      />
-                      <label htmlFor="has_fundraising" className="text-sm font-medium cursor-pointer">
-                        Активирай
-                      </label>
-                    </div>
-                  </div>
-                </GlassCardHeader>
-
-                {formData.has_fundraising && (
-                  <GlassCardContent className="space-y-4 pt-4">
-                  {/* Purpose/Category */}
-                  <div className="space-y-2">
-                    <label htmlFor="fundraising_purpose" className="text-sm font-medium flex items-center gap-2">
-                      Цел на кампанията <span className="text-destructive">*</span>
-                    </label>
-                    <select
-                      id="fundraising_purpose"
-                      value={formData.fundraising_purpose}
-                      onChange={(e) => handleInputChange('fundraising_purpose', e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="">Изберете цел...</option>
-                      <option value="charity">Благотворителност</option>
-                      <option value="political">Политическа кампания</option>
-                      <option value="community">Обществен проект</option>
-                      <option value="education">Образование</option>
-                      <option value="healthcare">Здравеопазване</option>
-                      <option value="environment">Околна среда</option>
-                      <option value="arts">Изкуство и култура</option>
-                      <option value="sports">Спорт</option>
-                      <option value="other">Друго</option>
-                    </select>
-                  </div>
-
-                  {/* Goal Amount and Currency */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label htmlFor="fundraising_goal" className="text-sm font-medium flex items-center gap-2">
-                          Цел (сума) <span className="text-destructive">*</span>
-                        </label>
-                        <Input
-                          id="fundraising_goal"
-                          type="number"
-                          placeholder="1000"
-                          min="1"
-                          step="0.01"
-                          value={formData.fundraising_goal}
-                          onChange={(e) => handleInputChange('fundraising_goal', e.target.value)}
-                          className="w-full"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                        Обща цел за събиране
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <label htmlFor="fundraising_currency" className="text-sm font-medium">
-                        Валута <span className="text-destructive">*</span>
-                        </label>
-                        <select
-                          id="fundraising_currency"
-                          value={formData.fundraising_currency}
-                          onChange={(e) => handleInputChange('fundraising_currency', e.target.value)}
-                          className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          <option value="BGN">BGN (Български лев)</option>
-                          <option value="EUR">EUR (Евро)</option>
-                          <option value="USD">USD (Долар)</option>
-                        <option value="GBP">GBP (Британска лира)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                  {/* Minimum Amount and Suggested Amounts */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label htmlFor="fundraising_min_amount" className="text-sm font-medium">
-                        Минимална дарена сума
-                      </label>
-                      <Input
-                        id="fundraising_min_amount"
-                        type="number"
-                        placeholder="10"
-                        min="0.01"
-                        step="0.01"
-                        value={formData.fundraising_min_amount}
-                        onChange={(e) => handleInputChange('fundraising_min_amount', e.target.value)}
-                        className="w-full"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Минимална сума за дарение (по подразбиране: 1 {formData.fundraising_currency || 'BGN'})
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <label htmlFor="fundraising_suggested_amounts" className="text-sm font-medium">
-                        Предложени суми
-                      </label>
-                      <Input
-                        id="fundraising_suggested_amounts"
-                        type="text"
-                        placeholder="10, 25, 50, 100, 250"
-                        value={formData.fundraising_suggested_amounts}
-                        onChange={(e) => handleInputChange('fundraising_suggested_amounts', e.target.value)}
-                        className="w-full"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Разделени със запетая (напр: 10, 25, 50, 100)
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Payment Methods */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Методи на плащане</label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {['card', 'bank_transfer', 'paypal', 'crypto'].map((method) => {
-                        const methodLabels: Record<string, string> = {
-                          card: '💳 Карта',
-                          bank_transfer: '🏦 Банков превод',
-                          paypal: '📧 PayPal',
-                          crypto: '₿ Криптовалута',
-                        };
-                        const isSelected = formData.fundraising_payment_methods.includes(method);
-                        return (
-                          <button
-                            key={method}
-                            type="button"
-                            onClick={() => {
-                              const methods = formData.fundraising_payment_methods.includes(method)
-                                ? formData.fundraising_payment_methods.filter(m => m !== method)
-                                : [...formData.fundraising_payment_methods, method];
-                              handleInputChange('fundraising_payment_methods', methods);
-                            }}
-                            className={`p-3 border-2 rounded-lg text-sm transition-all ${
-                              isSelected
-                                ? 'border-primary bg-primary/10 text-primary'
-                                : 'border-border hover:border-primary/50'
-                            }`}
-                          >
-                            {methodLabels[method] || method}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Изберете поне един метод на плащане
-                    </p>
-                  </div>
-
-                  {/* Fundraising Timeframe */}
-                    <div className="space-y-2">
-                      <label htmlFor="fundraising_end_date" className="text-sm font-medium">
-                        Крайна дата за събиране на средства
-                      </label>
-                      <Input
-                        id="fundraising_end_date"
-                        type="datetime-local"
-                      value={formData.fundraising_end_date || formData.end_date || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                        handleInputChange('fundraising_end_date', value || '');
-                        }}
-                        min={formData.start_date || undefined}
-                        max={formData.end_date || undefined}
-                        className="w-full"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {formData.end_date 
-                          ? `По подразбиране: Крайна дата на анкетата (${new Date(formData.end_date).toLocaleDateString('bg-BG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })})`
-                          : 'Моля, задайте първо крайна дата на анкетата'}
-                      </p>
-                    </div>
-
-                  {/* Description */}
-                    <div className="space-y-2">
-                    <label htmlFor="fundraising_description_bg" className="text-sm font-medium flex items-center gap-2">
-                      Описание на кампанията <span className="text-destructive">*</span>
-                      </label>
-                      <Textarea
-                        id="fundraising_description_bg"
-                        placeholder="Опишете за какво се събират средствата, как ще бъдат използвани и защо е важна подкрепата..."
-                        rows={4}
-                        value={formData.fundraising_description_bg}
-                        onChange={(e) => handleInputChange('fundraising_description_bg', e.target.value)}
-                      maxLength={1000}
-                      />
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Максимум 1000 символа</span>
-                      <span>{formData.fundraising_description_bg.length}/1000</span>
-                    </div>
-                      </div>
-
-                  {/* Show Donors Option */}
-                  <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                    <div>
-                      <label htmlFor="fundraising_show_donors" className="text-sm font-medium cursor-pointer">
-                        Показване на дарители
-                      </label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Показване на имената на дарителите публично (ако не са анонимни)
-                      </p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      id="fundraising_show_donors"
-                      checked={formData.fundraising_show_donors}
-                      onChange={(e) => handleInputChange('fundraising_show_donors', e.target.checked)}
-                      className="w-5 h-5 rounded border-border accent-primary cursor-pointer"
-                    />
-                    </div>
-
-                    {formData.fundraising_goal && parseFloat(formData.fundraising_goal) > 0 && (
-                      <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-foreground">Цел:</span>
-                          <span className="text-lg font-bold text-primary">
-                            {parseFloat(formData.fundraising_goal || '0').toLocaleString('bg-BG', { 
-                              minimumFractionDigits: 2, 
-                              maximumFractionDigits: 2 
-                            })} {formData.fundraising_currency || 'BGN'}
-                          </span>
-                        </div>
-                        <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-300"
-                            style={{ width: '0%' }}
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Прогресът ще се показва автоматично след първото дарение
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                      <div className="flex items-start gap-2">
-                        <span className="text-amber-500 text-sm">💡</span>
-                        <div className="text-xs text-amber-500">
-                          <p className="font-semibold mb-1">Важно:</p>
-                          <ul className="list-disc list-inside space-y-1">
-                            <li>Моля, добавете платежните си данни в Настройки преди да активирате събиране на средства</li>
-                            <li>Средствата ще бъдат налични за изтегляне след приключване на анкетата</li>
-                            <li>Всички дарения са финални и не подлежат на възстановяване</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </GlassCardContent>
-                )}
-              </GlassCard>
-            </GlassCardContent>
-          </GlassCard>
-
-        {/* Questions Section - Always visible */}
-          <div className="space-y-4 lg:space-y-6">
-            {formData.questions.map((question, qIndex) => (
-              <GlassCard key={qIndex}>
-                <GlassCardHeader>
-                  <div className="flex items-center justify-between">
-                    <GlassCardTitle>Въпрос {qIndex + 1}</GlassCardTitle>
-                    {formData.questions.length > 1 && (
-                      <Badge variant="secondary">
-                        {question.question_type === 'single-choice' ? 'Един избор' : 'Множествен избор'}
-                      </Badge>
-                    )}
-                  </div>
-                </GlassCardHeader>
-                <GlassCardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Текст на въпроса (Български) *</label>
-                    <Input
-                      placeholder="Напр: За коя партия бихте гласували?"
-                      value={question.question_text_bg}
-                      onChange={(e) =>
-                        handleQuestionChange(qIndex, 'question_text_bg', e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Тип въпрос</label>
-                    <div className="flex gap-4">
-                      <Button
-                        type="button"
-                        variant={question.question_type === 'single-choice' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() =>
-                          handleQuestionChange(qIndex, 'question_type', 'single-choice')
-                        }
-                      >
-                        Един избор
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={question.question_type === 'multiple-choice' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() =>
-                          handleQuestionChange(qIndex, 'question_type', 'multiple-choice')
-                        }
-                      >
-                        Множествен избор
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <label className="text-sm font-medium">Опции *</label>
-                    {question.options.map((option, oIndex) => (
-                      <div key={oIndex} className="flex gap-2">
-                        <Input
-                          placeholder={`Опция ${oIndex + 1}`}
-                          value={option.option_text_bg}
-                          onChange={(e) =>
-                            handleOptionChange(qIndex, oIndex, 'option_text_bg', e.target.value)
-                          }
-                          className="flex-1"
-                        />
-                        {question.options.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => removeOption(qIndex, oIndex)}
-                          >
-                            ×
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addOption(qIndex)}
-                    >
-                      + Добави опция
-                    </Button>
-                  </div>
-                </GlassCardContent>
-              </GlassCard>
-            ))}
-
-            <div className="flex gap-4">
-              <Button variant="outline" onClick={addQuestion}>
-                + Добави въпрос
+          <div className="flex gap-2">
+            {currentStep < 5 ? (
+              <Button
+                onClick={nextStep}
+                disabled={!validateStep(currentStep) || loading}
+                className="gradient-primary text-white"
+              >
+                Напред
+                <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
-            </div>
-
-            <div className="flex gap-4">
-            <Button onClick={() => router.push('/dashboard')} variant="outline">
-              Отказ
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={loading || !validateStep(5)}
+                className="gradient-primary text-white"
+              >
+                {loading ? 'Публикуване...' : 'Публикувай анкета'}
               </Button>
-              <Button onClick={handleSubmit} disabled={loading} className="flex-1 gradient-primary">
-                {loading ? 'Създаване...' : 'Създай анкета'}
-              </Button>
-            </div>
+            )}
           </div>
+        </div>
       </div>
     </div>
   );
