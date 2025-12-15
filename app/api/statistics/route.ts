@@ -221,6 +221,162 @@ export async function GET() {
       electionsOverTimePie.push({ name: date, value: count });
     });
 
+    // Get per-event statistics with all options/candidates
+    const { data: allElectionsForStats } = await supabase
+      .from('elections')
+      .select('id, title_bg, description_bg, start_date, end_date, status, has_fundraising')
+      .order('created_at', { ascending: false })
+      .limit(20); // Limit to recent 20 elections for performance
+
+    const eventsStats = await Promise.all(
+      (allElectionsForStats || []).map(async (election) => {
+        // Get questions with options
+        const { data: questions } = await supabase
+          .from('questions')
+          .select('*, options(*)')
+          .eq('election_id', election.id)
+          .order('order_index', { ascending: true });
+
+        // Get vote counts for each question and option
+        const questionsWithStats = await Promise.all(
+          (questions || []).map(async (question) => {
+            const { data: votes } = await supabase
+              .from('votes')
+              .select('selected_options')
+              .eq('election_id', election.id)
+              .eq('question_id', question.id);
+
+            const optionCounts: Record<string, number> = {};
+            const totalVotes = votes?.length || 0;
+
+            // Initialize all options with 0 votes
+            (question.options || []).forEach((option: any) => {
+              optionCounts[option.id] = 0;
+            });
+
+            // Count votes for each option
+            votes?.forEach((vote) => {
+              let selected: string[] = [];
+              
+              if (Array.isArray(vote.selected_options)) {
+                selected = vote.selected_options;
+              } else if (typeof vote.selected_options === 'string') {
+                try {
+                  selected = JSON.parse(vote.selected_options);
+                } catch {
+                  selected = [vote.selected_options];
+                }
+              }
+              
+              selected.forEach((optionId: string) => {
+                if (optionCounts[optionId] !== undefined) {
+                  optionCounts[optionId]++;
+                }
+              });
+            });
+
+            // Calculate percentages for each option
+            const optionsWithStats = (question.options || []).map((option: any) => ({
+              id: option.id,
+              text: option.option_text_bg || option.option_text,
+              votes: optionCounts[option.id] || 0,
+              percentage: totalVotes > 0 
+                ? ((optionCounts[option.id] || 0) / totalVotes) * 100 
+                : 0,
+            }));
+
+            return {
+              id: question.id,
+              text: question.question_text_bg || question.question_text,
+              type: question.question_type,
+              totalVotes,
+              options: optionsWithStats,
+            };
+          })
+        );
+
+        // Get total votes for this election
+        const { count: electionVoteCount } = await supabase
+          .from('votes')
+          .select('*', { count: 'exact', head: true })
+          .eq('election_id', election.id);
+
+        // Get fundraising stats if applicable
+        let fundraisingData = null;
+        if (election.has_fundraising) {
+          try {
+            const { data: donationsData } = await supabase
+              .from('election_donations')
+              .select('amount')
+              .eq('election_id', election.id)
+              .eq('payment_status', 'completed');
+
+            const totalRaised = donationsData?.reduce((sum, d) => sum + parseFloat(d.amount || '0'), 0) || 0;
+            const { data: electionData } = await supabase
+              .from('elections')
+              .select('fundraising_goal, fundraising_currency')
+              .eq('id', election.id)
+              .single();
+
+            fundraisingData = {
+              totalRaised,
+              goal: parseFloat(electionData?.fundraising_goal || '0'),
+              currency: electionData?.fundraising_currency || 'BGN',
+              totalDonations: donationsData?.length || 0,
+            };
+          } catch (error) {
+            console.error('Error fetching fundraising data for election:', election.id, error);
+          }
+        }
+
+        return {
+          id: election.id,
+          title: election.title_bg,
+          description: election.description_bg,
+          status: election.status,
+          startDate: election.start_date,
+          endDate: election.end_date,
+          totalVotes: electionVoteCount || 0,
+          questions: questionsWithStats,
+          fundraising: fundraisingData,
+        };
+      })
+    );
+
+    // Get engagement stats (user activity)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const { count: recentVotes } = await supabase
+      .from('votes')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    const { count: recentUsers } = await supabase
+      .from('voters')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    const { data: userActivityData } = await supabase
+      .from('votes')
+      .select('created_at, telegram_id')
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: true });
+
+    const activityByDate: Record<string, number> = {};
+    (userActivityData || []).forEach((vote) => {
+      const date = new Date(vote.created_at).toLocaleDateString('bg-BG', { 
+        day: '2-digit', 
+        month: '2-digit' 
+      });
+      activityByDate[date] = (activityByDate[date] || 0) + 1;
+    });
+
+    const engagementOverTime = Object.entries(activityByDate).map(([date, count]) => ({
+      name: date,
+      value: count,
+    }));
+
     return NextResponse.json({
       totalElections: totalElections || 0,
       activeElections: activeElections || 0,
@@ -239,6 +395,12 @@ export async function GET() {
       electionsOverTime: electionsOverTimeLine.length > 0 ? electionsOverTimeLine : undefined,
       votesOverTimePie: votesOverTimePie.length > 0 ? votesOverTimePie : undefined,
       electionsOverTimePie: electionsOverTimePie.length > 0 ? electionsOverTimePie : undefined,
+      eventsStats, // Per-event statistics with all options
+      engagementStats: {
+        recentVotes: recentVotes || 0,
+        recentUsers: recentUsers || 0,
+        activityOverTime: engagementOverTime,
+      },
     });
   } catch (error: any) {
     console.error('Statistics error:', error);
