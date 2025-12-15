@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardFooter, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,45 +13,62 @@ interface ElectionsClientPageProps {
 }
 
 export function ElectionsClientPage({ elections: initialElections }: ElectionsClientPageProps) {
-  const router = useRouter();
   const [filter, setFilter] = useState<'all' | 'active' | 'upcoming' | 'ended'>('all');
-  const [elections, setElections] = useState(initialElections);
+  const [elections, setElections] = useState(initialElections || []);
   const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
 
-  // Sync initialElections with state when it changes
+  // Sync initialElections with state when it changes (only if different)
   useEffect(() => {
-    if (initialElections && initialElections.length > 0) {
+    if (mountedRef.current && initialElections && JSON.stringify(initialElections) !== JSON.stringify(elections)) {
       setElections(initialElections);
     }
   }, [initialElections]);
 
-  // Refetch elections when component mounts or when router refreshes
+  // Refetch elections when component mounts
   useEffect(() => {
+    mountedRef.current = true;
+    
     const fetchElections = async () => {
+      if (!mountedRef.current) return;
+      
       setLoading(true);
       try {
         const response = await fetch('/api/elections');
+        if (!mountedRef.current) return;
+        
         if (response.ok) {
           const data = await response.json();
-          setElections(data.elections || []);
+          if (mountedRef.current) {
+            setElections(data.elections || []);
+          }
         }
       } catch (error) {
-        console.error('Error fetching elections:', error);
+        if (mountedRef.current) {
+          console.error('Error fetching elections:', error);
+        }
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
-    // Refetch on mount to get latest data
-    fetchElections();
+    // Only refetch if we have no initial elections or want to refresh
+    if (!initialElections || initialElections.length === 0) {
+      fetchElections();
+    }
 
     // Listen for focus events to refetch when user returns to tab
     const handleFocus = () => {
-      fetchElections();
+      if (mountedRef.current) {
+        fetchElections();
+      }
     };
     window.addEventListener('focus', handleFocus);
     
     return () => {
+      mountedRef.current = false;
       window.removeEventListener('focus', handleFocus);
     };
   }, []);
@@ -89,16 +105,21 @@ export function ElectionsClientPage({ elections: initialElections }: ElectionsCl
           </div>
           <Button
             onClick={() => {
+              if (!mountedRef.current) return;
               setLoading(true);
               fetch('/api/elections')
                 .then(res => res.json())
                 .then(data => {
-                  setElections(data.elections || []);
-                  setLoading(false);
+                  if (mountedRef.current) {
+                    setElections(data.elections || []);
+                    setLoading(false);
+                  }
                 })
                 .catch(err => {
-                  console.error('Error refreshing elections:', err);
-                  setLoading(false);
+                  if (mountedRef.current) {
+                    console.error('Error refreshing elections:', err);
+                    setLoading(false);
+                  }
                 });
             }}
             variant="outline"
