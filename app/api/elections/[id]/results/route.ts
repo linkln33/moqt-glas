@@ -5,16 +5,17 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = createServerClient();
 
     // Get election
     const { data: election } = await supabase
       .from('elections')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!election) {
@@ -28,7 +29,7 @@ export async function GET(
     const { data: questions } = await supabase
       .from('questions')
       .select('*, options(*)')
-      .eq('election_id', params.id)
+      .eq('election_id', id)
       .order('order_index', { ascending: true });
 
     // Get vote counts for each option
@@ -37,7 +38,7 @@ export async function GET(
         const { data: votes, error: votesError } = await supabase
           .from('votes')
           .select('selected_options')
-          .eq('election_id', params.id)
+          .eq('election_id', id)
           .eq('question_id', question.id);
 
         if (votesError) {

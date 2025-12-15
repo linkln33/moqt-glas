@@ -3,34 +3,25 @@ import { createServerClient } from '@/lib/supabase/client';
 
 export const dynamic = 'force-dynamic';
 
-async function getTelegramId(request: NextRequest): Promise<number | null> {
-  try {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const authData = JSON.parse(Buffer.from(token, 'base64').toString());
-      return authData.telegramId ? parseInt(authData.telegramId) : null;
-    }
-    
-    // Fallback: try to get from cookie or body
-    const body = await request.json().catch(() => ({}));
-    return body.telegramId ? parseInt(body.telegramId) : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const electionId = params.id;
+    const { id: electionId } = await params;
     const supabase = createServerClient();
 
-    // Get telegram ID from request (in production, use proper auth)
-    // For now, we'll get it from the request body
-    const body = await request.json().catch(() => ({}));
+    // Get telegram ID from request body
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch (e) {
+      return NextResponse.json(
+        { error: 'Невалиден формат на заявката' },
+        { status: 400 }
+      );
+    }
+    
     const telegramId = body.telegramId;
 
     if (!telegramId) {
@@ -92,14 +83,23 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const electionId = params.id;
+    const { id: electionId } = await params;
     const supabase = createServerClient();
 
-    // Get telegram ID from request
-    const body = await request.json().catch(() => ({}));
+    // Get telegram ID from request body
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch (e) {
+      return NextResponse.json(
+        { error: 'Невалиден формат на заявката' },
+        { status: 400 }
+      );
+    }
+    
     const telegramId = body.telegramId;
 
     if (!telegramId) {

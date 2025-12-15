@@ -254,7 +254,8 @@ export function FeedItem({ poll }: FeedItemProps) {
     if (!mountedRef.current) return;
     setSelectedOptions((prev) => {
       const current = prev[questionId] || [];
-      if (questionType === 'single-choice') {
+      // Rating and single-choice polls allow only one selection
+      if (questionType === 'single-choice' || questionType === 'rating') {
         return { ...prev, [questionId]: [optionId] };
       } else {
         // Multiple choice
@@ -404,38 +405,49 @@ export function FeedItem({ poll }: FeedItemProps) {
       if (allSuccessful && mountedRef.current) {
         setHasVoted(true);
         setShowResults(true);
-        // Load results immediately with retry
+        // Load results immediately with retry (database might need time to commit)
         let retries = 0;
+        const maxRetries = 3;
         const loadResultsWithRetry = async () => {
           try {
-            const response = await fetch(`/api/elections/${poll.id}/results`);
+            // Add cache-busting query parameter
+            const response = await fetch(`/api/elections/${poll.id}/results?t=${Date.now()}`);
             if (response.ok) {
               const data = await response.json();
               if (mountedRef.current) {
                 setResults(data.questions || []);
                 const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
                 setTotalVotes(total);
-                console.log('Results loaded successfully:', { total, questions: data.questions?.length });
+                console.log('Results loaded successfully:', { 
+                  total, 
+                  questions: data.questions?.length,
+                  questionDetails: data.questions?.map((q: QuestionResult) => ({
+                    id: q.id,
+                    totalVotes: q.totalVotes,
+                    options: q.options?.map((o: any) => ({ id: o.id, votes: o.votes, percentage: o.percentage }))
+                  }))
+                });
               }
             } else {
               const errorData = await response.json().catch(() => ({}));
               console.error('Failed to load results:', response.status, errorData);
-              // Retry once after a short delay
-              if (retries < 1) {
+              // Retry with exponential backoff
+              if (retries < maxRetries) {
                 retries++;
-                setTimeout(loadResultsWithRetry, 500);
+                setTimeout(loadResultsWithRetry, 500 * retries); // 500ms, 1000ms, 1500ms
               }
             }
           } catch (error) {
             console.error('Error loading results:', error);
-            // Retry once after a short delay
-            if (retries < 1) {
+            // Retry with exponential backoff
+            if (retries < maxRetries) {
               retries++;
-              setTimeout(loadResultsWithRetry, 500);
+              setTimeout(loadResultsWithRetry, 500 * retries);
             }
           }
         };
-        loadResultsWithRetry();
+        // Initial delay to allow database commit
+        setTimeout(loadResultsWithRetry, 300);
       }
     } catch (err: any) {
       console.error('Vote submission error:', err);
@@ -462,6 +474,15 @@ export function FeedItem({ poll }: FeedItemProps) {
 
       const parsed = JSON.parse(authData);
       const telegramId = parsed.telegramId || parsed.id;
+      
+      if (!telegramId) {
+        console.error('No telegram ID found');
+        if (mountedRef.current) {
+          setIsLoading(false);
+        }
+        return;
+      }
+
       const response = await fetch(`/api/elections/${poll.id}/like`, {
         method: isLiked ? 'DELETE' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -478,12 +499,23 @@ export function FeedItem({ poll }: FeedItemProps) {
         const data = await response.json().catch(() => ({}));
         setIsLiked(true);
         setLikesCount(data.likesCount ?? likesCount);
+      } else {
+        // Handle other errors
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Like error:', response.status, errorData);
+        if (mountedRef.current) {
+          // Show user-friendly error message
+          alert(errorData.error || 'Грешка при харесване. Моля, опитайте отново.');
+        }
       }
     } catch (error) {
       console.error('Error toggling like:', error);
+      if (mountedRef.current) {
+        alert('Грешка при харесване. Моля, опитайте отново.');
+      }
     } finally {
       if (mountedRef.current) {
-      setIsLoading(false);
+        setIsLoading(false);
       }
     }
   };

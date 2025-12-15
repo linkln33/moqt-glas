@@ -112,9 +112,9 @@ export function DashboardClientPage({ initialPolls }: DashboardClientPageProps) 
   ).length;
 
   return (
-    <div className="py-4 lg:py-6">
+    <div className="py-2 lg:py-3">
       {/* Feed Header */}
-      <div className="mb-6 lg:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="mb-3 lg:mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl sm:text-4xl font-bold mb-2">Лента</h1>
           <p className="text-muted-foreground">
@@ -129,7 +129,7 @@ export function DashboardClientPage({ initialPolls }: DashboardClientPageProps) 
       </div>
 
       {/* Quick Filters */}
-      <div className="mb-6 lg:mb-8 flex gap-2 overflow-x-auto pb-2">
+      <div className="mb-3 lg:mb-4 flex gap-2 overflow-x-auto pb-2">
         <Button
           onClick={() => setFilter('all')}
           variant={filter === 'all' ? 'default' : 'outline'}
@@ -173,7 +173,7 @@ export function DashboardClientPage({ initialPolls }: DashboardClientPageProps) 
           </GlassCardContent>
         </GlassCard>
       ) : filteredPolls.length > 0 ? (
-        <div className="space-y-4 lg:space-y-6">
+        <div className="space-y-2 lg:space-y-3">
           {filteredPolls.map((poll) => (
             <FeedItem key={poll.id} poll={poll} />
           ))}

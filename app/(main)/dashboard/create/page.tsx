@@ -985,7 +985,7 @@ function CreatePollPageContent() {
 
   if (loadingElection) {
     return (
-      <div className="py-6 lg:py-8">
+      <div className="py-2 lg:py-3">
         <div className="w-full max-w-4xl mx-auto">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
@@ -999,7 +999,7 @@ function CreatePollPageContent() {
   }
 
   return (
-    <div className="py-6 lg:py-8">
+    <div className="py-2 lg:py-3">
       <div className="w-full max-w-4xl mx-auto">
         <div className="mb-6 lg:mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">

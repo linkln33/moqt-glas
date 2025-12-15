@@ -7,8 +7,8 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="min-h-[100vh] min-h-[100dvh] bg-background w-full">
-      <div className="w-full mx-auto px-2 sm:px-4 lg:px-6 xl:px-8">
-        <div className="flex gap-3 lg:gap-4 xl:gap-6 w-full">
+      <div className="w-full mx-auto px-1 sm:px-2 lg:px-3">
+        <div className="flex gap-2 lg:gap-3 w-full">
           {/* Left Sidebar - Fixed position with minimal padding */}
           <aside className="hidden lg:block w-64 xl:w-72 shrink-0">
             <FeedSidebar />

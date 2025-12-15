@@ -32,7 +32,7 @@ export default function CreatorVideosPage() {
   return (
     <Suspense
       fallback={
-        <div className="py-6">
+        <div className="py-2">
           <GlassCard>
             <GlassCardContent className="py-16 text-center">
               <p>Зареждане...</p>
@@ -101,7 +101,7 @@ function CreatorVideosContent() {
 
   if (loading) {
     return (
-      <div className="py-6">
+      <div className="py-2">
         <GlassCard>
           <GlassCardContent className="py-16 text-center">
             <p>Зареждане...</p>
@@ -112,7 +112,7 @@ function CreatorVideosContent() {
   }
 
   return (
-    <div className="py-6 space-y-6">
+    <div className="py-2 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Моите видеа</h1>
         <Button

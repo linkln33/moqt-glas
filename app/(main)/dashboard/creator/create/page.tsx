@@ -87,7 +87,7 @@ function CreateCreatorProfileContent() {
   };
 
   return (
-    <div className="py-6">
+    <div className="py-2">
       <div className="max-w-2xl mx-auto">
         <GlassCard>
           <GlassCardHeader>
@@ -175,7 +175,7 @@ function CreateCreatorProfileContent() {
 export default function CreateCreatorProfilePage() {
   return (
     <Suspense fallback={
-      <div className="py-6">
+      <div className="py-2">
         <div className="max-w-2xl mx-auto">
           <GlassCard>
             <GlassCardContent className="py-16 text-center">

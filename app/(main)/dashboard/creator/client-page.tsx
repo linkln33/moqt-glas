@@ -83,7 +83,7 @@ export function CreatorDashboardClientPage() {
 
   if (loading) {
     return (
-      <div className="py-6">
+      <div className="py-2">
         <GlassCard>
           <GlassCardContent className="py-16 text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
@@ -96,7 +96,7 @@ export function CreatorDashboardClientPage() {
 
   if (!telegramId) {
     return (
-      <div className="py-6">
+      <div className="py-2">
         <GlassCard>
           <GlassCardContent className="py-16 text-center">
             <h2 className="text-2xl font-bold mb-4">Необходима е автентификация</h2>
@@ -114,7 +114,7 @@ export function CreatorDashboardClientPage() {
 
   if (!profile) {
     return (
-      <div className="py-6 space-y-6">
+      <div className="py-2 space-y-6">
         <GlassCard>
           <GlassCardHeader>
             <GlassCardTitle>Стани създател</GlassCardTitle>
@@ -136,7 +136,7 @@ export function CreatorDashboardClientPage() {
   }
 
   return (
-    <div className="py-6 space-y-6">
+    <div className="py-2 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

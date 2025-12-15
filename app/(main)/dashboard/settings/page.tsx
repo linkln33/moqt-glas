@@ -244,7 +244,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen py-8 flex items-center justify-center">
+      <div className="min-h-screen py-2 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           <p className="mt-4 text-muted-foreground">Зареждане...</p>
@@ -254,7 +254,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="py-6 lg:py-8">
+    <div className="py-2 lg:py-3">
       <div className="w-full">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">

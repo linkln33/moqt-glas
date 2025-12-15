@@ -94,7 +94,7 @@ export function ElectionsClientPage({ elections: initialElections }: ElectionsCl
   ).length;
 
   return (
-    <div className="py-6 lg:py-8">
+    <div className="py-2 lg:py-3">
       <div className="w-full">
         <div className="mb-6 lg:mb-8 flex items-center justify-between">
           <div>
