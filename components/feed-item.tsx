@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -85,6 +85,24 @@ export function FeedItem({ poll }: FeedItemProps) {
   const [behaviorTracker, setBehaviorTracker] = useState<ReturnType<typeof trackUserBehavior> | null>(null);
   const mountedRef = useRef(true);
 
+  // Memoize loadResults to avoid stale closures
+  const loadResults = useCallback(async () => {
+    if (!mountedRef.current) return;
+    try {
+      const response = await fetch(`/api/elections/${poll.id}/results`);
+      if (response.ok) {
+        const data = await response.json();
+        if (mountedRef.current) {
+          setResults(data.questions || []);
+          const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
+          setTotalVotes(total);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading results:', error);
+    }
+  }, [poll.id]);
+
   // Initialize selected options
   useEffect(() => {
     mountedRef.current = true;
@@ -113,7 +131,7 @@ export function FeedItem({ poll }: FeedItemProps) {
           if (hasElectionEnded(poll.end_date)) {
             if (mountedRef.current) {
               setShowResults(true);
-              loadResults();
+              await loadResults();
             }
           }
           return;
@@ -125,7 +143,7 @@ export function FeedItem({ poll }: FeedItemProps) {
           if (hasElectionEnded(poll.end_date)) {
             if (mountedRef.current) {
               setShowResults(true);
-              loadResults();
+              await loadResults();
             }
           }
           return;
@@ -138,7 +156,7 @@ export function FeedItem({ poll }: FeedItemProps) {
           if (voteData.hasVoted && mountedRef.current) {
             setHasVoted(true);
             setShowResults(true);
-            loadResults();
+            await loadResults();
           }
         }
       } catch (error) {
@@ -146,7 +164,7 @@ export function FeedItem({ poll }: FeedItemProps) {
         // If election ended, show results anyway
         if (hasElectionEnded(poll.end_date) && mountedRef.current) {
           setShowResults(true);
-          loadResults();
+          await loadResults();
         }
       }
     };
@@ -158,7 +176,7 @@ export function FeedItem({ poll }: FeedItemProps) {
     return () => {
       mountedRef.current = false;
     };
-  }, [poll.id, poll.isActive, poll.end_date]);
+  }, [poll.id, poll.isActive, poll.end_date, loadResults]);
 
   // Start behavior tracking
   useEffect(() => {
@@ -170,23 +188,6 @@ export function FeedItem({ poll }: FeedItemProps) {
       mountedRef.current = false;
     };
   }, []);
-
-  const loadResults = async () => {
-    if (!mountedRef.current) return;
-    try {
-      const response = await fetch(`/api/elections/${poll.id}/results`);
-      if (response.ok) {
-        const data = await response.json();
-        if (mountedRef.current) {
-          setResults(data.questions || []);
-          const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
-          setTotalVotes(total);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading results:', error);
-    }
-  };
 
   const handleOptionSelect = (questionId: string, optionId: string, questionType: string) => {
     if (!mountedRef.current) return;
