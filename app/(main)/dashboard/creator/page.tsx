@@ -34,18 +34,28 @@ async function getCreatorStats(telegramId: string) {
     .eq('status', 'active');
 
   // Get total revenue (from subscription payments)
-  const { data: payments } = await supabase
-    .from('subscription_payments')
-    .select('amount')
-    .in('subscription_id', 
-      supabase
-        .from('subscriptions')
-        .select('id')
-        .eq('creator_telegram_id', parseInt(telegramId))
-    )
-    .eq('status', 'succeeded');
+  const { data: subscriptionIds } = await supabase
+    .from('subscriptions')
+    .select('id')
+    .eq('creator_telegram_id', parseInt(telegramId))
+    .eq('status', 'active');
 
-  const totalRevenue = payments?.reduce((sum, p) => sum + parseFloat(p.amount), 0) || 0;
+  const subscriptionIdList = subscriptionIds?.map((s) => s.id) || [];
+
+  let paymentsData: { amount: number }[] = [];
+
+  if (subscriptionIdList.length > 0) {
+    const { data: payments } = await supabase
+      .from('subscription_payments')
+      .select('amount')
+      .in('subscription_id', subscriptionIdList)
+      .eq('status', 'succeeded');
+
+    paymentsData = payments || [];
+  }
+
+  const totalRevenue =
+    paymentsData.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
 
   return {
     videoCount: videoCount || 0,
