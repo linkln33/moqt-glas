@@ -1,0 +1,264 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { Plus, Video, Users, DollarSign } from 'lucide-react';
+
+interface CreatorProfile {
+  id: string;
+  telegram_id: number;
+  username?: string;
+  display_name: string;
+  bio?: string;
+  bio_bg?: string;
+  avatar_url?: string;
+  banner_url?: string;
+}
+
+interface CreatorStats {
+  videoCount: number;
+  subscriberCount: number;
+  totalRevenue: number;
+}
+
+export function CreatorDashboardClientPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<CreatorProfile | null>(null);
+  const [stats, setStats] = useState<CreatorStats>({
+    videoCount: 0,
+    subscriberCount: 0,
+    totalRevenue: 0,
+  });
+  const [telegramId, setTelegramId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get telegramId from localStorage
+    try {
+      const authData = localStorage.getItem('telegram_auth');
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        const id = parsed.telegramId || parsed.id;
+        if (id) {
+          setTelegramId(id.toString());
+          loadCreatorData(id.toString());
+        } else {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error loading auth data:', error);
+      setLoading(false);
+    }
+  }, []);
+
+  const loadCreatorData = async (id: string) => {
+    setLoading(true);
+    try {
+      // Fetch creator profile
+      const profileRes = await fetch(`/api/creators/${id}/profile`);
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        setProfile(profileData.profile || null);
+      }
+
+      // Fetch creator stats
+      const statsRes = await fetch(`/api/creators/${id}/stats`);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
+    } catch (error) {
+      console.error('Error loading creator data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="py-6">
+        <GlassCard>
+          <GlassCardContent className="py-16 text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted-foreground">Зареждане...</p>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
+    );
+  }
+
+  if (!telegramId) {
+    return (
+      <div className="py-6">
+        <GlassCard>
+          <GlassCardContent className="py-16 text-center">
+            <h2 className="text-2xl font-bold mb-4">Необходима е автентификация</h2>
+            <p className="text-muted-foreground mb-6">
+              Моля, влезте в профила си, за да достъпите създателския панел
+            </p>
+            <Link href="/login">
+              <Button className="gradient-primary text-white">Влез в профила си</Button>
+            </Link>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="py-6 space-y-6">
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle>Стани създател</GlassCardTitle>
+            <GlassCardDescription>
+              Създай профил като създател и започни да споделяш видеа с абонати
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <Link href={`/api/creators/create-profile?telegramId=${telegramId}`}>
+              <Button className="gradient-primary text-white">
+                <Plus className="w-4 h-4 mr-2" />
+                Създай профил като създател
+              </Button>
+            </Link>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Създателски панел</h1>
+          <p className="text-muted-foreground">
+            Управлявай видеата и абонаментите си
+          </p>
+        </div>
+        <Link href={`/creators/${profile.telegram_id}`}>
+          <Button variant="outline">Виж публичния профил</Button>
+        </Link>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <GlassCard>
+          <GlassCardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <Video className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Видеа</p>
+                <p className="text-2xl font-bold">{stats.videoCount}</p>
+              </div>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+
+        <GlassCard>
+          <GlassCardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <Users className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Абонати</p>
+                <p className="text-2xl font-bold">{stats.subscriberCount}</p>
+              </div>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+
+        <GlassCard>
+          <GlassCardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <DollarSign className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Общо приходи</p>
+                <p className="text-2xl font-bold">{stats.totalRevenue.toFixed(2)} BGN</p>
+              </div>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <GlassCard hover>
+          <GlassCardHeader>
+            <GlassCardTitle>Управлявай видеа</GlassCardTitle>
+            <GlassCardDescription>
+              Добави, редактирай или изтрий видеа
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <Link href={`/dashboard/creator/videos?telegramId=${telegramId}`}>
+              <Button className="w-full" variant="outline">
+                <Video className="w-4 h-4 mr-2" />
+                Управлявай видеа
+              </Button>
+            </Link>
+          </GlassCardContent>
+        </GlassCard>
+
+        <GlassCard hover>
+          <GlassCardHeader>
+            <GlassCardTitle>Управлявай нива</GlassCardTitle>
+            <GlassCardDescription>
+              Създай и редактирай абонаментни нива
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <Link href={`/dashboard/creator/tiers?telegramId=${telegramId}`}>
+              <Button className="w-full" variant="outline">
+                <Users className="w-4 h-4 mr-2" />
+                Управлявай нива
+              </Button>
+            </Link>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
+
+      {/* Profile Info */}
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle>Профилна информация</GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Показвано име</p>
+            <p className="font-semibold">{profile.display_name}</p>
+          </div>
+          {profile.username && (
+            <div>
+              <p className="text-sm text-muted-foreground">Потребителско име</p>
+              <p className="font-semibold">@{profile.username}</p>
+            </div>
+          )}
+          {profile.bio_bg || profile.bio ? (
+            <div>
+              <p className="text-sm text-muted-foreground">Биография</p>
+              <p>{profile.bio_bg || profile.bio}</p>
+            </div>
+          ) : null}
+          <Link href={`/dashboard/creator/settings?telegramId=${telegramId}`}>
+            <Button variant="outline">Редактирай профил</Button>
+          </Link>
+        </GlassCardContent>
+      </GlassCard>
+    </div>
+  );
+}
