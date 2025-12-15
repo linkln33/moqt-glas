@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const body = await request.json();
     const {
       telegramAuth,
       title,
@@ -26,37 +27,49 @@ export async function POST(request: NextRequest) {
       fundraising_goal,
       fundraising_currency,
       fundraising_description_bg,
-    } = await request.json();
+    } = body;
 
-    // Get telegram ID - try multiple methods
+    const supabase = createServerClient();
     let telegramId: number | null = null;
-    
-    // Method 1: Try to get from telegramAuth if it has valid structure
-    if (telegramAuth && telegramAuth.id) {
-      telegramId = typeof telegramAuth.id === 'number' ? telegramAuth.id : parseInt(telegramAuth.id, 10);
+
+    // Handle authentication - support both callback and redirect methods
+    if (!telegramAuth || !telegramAuth.id) {
+      return NextResponse.json(
+        { error: 'Необходима е автентификация. Моля, влезте в системата.' },
+        { status: 401 }
+      );
     }
-    
-    // Method 2: If telegramAuth is invalid or missing, try to verify it
-    // But if hash is 'redirect-auth', skip verification (user already authenticated via redirect)
-    if (!telegramId || (telegramAuth?.hash === 'redirect-auth')) {
-      // User logged in via redirect method - trust the session
-      // Get telegramId from the auth data directly
-      if (telegramAuth?.id) {
-        telegramId = typeof telegramAuth.id === 'number' ? telegramAuth.id : parseInt(String(telegramAuth.id), 10);
-      } else {
-        // Fallback: try to get from userId in localStorage format
-        // The client might send userId instead of full telegramAuth
-        const body = await request.json();
-        if (body.userId) {
-          // This is a fallback - in production, always require proper auth
-          return NextResponse.json(
-            { error: 'Невалидна автентификация. Моля, влезте отново.' },
-            { status: 401 }
-          );
-        }
+
+    // Check if this is redirect-based auth (hash is placeholder)
+    if (telegramAuth.hash === 'redirect-auth') {
+      // User logged in via redirect - trust the session
+      // Just verify the telegramId is valid
+      telegramId = typeof telegramAuth.id === 'number' 
+        ? telegramAuth.id 
+        : parseInt(String(telegramAuth.id), 10);
+      
+      if (!telegramId || isNaN(telegramId)) {
+        return NextResponse.json(
+          { error: 'Невалиден потребителски идентификатор' },
+          { status: 401 }
+        );
+      }
+
+      // Verify user exists in database
+      const { data: voter } = await supabase
+        .from('voters')
+        .select('telegram_id')
+        .eq('telegram_id', telegramId)
+        .maybeSingle();
+
+      if (!voter) {
+        return NextResponse.json(
+          { error: 'Потребителят не е намерен. Моля, влезте отново.' },
+          { status: 401 }
+        );
       }
     } else {
-      // Method 3: Full verification for callback-based auth
+      // Full Telegram auth verification (callback method)
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       if (!botToken) {
         return NextResponse.json(
@@ -72,17 +85,16 @@ export async function POST(request: NextRequest) {
           { status: 401 }
         );
       }
-      
+
       telegramId = getTelegramId(telegramAuth);
     }
-    
+
     if (!telegramId) {
       return NextResponse.json(
         { error: 'Не може да се определи потребителят. Моля, влезте отново.' },
         { status: 401 }
       );
     }
-    const supabase = createServerClient();
 
     // Create election
     const { data: election, error: electionError } = await supabase
