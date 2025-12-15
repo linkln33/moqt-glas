@@ -28,7 +28,6 @@ function LoginPageContent() {
     }
 
     if (success === 'true' && userId && telegramId) {
-      console.log('✅ Telegram auth successful via redirect:', { userId, telegramId });
       setLoading(true);
       setLoadingStep('Завършване на влизането...');
 
@@ -66,8 +65,6 @@ function LoginPageContent() {
         };
         localStorage.setItem('telegram_auth', JSON.stringify(authData));
         
-        console.log('✅ Session stored successfully');
-        
         // Trigger custom event to update nav
         window.dispatchEvent(new CustomEvent('auth-state-changed', { 
           detail: { isLoggedIn: true } 
@@ -78,7 +75,7 @@ function LoginPageContent() {
             router.push('/dashboard');
           }, 500);
       } catch (err) {
-        console.error('❌ Failed to store session:', err);
+        console.error('Failed to store session:', err);
         setError('Грешка при запазване на сесията');
         router.replace('/login');
       }
@@ -103,22 +100,6 @@ function LoginPageContent() {
   };
 
   const handleTelegramAuth = useCallback(async (authData: any) => {
-    console.log('🟢 ========================================');
-    console.log('🟢 handleTelegramAuth CALLED IN LOGIN PAGE');
-    console.log('🟢 ========================================');
-    console.log('🟢 Received auth data:', {
-      hasData: !!authData,
-      id: authData?.id,
-      first_name: authData?.first_name,
-      last_name: authData?.last_name,
-      username: authData?.username,
-      hasHash: !!authData?.hash,
-      hashLength: authData?.hash?.length || 0,
-      auth_date: authData?.auth_date,
-      keys: authData ? Object.keys(authData) : [],
-      fullData: authData,
-    });
-
     setLoading(true);
     setError(null);
     setLoadingStep('Проверка на данните...');
@@ -126,64 +107,26 @@ function LoginPageContent() {
     try {
       // Validate auth data structure
       if (!authData || !authData.id || !authData.hash) {
-        console.error('Invalid auth data structure:', authData);
+        console.error('Invalid auth data structure');
         throw new Error('Невалидни данни от Telegram. Моля, опитайте отново.');
       }
 
       setLoadingStep('Изпращане към сървъра...');
-      console.log('📤 Sending Telegram auth data to server:', {
-        id: authData.id,
-        first_name: authData.first_name,
-        last_name: authData.last_name,
-        username: authData.username,
-        photo_url: authData.photo_url ? 'present' : 'missing',
-        auth_date: authData.auth_date,
-        hash: authData.hash ? authData.hash.substring(0, 16) + '...' : 'missing',
-        hashLength: authData.hash?.length || 0,
-        allKeys: Object.keys(authData),
-        dataTypes: Object.entries(authData).reduce((acc, [key, value]) => {
-          acc[key] = typeof value;
-          return acc;
-        }, {} as Record<string, string>),
-      });
 
       // Use absolute URL in production to avoid path issues
       const apiUrl = typeof window !== 'undefined' 
         ? `${window.location.origin}/api/auth/telegram/verify`
         : '/api/auth/telegram/verify';
 
-      console.log('🌐 Fetching from:', apiUrl);
-
       let response: Response;
       try {
-        console.log('🌐 ========================================');
-        console.log('🌐 SENDING REQUEST TO SERVER');
-        console.log('🌐 ========================================');
-        console.log('🌐 URL:', apiUrl);
-        console.log('🌐 Method: POST');
-        console.log('🌐 Body:', JSON.stringify(authData, null, 2));
-        
         response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(authData),
         });
-        
-        console.log('📡 ========================================');
-        console.log('📡 RESPONSE RECEIVED FROM SERVER');
-        console.log('📡 ========================================');
-        console.log('📡 Status:', response.status);
-        console.log('📡 Status Text:', response.statusText);
-        console.log('📡 OK:', response.ok);
-        console.log('📡 Headers:', Object.fromEntries(response.headers.entries()));
       } catch (networkError: any) {
-        console.error('❌ ========================================');
-        console.error('❌ NETWORK ERROR');
-        console.error('❌ ========================================');
-        console.error('❌ Error:', networkError);
-        console.error('❌ Error message:', networkError?.message);
-        console.error('❌ Error name:', networkError?.name);
-        console.error('❌ Error stack:', networkError?.stack);
+        console.error('Network error:', networkError);
         throw new Error(`Грешка при свързване със сървъра: ${networkError.message || 'Мрежова грешка'}`);
       }
 
@@ -192,55 +135,22 @@ function LoginPageContent() {
       // Parse response - check status first, then parse
       let result;
       const text = await response.text();
-      console.log('📄 ========================================');
-      console.log('📄 RESPONSE TEXT');
-      console.log('📄 ========================================');
-      console.log('📄 Full response text:', text);
-      console.log('📄 Response length:', text.length);
-      console.log('📄 First 500 chars:', text.substring(0, 500));
       
       try {
         result = JSON.parse(text);
-        console.log('✅ ========================================');
-        console.log('✅ RESPONSE PARSED SUCCESSFULLY');
-        console.log('✅ ========================================');
-        console.log('✅ Parsed result:', JSON.stringify(result, null, 2));
       } catch (parseError) {
-        console.error('❌ ========================================');
-        console.error('❌ FAILED TO PARSE RESPONSE AS JSON');
-        console.error('❌ ========================================');
-        console.error('❌ Parse error:', parseError);
-        console.error('❌ Response text (first 500 chars):', text.substring(0, 500));
-        console.error('❌ Response status:', response.status);
-        console.error('❌ Response status text:', response.statusText);
+        console.error('Failed to parse response as JSON');
         throw new Error('Невалиден отговор от сървъра. Моля, опитайте отново.');
       }
 
       // Check response status AFTER parsing (so we can show error message)
       if (!response.ok) {
-        console.error('❌ ========================================');
-        console.error('❌ AUTH VERIFICATION FAILED');
-        console.error('❌ ========================================');
-        console.error('❌ Status:', response.status);
-        console.error('❌ Status Text:', response.statusText);
-        console.error('❌ Response result:', result);
-        console.error('❌ Full response text:', text);
         const errorMessage = result?.error || `Неуспешна автентификация (${response.status})`;
         throw new Error(errorMessage);
       }
 
-      console.log('✅ Auth verification successful:', {
-        success: result.success,
-        hasUser: !!result.user,
-        userId: result.user?.id,
-      });
-
       if (!result.success || !result.user) {
-        console.error('❌ Invalid response format:', {
-          result,
-          hasSuccess: 'success' in result,
-          hasUser: 'user' in result,
-        });
+        console.error('Invalid response format');
         throw new Error('Невалиден отговор от сървъра');
       }
 
@@ -252,14 +162,8 @@ function LoginPageContent() {
         localStorage.setItem('telegram_id', result.user.telegramId.toString());
         localStorage.setItem('user_id', result.user.id);
         localStorage.setItem('user_role', result.user.role || 'voter');
-        
-        console.log('✅ Auth successful, stored in localStorage:', {
-          userId: result.user.id,
-          telegramId: result.user.telegramId,
-          role: result.user.role,
-        });
       } catch (storageError) {
-        console.error('❌ Failed to store in localStorage:', storageError);
+        console.error('Failed to store in localStorage:', storageError);
         throw new Error('Грешка при запазване на сесията');
       }
 
@@ -274,13 +178,6 @@ function LoginPageContent() {
       await new Promise(resolve => setTimeout(resolve, 300));
 
       setLoadingStep('Пренасочване...');
-      console.log('🔄 Redirecting to /elections...');
-      console.log('📊 Final state check:', {
-        hasTelegramAuth: !!localStorage.getItem('telegram_auth'),
-        hasUserId: !!localStorage.getItem('user_id'),
-        hasTelegramId: !!localStorage.getItem('telegram_id'),
-        currentPath: window.location.pathname,
-      });
       
       // Use window.location for immediate redirect (more reliable than router.push)
       // This ensures the redirect happens even if there are React state issues
@@ -291,16 +188,10 @@ function LoginPageContent() {
         router.push('/elections');
         router.refresh();
       } catch (redirectError) {
-        console.warn('Router push error (using window.location instead):', redirectError);
+        // Router push error - window.location should handle redirect
       }
     } catch (err: any) {
-      console.error('❌ ========================================');
-      console.error('❌ AUTH ERROR IN handleTelegramAuth');
-      console.error('❌ ========================================');
-      console.error('❌ Error:', err);
-      console.error('❌ Error message:', err?.message);
-      console.error('❌ Error stack:', err?.stack);
-      console.error('❌ Full error object:', JSON.stringify(err, null, 2));
+      console.error('Auth error:', err);
       setError(err.message || 'Грешка при автентификация. Моля, опитайте отново.');
     } finally {
       setLoading(false);
@@ -392,13 +283,6 @@ TELEGRAM_BOT_TOKEN=your_bot_token`}
                     onAuth={handleTelegramAuth}
                     className="w-full"
                   />
-                </div>
-                <div className="w-full bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                  <p className="text-xs text-blue-200/80 text-center">
-                    💡 Ако прозорецът се появява и изчезва, проверете дали домейнът е зададен в{' '}
-                    <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer" className="underline font-semibold">@BotFather</a>
-                    {' '}с команда <code className="bg-blue-500/20 px-1 rounded">/setdomain</code>
-                  </p>
                 </div>
                 <p className="text-xs text-center text-white/60 px-4">
                   С натискане на бутона се съгласявате с условията за използване

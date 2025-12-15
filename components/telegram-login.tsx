@@ -35,14 +35,6 @@ if (typeof window !== 'undefined') {
   // This callback must be stable and always available
   if (!(window as any).handleTelegramAuth) {
     (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
-      console.log('🔵 ========================================');
-      console.log('🔵 Telegram auth callback RECEIVED (global)!');
-      console.log('🔵 ========================================');
-      console.log('🔵 User data:', {
-        id: user?.id,
-        first_name: user?.first_name,
-        hasHash: !!user?.hash,
-      });
       
       // Trigger a custom event that components can listen to
       // This works even if direct function calls are blocked
@@ -59,9 +51,8 @@ if (typeof window !== 'undefined') {
         if (typeof lastCallback === 'function') {
           try {
             lastCallback(user);
-            console.log('✅ Direct callback executed');
           } catch (error) {
-            console.error('❌ Error in direct callback:', error);
+            console.error('Error in direct callback:', error);
           }
         }
       }
@@ -71,9 +62,8 @@ if (typeof window !== 'undefined') {
       if (typeof latestOnAuth === 'function') {
         try {
           latestOnAuth(user);
-          console.log('✅ Fallback callback executed');
         } catch (error) {
-          console.error('❌ Error in fallback callback:', error);
+          console.error('Error in fallback callback:', error);
         }
       }
     };
@@ -94,14 +84,13 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
   useEffect(() => {
     setMounted(true);
   }, []);
-  
+
   // Listen for Telegram auth event (works even if direct callback is blocked)
   useEffect(() => {
     if (!mounted) return;
-    
+
     const handleTelegramAuthEvent = (event: CustomEvent) => {
       const user = event.detail as TelegramAuthData;
-      console.log('🟢 Received Telegram auth via event:', user);
       callbackCalledRef.current = true;
       setCallbackReceived(true);
       
@@ -116,7 +105,6 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       if (event.origin !== 'https://oauth.telegram.org') return;
       
       if (event.data && event.data.type === 'telegram-auth' && event.data.user) {
-        console.log('🟢 Received Telegram auth via postMessage:', event.data.user);
         callbackCalledRef.current = true;
         setCallbackReceived(true);
         onAuth(event.data.user);
@@ -142,7 +130,7 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
     // Store the onAuth callback
     if (!(window as any).__telegramAuthCallbacks) {
       (window as any).__telegramAuthCallbacks = new Map();
-    }
+        }
     (window as any).__telegramAuthCallbacks.set(callbackId, onAuth);
     
     // The callback is already defined at module level
@@ -152,21 +140,11 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
     // Always update the stored reference (for compatibility with fallback)
     (window as any).__latestTelegramOnAuth = onAuth;
     
-    // Verify callback is accessible (critical for iframe)
-    console.log('🔍 Verifying callback accessibility:', {
-      callbackExists: !!(window as any).handleTelegramAuth,
-      callbackType: typeof (window as any).handleTelegramAuth,
-      callbackName: 'handleTelegramAuth',
-      isFunction: typeof (window as any).handleTelegramAuth === 'function',
-      windowHasProperty: 'handleTelegramAuth' in window,
-    });
-    
     if (!containerRef.current) return;
     
     // Double-check callback is accessible (critical check)
     if (typeof (window as any).handleTelegramAuth !== 'function') {
-      console.error('❌ CRITICAL: handleTelegramAuth is not a function on window!');
-      console.error('❌ Attempting to recreate callback...');
+      console.error('CRITICAL: handleTelegramAuth is not a function on window! Attempting to recreate callback...');
       // Try to recreate it
       (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
         const latestOnAuth = (window as any).__latestTelegramOnAuth || onAuth;
@@ -175,16 +153,6 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
         }
       };
     }
-    
-    // Log that callback is set up
-    console.log('✅ Telegram callback registered and verified:', {
-      callbackExists: !!(window as any).handleTelegramAuth,
-      callbackType: typeof (window as any).handleTelegramAuth,
-      callbackIsFunction: typeof (window as any).handleTelegramAuth === 'function',
-      botName,
-      onAuthType: typeof onAuth,
-      windowLocation: window.location.href,
-    });
 
     // Clean up any existing script
     const existingScript = containerRef.current.querySelector('script');
@@ -217,29 +185,14 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       : '/api/auth/telegram/callback';
     script.setAttribute('data-auth-url', callbackUrl);
     script.setAttribute('data-request-access', 'write');
-    
-    // Verify the attribute was set correctly
-    console.log('📋 Script attributes:', {
-      'data-telegram-login': script.getAttribute('data-telegram-login'),
-      'data-onauth': script.getAttribute('data-onauth'),
-      'data-size': script.getAttribute('data-size'),
-      callbackName: 'handleTelegramAuth',
-      callbackExists: typeof (window as any).handleTelegramAuth === 'function',
-    });
     script.async = true;
     
     // Verify callback exists before loading script
     if (typeof (window as any).handleTelegramAuth !== 'function') {
-      console.error('❌ CRITICAL: handleTelegramAuth not found before script load!');
+      console.error('CRITICAL: handleTelegramAuth not found before script load!');
       setDomainError(true);
       return;
     }
-    
-    console.log('✅ Callback verified before script load:', {
-      callbackExists: typeof (window as any).handleTelegramAuth === 'function',
-      callbackName: 'handleTelegramAuth',
-      botName,
-    });
 
     // Error handling for script load
     script.onerror = () => {
@@ -248,12 +201,10 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
     };
 
     script.onload = () => {
-      console.log('✅ Telegram widget script loaded');
-      
       // CRITICAL: Re-verify callback is accessible after script loads
       // The script might have checked for it during load
       if (typeof (window as any).handleTelegramAuth !== 'function') {
-        console.error('❌ CRITICAL: Callback lost after script load! Recreating...');
+        console.error('CRITICAL: Callback lost after script load! Recreating...');
         (window as any).handleTelegramAuth = function(user: TelegramAuthData) {
           const latestOnAuth = (window as any).__latestTelegramOnAuth || onAuth;
           if (typeof latestOnAuth === 'function') {
@@ -262,68 +213,27 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
         };
       }
       
-      // Test if callback is callable (for debugging)
-      try {
-        const testCall = (window as any).handleTelegramAuth;
-        console.log('🧪 Callback test:', {
-          isCallable: typeof testCall === 'function',
-          canCall: typeof testCall === 'function' && testCall.toString().includes('function'),
-        });
-      } catch (e) {
-        console.error('❌ Cannot test callback:', e);
-      }
-      
-      console.log('📋 Callback check:', {
-        callbackExists: !!(window as any).handleTelegramAuth,
-        callbackType: typeof (window as any).handleTelegramAuth,
-        callbackName: 'handleTelegramAuth',
-        botName,
-        currentUrl: window.location.href,
-        hostname: window.location.hostname,
-        expectedDomain: 'moqt-glas.onrender.com',
-        // Test if we can access it as window['handleTelegramAuth']
-        windowAccessible: typeof (window as any)['handleTelegramAuth'] === 'function',
-      });
-      console.log('💡 If domain was just changed, wait 5-10 minutes for Telegram to propagate');
-      console.log('💡 Clear browser cache (Ctrl+Shift+Delete) and try again');
-      
       // Wait a bit for widget to render, then check for button
       setTimeout(() => {
         const widgetContainer = containerRef.current;
         if (widgetContainer) {
-          const button = widgetContainer.querySelector('iframe') || widgetContainer.querySelector('button') || widgetContainer.querySelector('a');
-          console.log('🔍 Widget container check:', {
-            hasContainer: !!widgetContainer,
-            containerHTML: widgetContainer.innerHTML.substring(0, 200),
-            hasButton: !!button,
-            buttonType: button?.tagName,
-            containerText: widgetContainer.textContent?.substring(0, 100),
-          });
-          
           // Check for iframe (Telegram widget uses iframe)
           const iframe = widgetContainer.querySelector('iframe');
           if (iframe) {
-            console.log('📦 Iframe found:', {
-              src: iframe.src,
-              width: iframe.width,
-              height: iframe.height,
-            });
             setWidgetLoaded(true);
             setDomainError(false);
             
             // Listen for iframe load
             iframe.onload = () => {
-              console.log('✅ Iframe loaded');
               setWidgetLoaded(true);
             };
             
             iframe.onerror = () => {
-              console.error('❌ Iframe load error');
+              console.error('Iframe load error');
               setDomainError(true);
               setWidgetLoaded(false);
             };
           } else {
-            console.warn('⚠️ No iframe found in widget container');
             setWidgetLoaded(false);
             // Only set error if we've waited long enough
             setTimeout(() => {
@@ -348,107 +258,16 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
               errorText.includes('Bot domain') ||
               innerHTML.includes('domain') ||
               innerHTML.includes('invalid')) {
-            console.error('❌ Domain error detected in widget:', {
-              text: errorText,
-              html: innerHTML.substring(0, 200),
-            });
+            console.error('Domain error detected in widget');
             setDomainError(true);
             if (errorCheckIntervalRef.current) {
               clearInterval(errorCheckIntervalRef.current);
               errorCheckIntervalRef.current = null;
             }
           }
-          
-          // Log widget state periodically
-          const iframe = widgetContainer.querySelector('iframe');
-          if (iframe && !callbackCalledRef.current) {
-            console.log('📊 Widget state:', {
-              iframeSrc: iframe.src,
-              containerText: errorText.substring(0, 50),
-              callbackCalled: callbackCalledRef.current,
-            });
-          }
         }
       }, 2000);
       
-      // Check if widget is visible and callback status (for debugging)
-      setTimeout(() => {
-        if (!callbackCalledRef.current) {
-          const widgetContainer = containerRef.current;
-          const iframe = widgetContainer?.querySelector('iframe');
-          const hasWidget = !!iframe;
-          const containerText = widgetContainer?.textContent || '';
-          const containerHTML = widgetContainer?.innerHTML || '';
-          
-          console.warn('⚠️ Callback not called yet after 5 seconds.');
-          console.warn('   Widget status:', {
-            hasIframe: hasWidget,
-            iframeSrc: iframe?.src || 'N/A',
-            iframeVisible: iframe ? (iframe.offsetWidth > 0 && iframe.offsetHeight > 0) : false,
-            iframeWidth: iframe?.offsetWidth || 0,
-            iframeHeight: iframe?.offsetHeight || 0,
-            containerHasContent: containerText.length > 0,
-            containerTextPreview: containerText.substring(0, 100),
-          });
-          
-          if (!hasWidget) {
-            console.error('❌ Telegram widget iframe not found! This means domain is NOT configured correctly.');
-            console.error('');
-            console.error('   ⏰ Domain Propagation Time:');
-            console.error('      - Usually: 5-10 minutes');
-            console.error('      - Sometimes: up to 30 minutes');
-            console.error('      - After setting domain, wait at least 10 minutes');
-            console.error('');
-            console.error('   🔧 VERIFY domain in BotFather RIGHT NOW:');
-            console.error('      1. Open Telegram → @BotFather');
-            console.error('      2. Send: /mybots');
-            console.error('      3. Select your bot');
-            console.error('      4. Click: "Bot Settings" → "Domain"');
-            console.error('      5. Should show EXACTLY: moqt-glas.onrender.com');
-            console.error('         (NO https://, NO trailing /, NO path)');
-            console.error('');
-            console.error('   🔧 If domain is wrong or missing:');
-            console.error('      1. Send: /setdomain');
-            console.error('      2. Select your bot');
-            console.error('      3. Enter: moqt-glas.onrender.com');
-            console.error('      4. Wait 10-15 minutes for propagation');
-            console.error('      5. Clear browser cache and try again');
-            console.error('');
-            console.error('   🔍 Check iframe in DOM:');
-            console.error('      Run: document.querySelector(\'iframe[src*="telegram.org"]\')');
-            console.error('      If null → domain not configured or not propagated');
-            
-            // Check for error messages in container
-            if (containerText.includes('domain') || containerText.includes('invalid') || containerText.includes('Bot')) {
-              console.error('');
-              console.error('   📋 Error message detected in widget:', containerText);
-            }
-          } else {
-            console.warn('   ✅ Widget iframe is loaded! Domain is configured correctly.');
-            console.warn('   This warning is NORMAL - it just means you haven\'t clicked the button yet.');
-            console.warn('');
-            console.warn('   ✅ Next steps:');
-            console.warn('      1. Click the Telegram login button (it should be visible)');
-            console.warn('      2. Authorize in the Telegram popup');
-            console.warn('      3. Callback will be called immediately');
-            console.warn('');
-            console.warn('   ⚠️ If callback still not called AFTER clicking:');
-            console.warn('      - Domain might not have fully propagated (wait 5-10 more min)');
-            console.warn('      - Browser might be blocking third-party cookies');
-            console.warn('      - Try incognito/private window');
-            console.warn('      - Check browser console for errors');
-          }
-          
-          console.warn('');
-          console.warn('   📍 Current URL:', window.location.href);
-          console.warn('   📍 Expected domain in BotFather: moqt-glas.onrender.com (NO https://)');
-          console.warn('   📍 Bot name:', botName);
-          console.warn('');
-          console.warn('   💡 Quick test: Run this in console to check widget:');
-          console.warn('      const iframe = document.querySelector(\'iframe[src*="telegram.org"]\');');
-          console.warn('      console.log("Widget found:", !!iframe, "Visible:", iframe?.offsetWidth > 0);');
-        }
-      }, 5000);
     };
 
     containerRef.current.appendChild(script);
@@ -495,12 +314,12 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
       // Only cleanup on actual page unload
       if (typeof window !== 'undefined') {
         window.addEventListener('beforeunload', () => {
-          if ((window as any).handleTelegramAuth) {
-            delete (window as any).handleTelegramAuth;
-          }
-          if ((window as any).__latestTelegramOnAuth) {
-            delete (window as any).__latestTelegramOnAuth;
-          }
+        if ((window as any).handleTelegramAuth) {
+          delete (window as any).handleTelegramAuth;
+        }
+        if ((window as any).__latestTelegramOnAuth) {
+          delete (window as any).__latestTelegramOnAuth;
+        }
         });
       }
     };
@@ -526,8 +345,8 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
           </ol>
           <div className="mt-3 space-y-2">
             <p className="text-xs text-yellow-200/60">
-              Текущ URL: <code className="bg-yellow-500/20 px-1 rounded">{typeof window !== 'undefined' ? window.location.href : 'N/A'}</code>
-            </p>
+            Текущ URL: <code className="bg-yellow-500/20 px-1 rounded">{typeof window !== 'undefined' ? window.location.href : 'N/A'}</code>
+          </p>
             <button
               onClick={() => {
                 if (typeof window !== 'undefined') {
@@ -555,16 +374,9 @@ export function TelegramLogin({ botName, onAuth, className }: TelegramLoginProps
               <span>Данните са получени, обработва се...</span>
             </div>
           ) : widgetLoaded ? (
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-green-400">
-                <span>✅</span>
-                <span>Widget зареден - Натиснете бутона за вход</span>
-              </div>
-              {typeof window !== 'undefined' && (
-                <div className="text-xs text-muted-foreground/70 pl-6">
-                  Callback готов: {typeof (window as any).handleTelegramAuth === 'function' ? '✅' : '❌'}
-                </div>
-              )}
+            <div className="flex items-center gap-2 text-green-400">
+              <span>✅</span>
+              <span>Widget зареден - Натиснете бутона за вход</span>
             </div>
           ) : domainError ? (
             <div className="flex items-center gap-2 text-yellow-400">
