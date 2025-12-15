@@ -4,6 +4,16 @@ import { createServerClient } from '@/lib/supabase/client';
 export const dynamic = 'force-dynamic';
 
 /**
+ * GET handler - returns error since this endpoint only supports POST
+ */
+export async function GET(request: NextRequest) {
+  return NextResponse.json(
+    { error: 'This endpoint only supports POST requests. Use POST to create a creator profile.' },
+    { status: 405 }
+  );
+}
+
+/**
  * Create a creator profile
  * POST /api/creators/create-profile
  */
