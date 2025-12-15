@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDateBG, formatTimeBG } from '@/lib/utils';
 import { formatRelativeTime, isElectionActive, hasElectionEnded } from '@/lib/utils';
-import { Heart, MessageCircle, Share2, Coins, CheckCircle2, Edit, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Coins, CheckCircle2, Edit, Trash2, Facebook, MessageSquare, Link2, Copy, Check } from 'lucide-react';
 import { useDeviceFingerprint } from '@/lib/device-fingerprint';
 import { trackUserBehavior } from '@/lib/behavioral-analysis';
 import { Input } from '@/components/ui/input';
@@ -74,6 +74,8 @@ export function FeedItem({ poll }: FeedItemProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [fundraisingCurrent, setFundraisingCurrent] = useState(poll.fundraisingCurrent || 0);
   const [donationAmount, setDonationAmount] = useState<number | ''>('');
   const [customDonationAmount, setCustomDonationAmount] = useState('');
@@ -516,19 +518,122 @@ export function FeedItem({ poll }: FeedItemProps) {
     }
   };
 
-  const handleShare = async () => {
-    if (isLoading || !mountedRef.current) return;
+  const getShareUrl = () => {
+    // Share link to the dashboard with scroll to this poll
+    return `${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard#poll-${poll.id}`;
+  };
+
+  const getShareText = () => {
+    return `${poll.title_bg || poll.title}${poll.description_bg ? ` - ${poll.description_bg}` : ''}`;
+  };
+
+  const handleShareToFacebook = async () => {
+    if (!mountedRef.current) return;
     
-    setIsLoading(true);
+    const shareUrl = getShareUrl();
+    const shareText = getShareText();
+    
+    // Facebook Share Dialog
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+    window.open(facebookUrl, '_blank', 'width=600,height=400');
+    
+    await trackShare();
+    setShowShareMenu(false);
+  };
+
+  const handleShareToMessenger = async () => {
+    if (!mountedRef.current) return;
+    
+    const shareUrl = getShareUrl();
+    const shareText = getShareText();
+    
+    // Messenger Share Link
+    const messengerUrl = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(shareUrl)}&app_id=${process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || ''}&redirect_uri=${encodeURIComponent(shareUrl)}`;
+    window.open(messengerUrl, '_blank', 'width=600,height=600');
+    
+    await trackShare();
+    setShowShareMenu(false);
+  };
+
+  const handleCopyLink = async () => {
+    if (!mountedRef.current) return;
+    
+    const shareUrl = getShareUrl();
+    
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        if (mountedRef.current) {
+          setLinkCopied(true);
+          setTimeout(() => {
+            if (mountedRef.current) {
+              setLinkCopied(false);
+            }
+          }, 2000);
+        }
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        if (mountedRef.current) {
+          setLinkCopied(true);
+          setTimeout(() => {
+            if (mountedRef.current) {
+              setLinkCopied(false);
+            }
+          }, 2000);
+        }
+      }
+      
+      await trackShare();
+      setShowShareMenu(false);
+    } catch (error) {
+      console.error('Error copying link:', error);
+      alert('Грешка при копиране на линк');
+    }
+  };
+
+  const handleNativeShare = async () => {
+    if (!mountedRef.current) return;
+    
+    const shareUrl = getShareUrl();
+    const shareText = getShareText();
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: poll.title_bg || poll.title,
+          text: shareText,
+          url: shareUrl,
+        });
+        await trackShare();
+      } catch (error: any) {
+        // User cancelled or error - don't show error if user cancelled
+        if (error.name !== 'AbortError') {
+          console.error('Error sharing:', error);
+        }
+      }
+    } else {
+      // Fallback to copy link
+      await handleCopyLink();
+    }
+    setShowShareMenu(false);
+  };
+
+  const trackShare = async () => {
     try {
       const authData = localStorage.getItem('telegram_auth');
-      if (!authData) {
-        window.location.href = '/login';
-        return;
-      }
+      if (!authData) return;
 
       const parsed = JSON.parse(authData);
       const telegramId = parsed.telegramId || parsed.id;
+      
       const response = await fetch(`/api/elections/${poll.id}/share`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -538,19 +643,10 @@ export function FeedItem({ poll }: FeedItemProps) {
       if (response.ok && mountedRef.current) {
         const data = await response.json();
         setSharesCount(data.sharesCount || sharesCount + 1);
-        
-        const shareUrl = `${window.location.origin}/results/${poll.id}`;
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(shareUrl);
-          alert('Линкът е копиран в клипборда!');
-        }
       }
     } catch (error) {
-      console.error('Error sharing:', error);
-    } finally {
-      if (mountedRef.current) {
-      setIsLoading(false);
-    }
+      console.error('Error tracking share:', error);
+      // Don't show error to user - sharing still works
     }
   };
 
@@ -1101,16 +1197,87 @@ export function FeedItem({ poll }: FeedItemProps) {
             <MessageCircle className="w-4 h-4 mr-2" />
             <span>{commentsCount || 0}</span>
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleShare}
-            disabled={isLoading}
-            className="flex-1"
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            <span>{sharesCount || 0}</span>
-          </Button>
+          <div className="relative flex-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (mountedRef.current) {
+                  setShowShareMenu(!showShareMenu);
+                }
+              }}
+              disabled={isLoading}
+              className="w-full"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              <span>{sharesCount || 0}</span>
+            </Button>
+            
+            {showShareMenu && (
+              <>
+                {/* Backdrop */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => {
+                    if (mountedRef.current) {
+                      setShowShareMenu(false);
+                    }
+                  }}
+                />
+                {/* Share Menu Dropdown */}
+                <div className="absolute bottom-full left-0 mb-2 w-56 glass rounded-lg shadow-lg border border-border z-50 p-2">
+                  <div className="space-y-1">
+                    {/* Native Share (Mobile) */}
+                    {navigator.share && (
+                      <button
+                        onClick={handleNativeShare}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-background/50 transition-colors text-sm text-left"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Сподели...
+                      </button>
+                    )}
+                    
+                    {/* Facebook Share */}
+                    <button
+                      onClick={handleShareToFacebook}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-background/50 transition-colors text-sm text-left"
+                    >
+                      <Facebook className="w-4 h-4 text-blue-600" />
+                      Сподели във Facebook
+                    </button>
+                    
+                    {/* Messenger Share */}
+                    <button
+                      onClick={handleShareToMessenger}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-background/50 transition-colors text-sm text-left"
+                    >
+                      <MessageSquare className="w-4 h-4 text-blue-500" />
+                      Изпрати в Messenger
+                    </button>
+                    
+                    {/* Copy Link */}
+                    <button
+                      onClick={handleCopyLink}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-background/50 transition-colors text-sm text-left"
+                    >
+                      {linkCopied ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-500" />
+                          <span className="text-green-500">Копирано!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          Копирай линк
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Comment Input */}
