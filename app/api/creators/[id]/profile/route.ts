@@ -5,15 +5,16 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = createServerClient();
     
     const { data: profile, error } = await supabase
       .from('creator_profiles')
       .select('*')
-      .eq('telegram_id', parseInt(params.id))
+      .eq('telegram_id', parseInt(id))
       .single();
 
     if (error) {

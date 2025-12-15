@@ -17,10 +17,19 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerClient();
 
+    // Parse telegramId as bigint (user_id is bigint in database)
+    const userId = parseInt(telegramId);
+    if (isNaN(userId)) {
+      return NextResponse.json(
+        { error: 'Невалиден потребителски идентификатор' },
+        { status: 400 }
+      );
+    }
+
     let query = supabase
       .from('notifications')
       .select('*')
-      .eq('user_id', telegramId)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);
 

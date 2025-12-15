@@ -91,7 +91,10 @@ export default function SettingsPage() {
       if (!authData) return;
 
       const parsed = JSON.parse(authData);
-      const response = await fetch(`/api/user/payment-details?telegramId=${parsed.telegramId}`);
+      const telegramId = parsed.telegramId || parsed.id;
+      if (!telegramId) return;
+
+      const response = await fetch(`/api/user/payment-details?telegramId=${telegramId}`);
       
       if (response.ok) {
         const data = await response.json();

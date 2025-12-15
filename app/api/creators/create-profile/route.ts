@@ -32,19 +32,34 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient();
 
     // First, ensure user exists in voters table (required foreign key)
+    const telegramIdInt = parseInt(telegramId);
+    if (isNaN(telegramIdInt)) {
+      return NextResponse.json(
+        { error: 'Невалиден потребителски идентификатор' },
+        { status: 400 }
+      );
+    }
+
     const { data: voter, error: voterError } = await supabase
       .from('voters')
       .select('telegram_id')
-      .eq('telegram_id', parseInt(telegramId))
-      .single();
+      .eq('telegram_id', telegramIdInt)
+      .maybeSingle();
 
-    if (voterError && voterError.code !== 'PGRST116') {
+    if (voterError) {
       console.error('Error checking voter:', voterError);
-      // Try to create voter if doesn't exist
+      return NextResponse.json(
+        { error: 'Грешка при проверка на потребителя', details: voterError.message },
+        { status: 500 }
+      );
+    }
+
+    // If voter doesn't exist, try to create one
+    if (!voter) {
       const { error: createVoterError } = await supabase
         .from('voters')
         .insert({
-          telegram_id: parseInt(telegramId),
+          telegram_id: telegramIdInt,
           first_name: displayName.split(' ')[0] || displayName,
           last_name: displayName.split(' ').slice(1).join(' ') || null,
         });
@@ -52,7 +67,7 @@ export async function POST(request: NextRequest) {
       if (createVoterError) {
         console.error('Error creating voter:', createVoterError);
         return NextResponse.json(
-          { error: 'Грешка при създаване на потребител' },
+          { error: 'Грешка при създаване на потребител', details: createVoterError.message },
           { status: 500 }
         );
       }
@@ -76,19 +91,29 @@ export async function POST(request: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('creator_profiles')
       .insert({
-        telegram_id: parseInt(telegramId),
+        telegram_id: telegramIdInt,
         display_name: displayName,
         username: username || null,
         bio: bio || null,
         bio_bg: bioBg || null,
+        is_active: true,
       })
       .select()
       .single();
 
     if (profileError) {
-      console.error('Error creating creator profile:', profileError);
+      console.error('Error creating creator profile:', {
+        code: profileError.code,
+        message: profileError.message,
+        details: profileError.details,
+        hint: profileError.hint,
+      });
       return NextResponse.json(
-        { error: 'Грешка при създаване на профила' },
+        { 
+          error: 'Грешка при създаване на профила',
+          details: profileError.message,
+          code: profileError.code,
+        },
         { status: 500 }
       );
     }
