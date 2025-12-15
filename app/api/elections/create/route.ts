@@ -104,19 +104,49 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate election status based on dates
+    // Handle empty strings and null values
+    const hasStartDate = start_date && start_date.trim() !== '';
+    const hasEndDate = end_date && end_date.trim() !== '';
+    
     let electionStatus = 'upcoming';
-    if (start_date && end_date) {
-      const start = new Date(start_date);
-      const end = new Date(end_date);
-      const now = new Date();
-      
-      if (hasElectionEnded(end)) {
-        electionStatus = 'ended';
-      } else if (isElectionActive(start, end)) {
-        electionStatus = 'active';
-      } else {
+    if (hasStartDate && hasEndDate) {
+      try {
+        const start = new Date(start_date);
+        const end = new Date(end_date);
+        const now = new Date();
+        
+        // Validate dates
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+          console.warn('Invalid dates provided, defaulting to upcoming:', { start_date, end_date });
+          electionStatus = 'upcoming';
+        } else {
+          // Check if ended first
+          if (hasElectionEnded(end)) {
+            electionStatus = 'ended';
+          } else if (isElectionActive(start, end)) {
+            electionStatus = 'active';
+          } else {
+            electionStatus = 'upcoming';
+          }
+          
+          // Debug logging
+          console.log('Election status calculation:', {
+            start_date: start.toISOString(),
+            end_date: end.toISOString(),
+            now: now.toISOString(),
+            calculatedStatus: electionStatus,
+            isActive: isElectionActive(start, end),
+            hasEnded: hasElectionEnded(end),
+            rawStartDate: start_date,
+            rawEndDate: end_date,
+          });
+        }
+      } catch (error) {
+        console.error('Error calculating election status:', error);
         electionStatus = 'upcoming';
       }
+    } else {
+      console.warn('Missing dates, defaulting to upcoming:', { hasStartDate, hasEndDate, start_date, end_date });
     }
 
     // Create election - convert empty strings to null for timestamp fields
@@ -128,8 +158,8 @@ export async function POST(request: NextRequest) {
         description: description || description_bg,
         description_bg,
         status: electionStatus,
-        start_date: start_date || null,
-        end_date: end_date || null,
+        start_date: hasStartDate ? start_date : null,
+        end_date: hasEndDate ? end_date : null,
         created_by: telegramId.toString(),
         has_fundraising: has_fundraising || false,
         fundraising_goal: has_fundraising && fundraising_goal ? parseFloat(fundraising_goal) : null,

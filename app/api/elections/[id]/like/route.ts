@@ -57,13 +57,27 @@ export async function POST(
           { status: 503 }
         );
       }
-      console.error('Error checking like:', checkError);
-      return NextResponse.json(
-        { error: 'Грешка при проверка на харесване' },
-        { status: 500 }
-      );
+      
+      // PGRST116 means no rows found, which is fine - continue
+      if (checkError.code === 'PGRST116') {
+        // No existing like, continue with creation
+      } else {
+        console.error('Error checking like:', {
+          code: checkError.code,
+          message: checkError.message,
+          details: checkError.details,
+          hint: checkError.hint,
+          electionId,
+          telegramId: telegramIdInt,
+        });
+        return NextResponse.json(
+          { error: 'Грешка при проверка на харесване', details: checkError.message },
+          { status: 500 }
+        );
+      }
     }
 
+    // If like already exists, return conflict
     if (existingLike) {
       return NextResponse.json(
         { error: 'Вече сте харесали тази анкета' },

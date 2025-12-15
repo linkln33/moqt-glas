@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/client';
-import { isSchemaCacheError, shouldTreatErrorAsNonFatal } from '@/lib/utils';
+import { isSchemaCacheError, shouldTreatErrorAsNonFatal, isElectionActive, hasElectionEnded } from '@/lib/utils';
 
 export async function GET(
   request: NextRequest,
@@ -191,15 +191,26 @@ export async function PUT(
     // Calculate election status based on dates
     let electionStatus = 'upcoming';
     if (start_date && end_date) {
-      const start = new Date(start_date);
-      const end = new Date(end_date);
-      const now = new Date();
-      
-      if (now > end) {
-        electionStatus = 'ended';
-      } else if (now >= start && now <= end) {
-        electionStatus = 'active';
-      } else {
+      try {
+        const start = new Date(start_date);
+        const end = new Date(end_date);
+        
+        // Validate dates
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+          console.warn('Invalid dates provided, defaulting to upcoming:', { start_date, end_date });
+          electionStatus = 'upcoming';
+        } else {
+          // Check if ended first
+          if (hasElectionEnded(end)) {
+            electionStatus = 'ended';
+          } else if (isElectionActive(start, end)) {
+            electionStatus = 'active';
+          } else {
+            electionStatus = 'upcoming';
+          }
+        }
+      } catch (error) {
+        console.error('Error calculating election status:', error);
         electionStatus = 'upcoming';
       }
     }
