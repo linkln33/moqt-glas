@@ -154,17 +154,15 @@ export function FeedItem({ poll }: FeedItemProps) {
     };
   }, [poll.questions]);
 
-  // Load results on mount to show statistics
+  // Load results on mount to show statistics - always load for all polls
   useEffect(() => {
     mountedRef.current = true;
-    // Always load results to show statistics
-    if (poll.isActive || hasElectionEnded(poll.end_date)) {
-      loadResults();
-    }
+    // Always load results to show statistics, regardless of poll status
+    loadResults();
     return () => {
       mountedRef.current = false;
     };
-  }, [poll.id, poll.isActive, poll.end_date, loadResults]);
+  }, [poll.id, loadResults]);
 
   // Check if user has voted
   useEffect(() => {
@@ -309,23 +307,9 @@ export function FeedItem({ poll }: FeedItemProps) {
     setSubmittingVote(true);
 
     try {
-      // Safely get behavior - use ref to avoid stale closures
-      let behavior = null;
-      try {
-        // Use ref to get current tracker value without closure issues
-        const currentTracker = behaviorTrackerRef.current;
-        if (currentTracker && 
-            typeof currentTracker === 'object' && 
-            currentTracker !== null &&
-            'getBehavior' in currentTracker &&
-            typeof currentTracker.getBehavior === 'function') {
-          behavior = currentTracker.getBehavior();
-        }
-      } catch (e) {
-        console.warn('Error getting behavior:', e);
-        // Continue without behavior data - behavior tracking is optional
-        behavior = null;
-      }
+      // Skip behavior tracking for now to avoid function call issues
+      // Behavior tracking is optional and can be re-enabled later
+      const behavior = null;
 
       // Prepare telegramAuth object with correct structure
       const telegramAuth = {
@@ -851,20 +835,36 @@ export function FeedItem({ poll }: FeedItemProps) {
           </>
         )}
 
-        {/* Stats */}
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 pb-4 border-b border-border/50">
+        {/* Stats - Always visible at bottom */}
+        <div className="flex items-center justify-between text-sm text-muted-foreground mt-6 pt-4 border-t border-border/50">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <span>👥</span>
-              <span className="font-medium">{totalVotes} гласа</span>
+              <span className="font-medium">{totalVotes || 0} {totalVotes === 1 ? 'глас' : 'гласа'}</span>
             </div>
             <div className="flex items-center gap-1">
               <span>📊</span>
               <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
             </div>
+            {likesCount > 0 && (
+              <div className="flex items-center gap-1">
+                <span>❤️</span>
+                <span>{likesCount}</span>
+              </div>
+            )}
+            {commentsCount > 0 && (
+              <div className="flex items-center gap-1">
+                <span>💬</span>
+                <span>{commentsCount}</span>
+              </div>
+            )}
           </div>
-          <div className="text-xs">
-            Край: {formatDateBG(poll.end_date)} {formatTimeBG(poll.end_date)}
+          <div className="text-xs text-muted-foreground">
+            {isEnded ? (
+              <span>Приключила: {formatDateBG(poll.end_date)}</span>
+            ) : (
+              <span>Край: {formatDateBG(poll.end_date)} {formatTimeBG(poll.end_date)}</span>
+            )}
           </div>
         </div>
 

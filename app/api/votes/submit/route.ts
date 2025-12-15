@@ -144,10 +144,15 @@ export async function POST(request: NextRequest) {
       patterns.ipMatches
     );
 
-    // 8. Analyze behavior
+    // 8. Analyze behavior (optional - skip if not provided to avoid errors)
     let behaviorScore: BehaviorScore = { score: 0, suspicious: false, reasons: [] };
-    if (userBehavior) {
-      behaviorScore = analyzeVotingBehavior(userBehavior);
+    try {
+      if (userBehavior && typeof userBehavior === 'object') {
+        behaviorScore = analyzeVotingBehavior(userBehavior);
+      }
+    } catch (e) {
+      console.warn('Error analyzing behavior, continuing without behavior score:', e);
+      // Continue without behavior score - it's optional
     }
 
     // 9. Combined risk assessment
@@ -194,6 +199,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 11. Submit vote
+    console.log('Submitting vote:', {
+      electionId,
+      telegramId,
+      questionId,
+      selectedOptions,
+      totalRisk,
+      behaviorScore: behaviorScore.score,
+    });
+
     const { data: vote, error: voteError } = await supabase
       .from('votes')
       .insert({
@@ -201,7 +215,7 @@ export async function POST(request: NextRequest) {
         telegram_id: telegramId,
         question_id: questionId,
         selected_options: selectedOptions,
-        device_fingerprint: deviceFingerprint,
+        device_fingerprint: deviceFingerprint || null,
         ip_address: ipAddress,
         risk_score: totalRisk,
         behavior_score: behaviorScore.score,
@@ -210,15 +224,33 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (voteError) {
+      console.error('Vote insertion error:', {
+        code: voteError.code,
+        message: voteError.message,
+        details: voteError.details,
+        hint: voteError.hint,
+      });
+      
       // Check if it's a unique constraint violation
       if (voteError.code === '23505') {
         return NextResponse.json(
-          { error: 'Вече сте гласували в тези избори' },
+          { error: 'Вече сте гласували за този въпрос' },
           { status: 409 }
         );
       }
+      
+      // Check for foreign key violations
+      if (voteError.code === '23503') {
+        return NextResponse.json(
+          { error: 'Невалиден въпрос или избори' },
+          { status: 400 }
+        );
+      }
+      
       throw voteError;
     }
+
+    console.log('Vote submitted successfully:', vote?.id);
 
     // 12. Flag for review if medium/high risk
     if (totalRisk >= 50 || riskScore.recommendation === 'review') {
