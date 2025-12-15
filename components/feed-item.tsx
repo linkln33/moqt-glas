@@ -230,7 +230,7 @@ export function FeedItem({ poll }: FeedItemProps) {
     });
   };
 
-  const handleVoteSubmit = async () => {
+  const handleVoteSubmit = useCallback(async () => {
     if (submittingVote || !mountedRef.current) return;
 
     const authData = localStorage.getItem('telegram_auth');
@@ -256,12 +256,8 @@ export function FeedItem({ poll }: FeedItemProps) {
 
     if (!mountedRef.current) return;
     
-    // Use setTimeout to ensure state updates happen after render
-    setTimeout(() => {
-      if (mountedRef.current) {
-        setSubmittingVote(true);
-      }
-    }, 0);
+    // Set submitting state
+    setSubmittingVote(true);
 
     try {
       const behavior = behaviorTracker?.getBehavior();
@@ -294,30 +290,37 @@ export function FeedItem({ poll }: FeedItemProps) {
         });
 
         if (!response.ok) {
-          const result = await response.json().catch(() => ({ error: 'Грешка при подаване на глас' }));
-          throw new Error(result.error || 'Грешка при подаване на глас');
+          let errorMessage = 'Грешка при подаване на глас';
+          try {
+            const result = await response.json();
+            errorMessage = result.error || errorMessage;
+          } catch {
+            // If JSON parsing fails, use default message
+          }
+          throw new Error(errorMessage);
         }
       }
 
-      // Success - show results (use setTimeout to avoid hydration errors)
-      setTimeout(async () => {
-        if (mountedRef.current) {
-          setHasVoted(true);
-          setShowResults(true);
-          await loadResults();
-        }
-      }, 0);
+      // Success - show results
+      if (mountedRef.current) {
+        setHasVoted(true);
+        setShowResults(true);
+        // Load results after a small delay to ensure state is updated
+        setTimeout(() => {
+          if (mountedRef.current) {
+            loadResults();
+          }
+        }, 100);
+      }
     } catch (err: any) {
       console.error('Vote submission error:', err);
       alert(err.message || 'Грешка при подаване на глас');
     } finally {
-      setTimeout(() => {
-        if (mountedRef.current) {
-          setSubmittingVote(false);
-        }
-      }, 0);
+      if (mountedRef.current) {
+        setSubmittingVote(false);
+      }
     }
-  };
+  }, [submittingVote, poll.questions, poll.id, selectedOptions, fingerprint, behaviorTracker, loadResults]);
 
   const handleLike = async () => {
     if (isLoading || !mountedRef.current) return;
@@ -541,9 +544,14 @@ export function FeedItem({ poll }: FeedItemProps) {
             })}
             
             <Button
-              onClick={handleVoteSubmit}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleVoteSubmit();
+              }}
               disabled={submittingVote}
               className="w-full gradient-primary text-white shadow-lg mb-6"
+              type="button"
             >
               {submittingVote ? 'Изпращане...' : 'Подай глас'}
             </Button>
