@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { convertBulgariaDateTimeToUTC } from '@/lib/utils';
 
 const templates = [
   {
@@ -251,13 +252,15 @@ function CreatePollPageContent() {
     try {
       const telegramAuth = JSON.parse(localStorage.getItem('telegram_auth') || '{}');
       
-      // Prepare form data - convert empty strings to null for timestamp fields
+      // Prepare form data - convert datetime-local (Bulgaria timezone) to UTC ISO strings
       const submitData = {
         ...formData,
-        start_date: formData.start_date || null,
-        end_date: formData.end_date || null,
+        start_date: formData.start_date ? convertBulgariaDateTimeToUTC(formData.start_date) : null,
+        end_date: formData.end_date ? convertBulgariaDateTimeToUTC(formData.end_date) : null,
         fundraising_end_date: formData.has_fundraising 
-          ? (formData.fundraising_end_date || formData.end_date || null)
+          ? (formData.fundraising_end_date 
+              ? convertBulgariaDateTimeToUTC(formData.fundraising_end_date)
+              : (formData.end_date ? convertBulgariaDateTimeToUTC(formData.end_date) : null))
           : null,
       };
       
