@@ -54,87 +54,27 @@ export async function getOrCreateUserFromTelegram(
   const supabase = createServerClient();
 
   try {
-    console.log('Calling get_or_create_voting_user_from_telegram with:', {
-      telegram_id: params.telegram_id,
-      first_name: params.first_name,
-    });
+    // Use direct upsert to avoid missing RPC issues
+    const { data: userProfile, error: upsertError } = await supabase
+      .from('voting_user_profiles')
+      .upsert({
+        telegram_id: params.telegram_id,
+        first_name: params.first_name,
+        last_name: params.last_name || null,
+        username: params.username || null,
+        photo_url: params.photo_url || null,
+        is_verified: true,
+        last_login_at: new Date().toISOString(),
+      }, { onConflict: 'telegram_id' })
+      .select()
+      .single();
 
-    const { data, error } = await supabase.rpc(
-      'get_or_create_voting_user_from_telegram',
-      {
-        p_telegram_id: params.telegram_id,
-        p_first_name: params.first_name,
-        p_last_name: params.last_name || null,
-        p_username: params.username || null,
-        p_photo_url: params.photo_url || null,
-      }
-    );
-
-    if (error) {
-      console.error('RPC Error getting/creating user from Telegram:', {
-        error: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
-      
-      // If RPC fails, try direct insert/select as fallback
-      console.log('Attempting fallback: direct database operation');
-      
-      // First, try to find existing user
-      const { data: existingUser, error: selectError } = await supabase
-        .from('voting_user_profiles')
-        .select('*')
-        .eq('telegram_id', params.telegram_id)
-        .maybeSingle();
-      
-      if (selectError) {
-        console.error('Select error in fallback:', selectError);
-      }
-      
-      if (existingUser) {
-        console.log('Found existing user via direct query fallback');
-        // Update last login
-        await supabase
-          .from('voting_user_profiles')
-          .update({ last_login_at: new Date().toISOString() })
-          .eq('id', existingUser.id);
-        return existingUser as VotingUserProfile;
-      }
-      
-      // Try to insert directly
-      const { data: newUser, error: insertError } = await supabase
-        .from('voting_user_profiles')
-        .insert({
-          telegram_id: params.telegram_id,
-          first_name: params.first_name,
-          last_name: params.last_name || null,
-          username: params.username || null,
-          photo_url: params.photo_url || null,
-          is_verified: true,
-          last_login_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-      
-      if (insertError) {
-        console.error('Direct insert error in fallback:', insertError);
-        // Don't return a temp ID - return null so the caller can handle the error
-        // Returning a temp ID causes issues downstream (invalid UUID format)
-        return null;
-      }
-      
-      console.log('Created user via direct insert fallback');
-      return newUser as VotingUserProfile;
-    }
-
-    if (!data) {
-      console.error('RPC returned no data');
+    if (upsertError) {
+      console.error('Upsert error creating/getting user from Telegram:', upsertError);
       return null;
     }
 
-    console.log('User profile retrieved/created via RPC');
-    return data as VotingUserProfile;
+    return userProfile as VotingUserProfile;
   } catch (error: any) {
     console.error('Exception getting/creating user from Telegram:', {
       message: error?.message,
