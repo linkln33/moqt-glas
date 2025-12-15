@@ -85,6 +85,22 @@ export function FeedItem({ poll }: FeedItemProps) {
   const [behaviorTracker, setBehaviorTracker] = useState<ReturnType<typeof trackUserBehavior> | null>(null);
   const mountedRef = useRef(true);
 
+  // Color palette for options
+  const optionColors = [
+    { bg: 'bg-blue-500/20', border: 'border-blue-500', text: 'text-blue-600', progress: 'bg-blue-500' },
+    { bg: 'bg-green-500/20', border: 'border-green-500', text: 'text-green-600', progress: 'bg-green-500' },
+    { bg: 'bg-purple-500/20', border: 'border-purple-500', text: 'text-purple-600', progress: 'bg-purple-500' },
+    { bg: 'bg-orange-500/20', border: 'border-orange-500', text: 'text-orange-600', progress: 'bg-orange-500' },
+    { bg: 'bg-pink-500/20', border: 'border-pink-500', text: 'text-pink-600', progress: 'bg-pink-500' },
+    { bg: 'bg-cyan-500/20', border: 'border-cyan-500', text: 'text-cyan-600', progress: 'bg-cyan-500' },
+    { bg: 'bg-yellow-500/20', border: 'border-yellow-500', text: 'text-yellow-600', progress: 'bg-yellow-500' },
+    { bg: 'bg-red-500/20', border: 'border-red-500', text: 'text-red-600', progress: 'bg-red-500' },
+  ];
+
+  const getOptionColor = (index: number) => {
+    return optionColors[index % optionColors.length];
+  };
+
   // Memoize loadResults to avoid stale closures
   const loadResults = useCallback(async () => {
     if (!mountedRef.current) return;
@@ -120,18 +136,29 @@ export function FeedItem({ poll }: FeedItemProps) {
     };
   }, [poll.questions]);
 
-  // Check if user has voted and load results if needed
+  // Load results on mount to show statistics
+  useEffect(() => {
+    mountedRef.current = true;
+    // Always load results to show statistics
+    if (poll.isActive || hasElectionEnded(poll.end_date)) {
+      loadResults();
+    }
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [poll.id, poll.isActive, poll.end_date, loadResults]);
+
+  // Check if user has voted
   useEffect(() => {
     mountedRef.current = true;
     const checkVoteStatus = async () => {
       try {
         const authData = localStorage.getItem('telegram_auth');
         if (!authData) {
-          // If election ended, show results anyway
+          // If election ended, show results
           if (hasElectionEnded(poll.end_date)) {
             if (mountedRef.current) {
               setShowResults(true);
-              await loadResults();
             }
           }
           return;
@@ -143,7 +170,6 @@ export function FeedItem({ poll }: FeedItemProps) {
           if (hasElectionEnded(poll.end_date)) {
             if (mountedRef.current) {
               setShowResults(true);
-              await loadResults();
             }
           }
           return;
@@ -156,7 +182,6 @@ export function FeedItem({ poll }: FeedItemProps) {
           if (voteData.hasVoted && mountedRef.current) {
             setHasVoted(true);
             setShowResults(true);
-            await loadResults();
           }
         }
       } catch (error) {
@@ -164,7 +189,6 @@ export function FeedItem({ poll }: FeedItemProps) {
         // If election ended, show results anyway
         if (hasElectionEnded(poll.end_date) && mountedRef.current) {
           setShowResults(true);
-          await loadResults();
         }
       }
     };
@@ -176,7 +200,7 @@ export function FeedItem({ poll }: FeedItemProps) {
     return () => {
       mountedRef.current = false;
     };
-  }, [poll.id, poll.isActive, poll.end_date, loadResults]);
+  }, [poll.id, poll.isActive, poll.end_date]);
 
   // Start behavior tracking
   useEffect(() => {
@@ -434,37 +458,76 @@ export function FeedItem({ poll }: FeedItemProps) {
       </GlassCardHeader>
 
       <GlassCardContent>
-        {/* Voting UI - Directly integrated into card flow */}
+        {/* Voting UI - Directly integrated into card flow with color coding and statistics */}
         {isActive && !hasVoted && !showResults && poll.questions && poll.questions.length > 0 && (
           <>
-            {poll.questions.map((question) => (
-              <div key={question.id} className="mb-6 space-y-3">
-                <div className="font-medium text-base mb-3">
-                  {question.question_text_bg || question.question_text}
-                </div>
-                <div className="space-y-2">
-                  {question.options.map((option) => {
-                    const isSelected = selectedOptions[question.id]?.includes(option.id) || false;
-                    return (
-                      <button
-                        key={option.id}
-                        onClick={() => handleOptionSelect(question.id, option.id, question.question_type)}
-                        className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                          isSelected
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border hover:border-primary/50 bg-background/50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">{option.option_text_bg || option.option_text}</span>
-                          {isSelected && <CheckCircle2 className="w-5 h-5 text-primary" />}
+            {poll.questions.map((question) => {
+              // Find results for this question
+              const questionResults = results.find(r => r.id === question.id);
+              const questionTotalVotes = questionResults?.totalVotes || 0;
+              
+              return (
+                <div key={question.id} className="mb-6 space-y-3">
+                  <div className="font-medium text-base mb-3">
+                    {question.question_text_bg || question.question_text}
+                  </div>
+                  <div className="space-y-2">
+                    {question.options.map((option, optionIndex) => {
+                      const isSelected = selectedOptions[question.id]?.includes(option.id) || false;
+                      const color = getOptionColor(optionIndex);
+                      // Get vote stats for this option
+                      const optionResult = questionResults?.options.find(o => o.id === option.id);
+                      const optionVotes = optionResult?.votes || 0;
+                      const optionPercentage = optionResult?.percentage || 0;
+                      
+                      return (
+                        <div key={option.id} className="space-y-1">
+                          <button
+                            onClick={() => handleOptionSelect(question.id, option.id, question.question_type)}
+                            className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                              isSelected
+                                ? `${color.border} ${color.bg}`
+                                : `border-border hover:${color.border}/50 bg-background/50`
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 flex-1">
+                                <div className={`w-3 h-3 rounded-full ${color.progress}`}></div>
+                                <span className={`text-sm font-medium ${isSelected ? color.text : ''}`}>
+                                  {option.option_text_bg || option.option_text}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {questionTotalVotes > 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {optionVotes} ({optionPercentage.toFixed(1)}%)
+                                  </span>
+                                )}
+                                {isSelected && <CheckCircle2 className={`w-5 h-5 ${color.text}`} />}
+                              </div>
+                            </div>
+                          </button>
+                          {/* Progress bar showing statistics */}
+                          {questionTotalVotes > 0 && (
+                            <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden ml-1">
+                              <div
+                                className={`h-full ${color.progress} transition-all duration-500`}
+                                style={{ width: `${optionPercentage}%` }}
+                              />
+                            </div>
+                          )}
                         </div>
-                      </button>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                  {questionTotalVotes > 0 && (
+                    <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
+                      Общо гласове: {questionTotalVotes}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             
             <Button
               onClick={handleVoteSubmit}
@@ -476,7 +539,7 @@ export function FeedItem({ poll }: FeedItemProps) {
           </>
         )}
 
-        {/* Results/Statistics UI - Directly integrated into card flow */}
+        {/* Results/Statistics UI - Directly integrated into card flow with color coding */}
         {showResults && results.length > 0 && (
           <>
             <div className="flex items-center gap-2 mb-4">
@@ -484,43 +547,55 @@ export function FeedItem({ poll }: FeedItemProps) {
               {hasVoted && <Badge variant="success" className="text-xs">Гласували сте</Badge>}
             </div>
             
-            {results.map((question) => (
-              <div key={question.id} className="mb-6 space-y-3">
-                <div className="font-medium text-sm mb-3">
-                  {question.question_text_bg}
-                </div>
-                <div className="space-y-3">
-                  {question.options
-                    .sort((a, b) => b.votes - a.votes)
-                    .map((option, index) => (
-                      <div key={option.id} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            {index === 0 && question.totalVotes > 0 && (
-                              <span className="text-xl">🏆</span>
-                            )}
-                            <span className="text-sm font-medium">
-                              {option.option_text_bg}
-                            </span>
+            {results.map((question) => {
+              // Find original question to get option order
+              const originalQuestion = poll.questions?.find(q => q.id === question.id);
+              
+              return (
+                <div key={question.id} className="mb-6 space-y-3">
+                  <div className="font-medium text-sm mb-3">
+                    {question.question_text_bg}
+                  </div>
+                  <div className="space-y-3">
+                    {question.options
+                      .sort((a, b) => b.votes - a.votes)
+                      .map((option, index) => {
+                        // Find original option index for color coding
+                        const originalIndex = originalQuestion?.options.findIndex(o => o.id === option.id) ?? index;
+                        const color = getOptionColor(originalIndex);
+                        
+                        return (
+                          <div key={option.id} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                {index === 0 && question.totalVotes > 0 && (
+                                  <span className="text-xl">🏆</span>
+                                )}
+                                <div className={`w-3 h-3 rounded-full ${color.progress}`}></div>
+                                <span className={`text-sm font-medium ${color.text}`}>
+                                  {option.option_text_bg}
+                                </span>
+                              </div>
+                              <Badge variant={index === 0 && question.totalVotes > 0 ? 'success' : 'secondary'}>
+                                {option.votes} ({option.percentage.toFixed(1)}%)
+                              </Badge>
+                            </div>
+                            <div className="w-full h-3 bg-background/50 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${color.progress} transition-all duration-500`}
+                                style={{ width: `${option.percentage}%` }}
+                              />
+                            </div>
                           </div>
-                          <Badge variant={index === 0 && question.totalVotes > 0 ? 'success' : 'secondary'}>
-                            {option.votes} ({option.percentage.toFixed(1)}%)
-                          </Badge>
-                        </div>
-                        <div className="w-full h-3 bg-background/50 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
-                            style={{ width: `${option.percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })}
+                  </div>
+                  <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
+                    Общо гласове: {question.totalVotes}
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
-                  Общо гласове: {question.totalVotes}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </>
         )}
 
