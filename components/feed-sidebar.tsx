@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
-import { User, Settings, LogOut, Plus, BarChart3, Home, List, CreditCard, TrendingUp } from 'lucide-react';
+import { User, Settings, LogOut, Plus, BarChart3, Home, List, CreditCard, TrendingUp, Video } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 interface UserProfile {
@@ -170,13 +170,22 @@ export function FeedSidebar() {
                   Статистики
                 </Button>
               </Link>
+              <Link href="/dashboard/creator" className="block">
+                <Button 
+                  variant="ghost" 
+                  className={`w-full justify-start ${pathname === '/dashboard/creator' || pathname?.startsWith('/dashboard/creator') ? 'bg-primary/10 text-primary' : ''}`}
+                >
+                  <Video className="w-4 h-4 mr-2" />
+                  Creator / Patreon
+                </Button>
+              </Link>
               <Link href="/dashboard/settings" className="block">
                 <Button 
                   variant="ghost" 
                   className={`w-full justify-start ${pathname === '/dashboard/settings' ? 'bg-primary/10 text-primary' : ''}`}
                 >
                   <Settings className="w-4 h-4 mr-2" />
-                  Настройки & Платежни данни
+                  Настройки
                 </Button>
               </Link>
               <div className="pt-2 border-t border-border/50 mt-2">
