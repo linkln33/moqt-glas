@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/client';
+import { isSchemaCacheError, shouldTreatErrorAsNonFatal } from '@/lib/utils';
 
 export async function GET(
   request: NextRequest,
@@ -16,7 +17,26 @@ export async function GET(
       .eq('id', electionId)
       .single();
 
-    if (electionError || !election) {
+    if (electionError) {
+      // Handle schema cache errors gracefully during build
+      if (isSchemaCacheError(electionError)) {
+        console.warn('⚠️ Schema cache not refreshed yet (PGRST205). Returning 404. This is normal during build.');
+        return NextResponse.json(
+          { error: 'Изборите не са намерени' },
+          { status: 404 }
+        );
+      }
+      
+      // During build, treat errors as non-fatal
+      if (shouldTreatErrorAsNonFatal(electionError)) {
+        return NextResponse.json(
+          { error: 'Изборите не са намерени' },
+          { status: 404 }
+        );
+      }
+    }
+
+    if (!election) {
       return NextResponse.json(
         { error: 'Изборите не са намерени' },
         { status: 404 }

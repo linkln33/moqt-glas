@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/client';
+import { isSchemaCacheError, shouldTreatErrorAsNonFatal } from '@/lib/utils';
 
 export async function GET() {
   // Check if Supabase is configured (not placeholder)
@@ -22,7 +23,19 @@ export async function GET() {
       .limit(3);
 
     if (error) {
+      // Handle schema cache errors gracefully during build
+      if (isSchemaCacheError(error)) {
+        console.warn('⚠️ Schema cache not refreshed yet (PGRST205). Returning empty array. This is normal during build.');
+        return NextResponse.json({ elections: [] }, { status: 200 });
+      }
+      
       console.error('Error fetching example polls:', error);
+      
+      // During build, treat errors as non-fatal
+      if (shouldTreatErrorAsNonFatal(error)) {
+        return NextResponse.json({ elections: [] }, { status: 200 });
+      }
+      
       return NextResponse.json({ elections: [] }, { status: 200 });
     }
 

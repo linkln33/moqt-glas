@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase/client';
+import { isSchemaCacheError, shouldTreatErrorAsNonFatal } from '@/lib/utils';
 import { ElectionsClientPage } from './client-page';
 
 async function getElections() {
@@ -18,13 +19,31 @@ async function getElections() {
       .order('start_date', { ascending: false });
 
     if (error) {
+      // Handle schema cache errors gracefully during build
+      if (isSchemaCacheError(error)) {
+        console.warn('⚠️ Schema cache not refreshed yet (PGRST205). Returning empty array. This is normal during build.');
+        return [];
+      }
+      
       console.error('Error fetching elections:', error);
+      
+      // During build, treat errors as non-fatal
+      if (shouldTreatErrorAsNonFatal(error)) {
+        return [];
+      }
+      
       return [];
     }
 
     return data || [];
   } catch (error) {
     console.error('Error initializing Supabase:', error);
+    
+    // During build, treat errors as non-fatal
+    if (shouldTreatErrorAsNonFatal(error as any)) {
+      return [];
+    }
+    
     // Return empty array if Supabase is not configured
     return [];
   }

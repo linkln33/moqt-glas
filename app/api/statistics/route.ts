@@ -1,14 +1,42 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/client';
+import { isSchemaCacheError, shouldTreatErrorAsNonFatal } from '@/lib/utils';
 
 export async function GET() {
   try {
     const supabase = createServerClient();
 
     // Get total elections
-    const { count: totalElections } = await supabase
+    const { count: totalElections, error: electionsCountError } = await supabase
       .from('elections')
       .select('*', { count: 'exact', head: true });
+    
+    if (electionsCountError) {
+      // Handle schema cache errors gracefully during build
+      if (isSchemaCacheError(electionsCountError)) {
+        console.warn('⚠️ Schema cache not refreshed yet (PGRST205). Returning empty stats. This is normal during build.');
+        return NextResponse.json({
+          totalElections: 0,
+          activeElections: 0,
+          totalVotes: 0,
+          totalUsers: 0,
+          statusDistribution: { active: 0, upcoming: 0, ended: 0 },
+          fundraisingStats: null,
+        });
+      }
+      
+      // During build, treat errors as non-fatal
+      if (shouldTreatErrorAsNonFatal(electionsCountError)) {
+        return NextResponse.json({
+          totalElections: 0,
+          activeElections: 0,
+          totalVotes: 0,
+          totalUsers: 0,
+          statusDistribution: { active: 0, upcoming: 0, ended: 0 },
+          fundraisingStats: null,
+        });
+      }
+    }
 
     // Get active elections
     const now = new Date().toISOString();

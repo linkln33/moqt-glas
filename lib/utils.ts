@@ -114,3 +114,30 @@ export function formatRelativeTime(date: Date | string): string {
     return formatDateBG(d);
   }
 }
+
+/**
+ * Check if a Supabase error is a schema cache issue (PGRST205)
+ * This happens when PostgREST hasn't refreshed its schema cache yet
+ */
+export function isSchemaCacheError(error: any): boolean {
+  return error?.code === 'PGRST205' || 
+         (error?.message && error.message.includes("Could not find the table") && error.message.includes("in the schema cache"));
+}
+
+/**
+ * Handle Supabase errors gracefully, especially during build time
+ * Returns true if the error should be treated as non-fatal (e.g., during build)
+ */
+export function shouldTreatErrorAsNonFatal(error: any): boolean {
+  // Schema cache errors are non-fatal during build
+  if (isSchemaCacheError(error)) {
+    return true;
+  }
+  
+  // During build/prerender, treat most errors as non-fatal
+  if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build') {
+    return true;
+  }
+  
+  return false;
+}

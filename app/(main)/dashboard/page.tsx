@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/client';
 import { FeedItem } from '@/components/feed-item';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
+import { isSchemaCacheError, shouldTreatErrorAsNonFatal } from '@/lib/utils';
 import Link from 'next/link';
 
 interface PollWithStats {
@@ -57,7 +58,19 @@ async function getFeedPolls(): Promise<PollWithStats[]> {
       .limit(20);
 
     if (error) {
+      // Handle schema cache errors gracefully during build
+      if (isSchemaCacheError(error)) {
+        console.warn('⚠️ Schema cache not refreshed yet (PGRST205). Returning empty array. This is normal during build.');
+        return [];
+      }
+      
       console.error('Error fetching elections:', error);
+      
+      // During build, treat errors as non-fatal
+      if (shouldTreatErrorAsNonFatal(error)) {
+        return [];
+      }
+      
       return [];
     }
 
@@ -131,10 +144,10 @@ async function getFeedPolls(): Promise<PollWithStats[]> {
     );
 
     return pollsWithStats;
-  } catch (error) {
+    } catch (error) {
     console.error('Error fetching feed polls:', error);
     return [];
-  }
+    }
 }
 
 export default async function DashboardPage() {
@@ -177,8 +190,8 @@ export default async function DashboardPage() {
                 ➕ Създай първата анкета
               </Button>
             </Link>
-          </GlassCardContent>
-        </GlassCard>
+                </GlassCardContent>
+              </GlassCard>
       )}
     </div>
   );
