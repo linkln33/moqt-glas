@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDateBG, formatTimeBG } from '@/lib/utils';
 import { formatRelativeTime, isElectionActive, hasElectionEnded } from '@/lib/utils';
-import { Heart, MessageCircle, Share2, Coins, CheckCircle2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Coins, CheckCircle2, Edit, Trash2 } from 'lucide-react';
 import { useDeviceFingerprint } from '@/lib/device-fingerprint';
 import { trackUserBehavior } from '@/lib/behavioral-analysis';
 import { Input } from '@/components/ui/input';
@@ -65,6 +66,7 @@ interface QuestionResult {
 }
 
 export function FeedItem({ poll }: FeedItemProps) {
+  const router = useRouter();
   const [likesCount, setLikesCount] = useState(poll.likesCount || 0);
   const [commentsCount, setCommentsCount] = useState(poll.commentsCount || 0);
   const [sharesCount, setSharesCount] = useState(poll.sharesCount || 0);
@@ -95,6 +97,7 @@ export function FeedItem({ poll }: FeedItemProps) {
   const [behaviorTracker, setBehaviorTracker] = useState<ReturnType<typeof trackUserBehavior> | null>(null);
   const behaviorTrackerRef = useRef<ReturnType<typeof trackUserBehavior> | null>(null);
   const mountedRef = useRef(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Color palette for options
   const optionColors = [
@@ -216,6 +219,22 @@ export function FeedItem({ poll }: FeedItemProps) {
       mountedRef.current = false;
     };
   }, [poll.id, poll.isActive, poll.end_date]);
+
+  // Get current user ID
+  useEffect(() => {
+    try {
+      const authData = localStorage.getItem('telegram_auth');
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        const telegramId = parsed.telegramId || parsed.id;
+        if (telegramId) {
+          setCurrentUserId(telegramId.toString());
+        }
+      }
+    } catch (e) {
+      console.warn('Error loading user ID:', e);
+    }
+  }, []);
 
   // Start behavior tracking
   useEffect(() => {
@@ -584,6 +603,41 @@ export function FeedItem({ poll }: FeedItemProps) {
     }
   };
 
+  const handleDeletePoll = async () => {
+    if (!confirm('Сигурни ли сте, че искате да изтриете тази анкета? Това действие не може да бъде отменено.')) {
+      return;
+    }
+
+    try {
+      const authData = localStorage.getItem('telegram_auth');
+      if (!authData) {
+        alert('Необходима е автентификация');
+        return;
+      }
+
+      const parsed = JSON.parse(authData);
+      const telegramId = parsed.telegramId || parsed.id;
+      
+      const response = await fetch(`/api/elections/${poll.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Грешка при изтриване на анкетата');
+      }
+
+      // Refresh the page to show updated list
+      router.refresh();
+      window.location.reload();
+    } catch (err: any) {
+      console.error('Error deleting poll:', err);
+      alert(err.message || 'Грешка при изтриване на анкетата');
+    }
+  };
+
   const isActive = isElectionActive(new Date(poll.start_date), new Date(poll.end_date));
   const isEnded = hasElectionEnded(new Date(poll.end_date));
 
@@ -607,6 +661,30 @@ export function FeedItem({ poll }: FeedItemProps) {
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              {currentUserId && currentUserId === poll.created_by && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => router.push(`/dashboard/create?edit=${poll.id}`)}
+                    className="h-8 w-8 p-0"
+                    title="Редактирай"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleDeletePoll}
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                    title="Изтрий"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+            </div>
             {isActive ? (
               <Badge variant="success">Активна</Badge>
             ) : isEnded ? (
