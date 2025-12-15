@@ -596,7 +596,7 @@ export function FeedItem({ poll }: FeedItemProps) {
 
       <GlassCardContent>
         {/* Voting UI - Directly integrated into card flow with color coding and statistics */}
-        {isActive && !hasVoted && !showResults && poll.questions && poll.questions.length > 0 && (
+        {isActive && !hasVoted && poll.questions && poll.questions.length > 0 && (
           <>
             {poll.questions.map((question) => {
               // Find results for this question

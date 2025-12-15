@@ -15,7 +15,7 @@ export default function DashboardLayout({
           </aside>
 
           {/* Main Content - Wider feed without max constraint */}
-          <main className="flex-1 min-w-0 pb-20 md:pb-8 max-w-[1800px]">
+          <main className="flex-1 min-w-0 pb-20 md:pb-8 max-w-[2400px]">
             <div className="w-full max-w-none">
               {children}
             </div>
