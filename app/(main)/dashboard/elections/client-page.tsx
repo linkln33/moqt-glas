@@ -98,10 +98,10 @@ export function ElectionsClientPage({ elections: initialElections }: ElectionsCl
       <div className="w-full">
         <div className="mb-6 lg:mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Избори и анкети</h1>
-            <p className="text-muted-foreground">
-              Изберете избори, в които да участвате
-            </p>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Избори и анкети</h1>
+          <p className="text-muted-foreground">
+            Изберете избори, в които да участвате
+          </p>
           </div>
           <Button
             onClick={() => {

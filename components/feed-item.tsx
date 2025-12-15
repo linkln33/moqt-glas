@@ -93,6 +93,7 @@ export function FeedItem({ poll }: FeedItemProps) {
   
   const { fingerprint } = useDeviceFingerprint();
   const [behaviorTracker, setBehaviorTracker] = useState<ReturnType<typeof trackUserBehavior> | null>(null);
+  const behaviorTrackerRef = useRef<ReturnType<typeof trackUserBehavior> | null>(null);
   const mountedRef = useRef(true);
 
   // Color palette for options
@@ -221,8 +222,10 @@ export function FeedItem({ poll }: FeedItemProps) {
     mountedRef.current = true;
     const tracker = trackUserBehavior();
     setBehaviorTracker(tracker);
+    behaviorTrackerRef.current = tracker;
     return () => {
       tracker?.cleanup();
+      behaviorTrackerRef.current = null;
       mountedRef.current = false;
     };
   }, []);
@@ -287,18 +290,22 @@ export function FeedItem({ poll }: FeedItemProps) {
     setSubmittingVote(true);
 
     try {
-      // Safely get behavior - check if method exists and behaviorTracker is not null
+      // Safely get behavior - use ref to avoid stale closures
       let behavior = null;
       try {
-        if (behaviorTracker && typeof behaviorTracker === 'object' && 'getBehavior' in behaviorTracker) {
-          const getBehaviorFn = behaviorTracker.getBehavior;
-          if (typeof getBehaviorFn === 'function') {
-            behavior = getBehaviorFn();
-          }
+        // Use ref to get current tracker value without closure issues
+        const currentTracker = behaviorTrackerRef.current;
+        if (currentTracker && 
+            typeof currentTracker === 'object' && 
+            currentTracker !== null &&
+            'getBehavior' in currentTracker &&
+            typeof currentTracker.getBehavior === 'function') {
+          behavior = currentTracker.getBehavior();
         }
       } catch (e) {
         console.warn('Error getting behavior:', e);
-        // Continue without behavior data
+        // Continue without behavior data - behavior tracking is optional
+        behavior = null;
       }
 
       // Prepare telegramAuth object with correct structure
@@ -380,7 +387,7 @@ export function FeedItem({ poll }: FeedItemProps) {
         setSubmittingVote(false);
       }
     }
-  }, [submittingVote, poll.questions, poll.id, selectedOptions, fingerprint, behaviorTracker]);
+  }, [submittingVote, poll.questions, poll.id, selectedOptions, fingerprint]);
 
   const handleLike = async () => {
     if (isLoading || !mountedRef.current) return;
@@ -410,7 +417,7 @@ export function FeedItem({ poll }: FeedItemProps) {
       console.error('Error toggling like:', error);
     } finally {
       if (mountedRef.current) {
-        setIsLoading(false);
+      setIsLoading(false);
       }
     }
   };
@@ -446,7 +453,7 @@ export function FeedItem({ poll }: FeedItemProps) {
       console.error('Error adding comment:', error);
     } finally {
       if (mountedRef.current) {
-        setIsLoading(false);
+      setIsLoading(false);
       }
     }
   };
@@ -484,8 +491,8 @@ export function FeedItem({ poll }: FeedItemProps) {
       console.error('Error sharing:', error);
     } finally {
       if (mountedRef.current) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
+    }
     }
   };
 
@@ -632,8 +639,8 @@ export function FeedItem({ poll }: FeedItemProps) {
                 <div key={question.id} className="mb-6 space-y-3">
                   <div className="font-medium text-base mb-3">
                     {question.question_text_bg || question.question_text}
-                  </div>
-                  <div className="space-y-2">
+            </div>
+            <div className="space-y-2">
                     {question.options.map((option, optionIndex) => {
                       const isSelected = selectedOptions[question.id]?.includes(option.id) || false;
                       const color = getOptionColor(optionIndex);
@@ -656,9 +663,9 @@ export function FeedItem({ poll }: FeedItemProps) {
                               <div className="flex items-center gap-2 flex-1">
                                 <div className={`w-3 h-3 rounded-full ${color.progress}`}></div>
                                 <span className={`text-sm font-medium ${isSelected ? color.text : ''}`}>
-                                  {option.option_text_bg || option.option_text}
-                                </span>
-                              </div>
+                    {option.option_text_bg || option.option_text}
+                  </span>
+                </div>
                               <div className="flex items-center gap-2">
                                 {questionTotalVotes > 0 && (
                                   <span className="text-xs text-muted-foreground">
@@ -722,7 +729,7 @@ export function FeedItem({ poll }: FeedItemProps) {
                 <div key={question.id} className="mb-6 space-y-3">
                   <div className="font-medium text-sm mb-3">
                     {question.question_text_bg}
-                  </div>
+              </div>
                   <div className="space-y-3">
                     {question.options
                       .sort((a, b) => b.votes - a.votes)
@@ -760,7 +767,7 @@ export function FeedItem({ poll }: FeedItemProps) {
                   <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
                     Общо гласове: {question.totalVotes}
                   </div>
-                </div>
+          </div>
               );
             })}
           </>
@@ -814,14 +821,14 @@ export function FeedItem({ poll }: FeedItemProps) {
                 <Label className="mb-2 block text-sm">Изберете сума</Label>
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {presetAmounts.map((preset) => (
-                    <Button
+            <Button
                       key={preset}
                       type="button"
                       variant={donationAmount === preset ? 'default' : 'outline'}
                       className={donationAmount === preset ? 'gradient-primary text-white' : ''}
                       onClick={() => handlePresetDonation(preset)}
-                      size="sm"
-                    >
+              size="sm"
+            >
                       {preset} {poll.fundraisingCurrency || 'BGN'}
                     </Button>
                   ))}
@@ -906,7 +913,7 @@ export function FeedItem({ poll }: FeedItemProps) {
                 disabled={!donationAmount || donationAmount <= 0 || submittingDonation}
               >
                 {submittingDonation ? 'Обработване...' : `Дари ${donationAmount} ${poll.fundraisingCurrency || 'BGN'}`}
-              </Button>
+            </Button>
 
               <p className="text-xs text-muted-foreground text-center">
                 * Плащането ще бъде обработено чрез сигурен платежен шлюз
@@ -972,8 +979,8 @@ export function FeedItem({ poll }: FeedItemProps) {
                 size="sm"
                 onClick={() => {
                   if (mountedRef.current) {
-                    setShowCommentInput(false);
-                    setCommentText('');
+                  setShowCommentInput(false);
+                  setCommentText('');
                   }
                 }}
               >

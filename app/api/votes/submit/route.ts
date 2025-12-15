@@ -43,21 +43,21 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Full Telegram auth verification (callback method)
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      if (!botToken) {
-        return NextResponse.json(
-          { error: 'Bot token не е конфигуриран' },
-          { status: 500 }
-        );
-      }
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken) {
+      return NextResponse.json(
+        { error: 'Bot token не е конфигуриран' },
+        { status: 500 }
+      );
+    }
 
-      const isValid = verifyTelegramAuth(telegramAuth, botToken);
-      if (!isValid) {
-        return NextResponse.json(
-          { error: 'Невалидна автентификация' },
-          { status: 401 }
-        );
-      }
+    const isValid = verifyTelegramAuth(telegramAuth, botToken);
+    if (!isValid) {
+      return NextResponse.json(
+        { error: 'Невалидна автентификация' },
+        { status: 401 }
+      );
+    }
 
       telegramId = getTelegramId(telegramAuth);
     }
