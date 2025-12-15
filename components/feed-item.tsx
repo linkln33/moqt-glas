@@ -803,8 +803,8 @@ export function FeedItem({ poll }: FeedItemProps) {
           </>
         )}
 
-        {/* Voting Statistics - Always visible when results are loaded */}
-        {results.length > 0 && (
+        {/* Voting Statistics - Always visible (show even with 0 votes) */}
+        {(results.length > 0 || poll.questions?.length > 0) && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="font-semibold text-base">📊 Статистика</span>
@@ -812,43 +812,53 @@ export function FeedItem({ poll }: FeedItemProps) {
               {isEnded && <Badge variant="secondary" className="text-xs">Приключила</Badge>}
             </div>
             
-            {results.map((question) => {
+            {(results.length > 0 ? results : poll.questions || []).map((question: any) => {
+              // Find results for this question if available
+              const questionResults = results.find(r => r.id === question.id);
+              const questionData = questionResults || question;
+              
+              // Use poll question if no results yet
+              const questionOptions = questionResults?.options || question.options || [];
+              const questionTotalVotes = questionResults?.totalVotes || 0;
+              
               // Find original question to get option order
-              const originalQuestion = poll.questions?.find(q => q.id === question.id);
+              const originalQuestion = poll.questions?.find(q => q.id === (question.id || questionData.id));
               
               return (
-                <div key={question.id} className="mb-6 space-y-3">
+                <div key={question.id || questionData.id} className="mb-6 space-y-3">
                   <div className="font-medium text-sm mb-3">
-                    {question.question_text_bg}
+                    {question.question_text_bg || questionData.question_text_bg || question.question_text || questionData.question_text}
                   </div>
                   <div className="space-y-3">
-                    {question.options
-                      .sort((a, b) => b.votes - a.votes)
-                      .map((option, index) => {
+                    {questionOptions
+                      .sort((a: any, b: any) => (b.votes || 0) - (a.votes || 0))
+                      .map((option: any, index: number) => {
                         // Find original option index for color coding
-                        const originalIndex = originalQuestion?.options.findIndex(o => o.id === option.id) ?? index;
+                        const originalIndex = originalQuestion?.options.findIndex((o: any) => o.id === option.id) ?? index;
                         const color = getOptionColor(originalIndex);
+                        const optionVotes = option.votes || 0;
+                        const optionPercentage = option.percentage || 0;
                         
                         return (
                           <div key={option.id} className="space-y-2">
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-2">
-                                {index === 0 && question.totalVotes > 0 && (
+                                {index === 0 && questionTotalVotes > 0 && (
                                   <span className="text-xl">🏆</span>
                                 )}
                                 <div className={`w-3 h-3 rounded-full ${color.progress}`}></div>
                                 <span className={`text-sm font-medium ${color.text}`}>
-                                  {option.option_text_bg}
+                                  {option.option_text_bg || option.option_text}
                                 </span>
                               </div>
-                              <Badge variant={index === 0 && question.totalVotes > 0 ? 'success' : 'secondary'}>
-                                {option.votes} ({option.percentage.toFixed(1)}%)
+                              <Badge variant={index === 0 && questionTotalVotes > 0 ? 'success' : 'secondary'}>
+                                {optionVotes} ({optionPercentage.toFixed(1)}%)
                               </Badge>
                             </div>
                             <div className="w-full h-3 bg-background/50 rounded-full overflow-hidden">
                               <div
                                 className={`h-full ${color.progress} transition-all duration-500`}
-                                style={{ width: `${option.percentage}%` }}
+                                style={{ width: `${optionPercentage}%` }}
                               />
                             </div>
                           </div>
@@ -856,7 +866,7 @@ export function FeedItem({ poll }: FeedItemProps) {
                       })}
                   </div>
                   <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
-                    Общо гласове: {question.totalVotes}
+                    Общо гласове: {questionTotalVotes}
                   </div>
                 </div>
               );
