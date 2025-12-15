@@ -1,0 +1,43 @@
+{
+  "name": "Моят Глас - Български избори",
+  "short_name": "Моят Глас",
+  "description": "Платформа за гласуване в българските избори",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00966E",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["politics", "social", "voting"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Гласувай",
+      "short_name": "Гласувай",
+      "description": "Участвай в активни избори",
+      "url": "/dashboard",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Създай анкета",
+      "short_name": "Създай",
+      "description": "Създай нова анкета",
+      "url": "/dashboard/create",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    }
+  ]
+}

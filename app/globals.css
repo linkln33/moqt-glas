@@ -2,6 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PWA and Mobile Fullscreen Support */
+@layer base {
+  html {
+    height: 100%;
+    height: -webkit-fill-available;
+    overflow-x: hidden;
+  }
+  
+  body {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior-y: none;
+    /* Prevent text selection on mobile for app-like feel */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow text selection in content areas */
+  main,
+  p,
+  span,
+  div[contenteditable],
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  
+  /* Safe area insets for notched devices */
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: max(0px, env(safe-area-inset-left));
+      padding-right: max(0px, env(safe-area-inset-right));
+    }
+  }
+}
+
 @layer base {
   :root {
     --background: 240 10% 3.9%;
