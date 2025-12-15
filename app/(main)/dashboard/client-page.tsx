@@ -62,7 +62,7 @@ export function DashboardClientPage({ initialPolls }: DashboardClientPageProps) 
     };
   }, [initialPolls]);
 
-  // Refetch polls when component mounts
+  // Refetch polls when component mounts or window gains focus
   useEffect(() => {
     mountedRef.current = true;
     
@@ -71,65 +71,22 @@ export function DashboardClientPage({ initialPolls }: DashboardClientPageProps) 
       
       setLoading(true);
       try {
-        // Use the same endpoint that the server uses
+        // Refresh the page data by reloading
         const response = await fetch('/api/elections');
         if (!mountedRef.current) return;
         
         if (response.ok) {
           const data = await response.json();
-          const elections = data.elections || [];
-          
-          // Convert elections to polls format (simplified - stats will be calculated from initialPolls)
-          // For now, just update the list, stats are already in initialPolls
-          if (mountedRef.current && elections.length > 0) {
-            // Merge with initial polls to preserve stats
-            const updatedPolls = elections.map((election: any) => {
-              const existingPoll = polls.find(p => p.id === election.id);
-              if (existingPoll) {
-                return {
-                  ...existingPoll,
-                  ...election,
-                };
-              }
-              
-              const startDate = new Date(election.start_date);
-              const endDate = new Date(election.end_date);
-              const now = new Date();
-              const isActive = startDate <= now && endDate >= now;
-              
-              return {
-                ...election,
-                questions: [],
-                totalVotes: 0,
-                isActive,
-                likesCount: 0,
-                commentsCount: 0,
-                sharesCount: 0,
-                hasFundraising: election.has_fundraising || false,
-                fundraisingGoal: election.fundraising_goal ? parseFloat(election.fundraising_goal) : undefined,
-                fundraisingCurrent: 0,
-                fundraisingCurrency: election.fundraising_currency || 'BGN',
-              };
-            });
-            
-            setPolls(updatedPolls);
-          }
+          // Just refresh the page to get full server-side data
+          window.location.reload();
         }
       } catch (error) {
         if (mountedRef.current) {
           console.error('Error fetching polls:', error);
-        }
-      } finally {
-        if (mountedRef.current) {
           setLoading(false);
         }
       }
     };
-
-    // Only refetch if we don't have polls or want to refresh
-    if (!polls || polls.length === 0) {
-      fetchPolls();
-    }
 
     // Listen for focus events to refetch when user returns to tab
     const handleFocus = () => {
