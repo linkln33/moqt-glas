@@ -66,7 +66,9 @@ export async function GET(
         .eq('status', 'active')
         .single();
 
-      const userTierLevel = subscription?.subscription_tiers?.tier_level || 0;
+      const userTierLevel = Array.isArray(subscription?.subscription_tiers) && subscription.subscription_tiers.length > 0
+        ? subscription.subscription_tiers[0].tier_level
+        : 0;
 
       // Add access info to each video
       const videosWithAccess = videos?.map((video: any) => {
