@@ -217,7 +217,7 @@ export default async function CreatorPage({
                   </div>
                   {tier.benefits && Array.isArray(tier.benefits) && tier.benefits.length > 0 && (
                     <ul className="space-y-2 mb-4">
-                      {tier.benefits.map((benefit, idx) => (
+                      {tier.benefits.map((benefit: string, idx: number) => (
                         <li key={idx} className="text-sm flex items-start gap-2">
                           <span>✓</span>
                           <span>{benefit}</span>
