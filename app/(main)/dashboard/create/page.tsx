@@ -276,7 +276,10 @@ function CreatePollPageContent() {
         throw new Error(result.error || 'Грешка при създаване на изборите');
       }
 
-      router.push(`/vote/${result.electionId}`);
+      // Redirect to elections page to see the new election
+      router.push(`/dashboard/elections`);
+      // Also refresh the router to ensure latest data
+      router.refresh();
     } catch (error: any) {
       alert(error.message || 'Грешка при създаване на изборите');
     } finally {

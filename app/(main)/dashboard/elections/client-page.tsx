@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardFooter, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,9 +14,50 @@ interface ElectionsClientPageProps {
 }
 
 export function ElectionsClientPage({ elections: initialElections }: ElectionsClientPageProps) {
+  const router = useRouter();
   const [filter, setFilter] = useState<'all' | 'active' | 'upcoming' | 'ended'>('all');
+  const [elections, setElections] = useState(initialElections);
+  const [loading, setLoading] = useState(false);
 
-  const filteredElections = initialElections.filter(election => {
+  // Sync initialElections with state when it changes
+  useEffect(() => {
+    if (initialElections && initialElections.length > 0) {
+      setElections(initialElections);
+    }
+  }, [initialElections]);
+
+  // Refetch elections when component mounts or when router refreshes
+  useEffect(() => {
+    const fetchElections = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/elections');
+        if (response.ok) {
+          const data = await response.json();
+          setElections(data.elections || []);
+        }
+      } catch (error) {
+        console.error('Error fetching elections:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Refetch on mount to get latest data
+    fetchElections();
+
+    // Listen for focus events to refetch when user returns to tab
+    const handleFocus = () => {
+      fetchElections();
+    };
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  const filteredElections = elections.filter(election => {
     const startDate = new Date(election.start_date);
     const endDate = new Date(election.end_date);
     
@@ -25,24 +67,46 @@ export function ElectionsClientPage({ elections: initialElections }: ElectionsCl
     return true;
   });
 
-  const activeCount = initialElections.filter(e => 
+  const activeCount = elections.filter(e => 
     isElectionActive(new Date(e.start_date), new Date(e.end_date))
   ).length;
-  const upcomingCount = initialElections.filter(e => 
+  const upcomingCount = elections.filter(e => 
     !hasElectionEnded(new Date(e.end_date)) && !isElectionActive(new Date(e.start_date), new Date(e.end_date))
   ).length;
-  const endedCount = initialElections.filter(e => 
+  const endedCount = elections.filter(e => 
     hasElectionEnded(new Date(e.end_date))
   ).length;
 
   return (
     <div className="py-6 lg:py-8">
       <div className="w-full">
-        <div className="mb-6 lg:mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Избори и анкети</h1>
-          <p className="text-muted-foreground">
-            Изберете избори, в които да участвате
-          </p>
+        <div className="mb-6 lg:mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Избори и анкети</h1>
+            <p className="text-muted-foreground">
+              Изберете избори, в които да участвате
+            </p>
+          </div>
+          <Button
+            onClick={() => {
+              setLoading(true);
+              fetch('/api/elections')
+                .then(res => res.json())
+                .then(data => {
+                  setElections(data.elections || []);
+                  setLoading(false);
+                })
+                .catch(err => {
+                  console.error('Error refreshing elections:', err);
+                  setLoading(false);
+                });
+            }}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+          >
+            {loading ? '🔄' : '🔄'} Обнови
+          </Button>
         </div>
 
         {/* Quick Filters */}
@@ -53,7 +117,7 @@ export function ElectionsClientPage({ elections: initialElections }: ElectionsCl
             size="sm"
             className="whitespace-nowrap"
           >
-            Всички ({initialElections.length})
+            Всички ({elections.length})
           </Button>
           <Button
             onClick={() => setFilter('active')}
@@ -82,7 +146,14 @@ export function ElectionsClientPage({ elections: initialElections }: ElectionsCl
         </div>
 
         {/* Elections Grid */}
-        {filteredElections.length > 0 ? (
+        {loading ? (
+          <GlassCard>
+            <GlassCardContent className="py-16 text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+              <p className="text-muted-foreground">Зареждане...</p>
+            </GlassCardContent>
+          </GlassCard>
+        ) : filteredElections.length > 0 ? (
           <div className="grid gap-4 lg:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredElections.map((election) => (
               <ElectionCard key={election.id} election={election} />
