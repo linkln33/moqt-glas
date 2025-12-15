@@ -150,7 +150,7 @@ export default async function HomePage() {
           {/* Hero Section */}
           <div className="relative overflow-hidden border-b border-border/50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 md:pt-16 pb-12 sm:pb-20 md:pb-32 relative">
-          <div className="max-w-4xl mx-auto text-center">
+              <div className="max-w-4xl mx-auto text-center">
             <div className="flex flex-col items-center justify-center mb-4 sm:mb-6">
               <div className="mb-4 sm:mb-6">
                 <Image 
