@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDateBG, formatTimeBG } from '@/lib/utils';
-import { formatRelativeTime } from '@/lib/utils';
-import { Heart, MessageCircle, Share2, Coins, Copy, Link as LinkIcon } from 'lucide-react';
+import { formatRelativeTime, isElectionActive, hasElectionEnded } from '@/lib/utils';
+import { Heart, MessageCircle, Share2, Coins, CheckCircle2 } from 'lucide-react';
 import { DonationForm } from '@/components/donation-form';
+import { useDeviceFingerprint } from '@/lib/device-fingerprint';
+import { trackUserBehavior } from '@/lib/behavioral-analysis';
 
 interface PollWithStats {
   id: string;
@@ -48,6 +49,19 @@ interface FeedItemProps {
   poll: PollWithStats;
 }
 
+interface QuestionResult {
+  id: string;
+  question_text_bg: string;
+  question_type: string;
+  options: Array<{
+    id: string;
+    option_text_bg: string;
+    votes: number;
+    percentage: number;
+  }>;
+  totalVotes: number;
+}
+
 export function FeedItem({ poll }: FeedItemProps) {
   const [likesCount, setLikesCount] = useState(poll.likesCount || 0);
   const [commentsCount, setCommentsCount] = useState(poll.commentsCount || 0);
@@ -58,25 +72,33 @@ export function FeedItem({ poll }: FeedItemProps) {
   const [commentText, setCommentText] = useState('');
   const [showDonationForm, setShowDonationForm] = useState(false);
   const [fundraisingCurrent, setFundraisingCurrent] = useState(poll.fundraisingCurrent || 0);
-  const fundraisingGoal = poll.fundraisingGoal || 0;
-  const fundraisingCurrency = poll.fundraisingCurrency || 'BGN';
+  
+  // Voting state
+  const [hasVoted, setHasVoted] = useState(false);
+  const [showVoting, setShowVoting] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
+  const [submittingVote, setSubmittingVote] = useState(false);
+  const [results, setResults] = useState<QuestionResult[]>([]);
+  const [totalVotes, setTotalVotes] = useState(poll.totalVotes || 0);
+  
+  const { fingerprint } = useDeviceFingerprint();
+  const [behaviorTracker, setBehaviorTracker] = useState<ReturnType<typeof trackUserBehavior> | null>(null);
 
-  const progress =
-    fundraisingGoal > 0 ? Math.min((fundraisingCurrent / fundraisingGoal) * 100, 100) : 0;
-
-  const handleShare = useCallback(() => {
-    const url = typeof window !== 'undefined'
-      ? `${window.location.origin}/elections/${poll.id}`
-      : `/elections/${poll.id}`;
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(url).catch(() => {});
-    }
-    setSharesCount((prev) => prev + 1);
-  }, [poll.id]);
-
-  // Check if user has liked this poll on mount
+  // Initialize selected options
   useEffect(() => {
-    const checkUserLike = async () => {
+    if (poll.questions) {
+      const initial: Record<string, string[]> = {};
+      poll.questions.forEach((q) => {
+        initial[q.id] = [];
+      });
+      setSelectedOptions(initial);
+    }
+  }, [poll.questions]);
+
+  // Check if user has voted
+  useEffect(() => {
+    const checkVoteStatus = async () => {
       try {
         const authData = localStorage.getItem('telegram_auth');
         if (!authData) return;
@@ -84,23 +106,129 @@ export function FeedItem({ poll }: FeedItemProps) {
         const parsed = JSON.parse(authData);
         if (!parsed.telegramId) return;
 
-        const response = await fetch(`/api/elections/${poll.id}/like/check?telegramId=${parsed.telegramId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setIsLiked(data.isLiked || false);
+        // Check if user has voted for this election
+        const voteCheck = await fetch(`/api/votes/check?electionId=${poll.id}&telegramId=${parsed.telegramId}`);
+        if (voteCheck.ok) {
+          const voteData = await voteCheck.json();
+          if (voteData.hasVoted) {
+            setHasVoted(true);
+            setShowResults(true);
+            loadResults();
+          }
         }
       } catch (error) {
-        console.error('Error checking user like:', error);
+        console.error('Error checking vote status:', error);
       }
     };
 
-    checkUserLike();
-  }, [poll.id]);
+    if (poll.isActive) {
+      checkVoteStatus();
+    } else if (hasElectionEnded(poll.end_date)) {
+      // If election ended, show results
+      setShowResults(true);
+      loadResults();
+    }
+  }, [poll.id, poll.isActive, poll.end_date]);
 
-  const mainQuestion = poll.questions?.[0];
-  const previewOptions = mainQuestion?.options?.slice(0, 3) || [];
-  const hasMoreOptions = (mainQuestion?.options?.length || 0) > 3;
-  const questionCount = poll.questions?.length || 0;
+  // Start behavior tracking
+  useEffect(() => {
+    const tracker = trackUserBehavior();
+    setBehaviorTracker(tracker);
+    return () => {
+      tracker?.cleanup();
+    };
+  }, []);
+
+  const loadResults = async () => {
+    try {
+      const response = await fetch(`/api/elections/${poll.id}/results`);
+      if (response.ok) {
+        const data = await response.json();
+        setResults(data.questions || []);
+        const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
+        setTotalVotes(total);
+      }
+    } catch (error) {
+      console.error('Error loading results:', error);
+    }
+  };
+
+  const handleOptionSelect = (questionId: string, optionId: string, questionType: string) => {
+    setSelectedOptions((prev) => {
+      const current = prev[questionId] || [];
+      if (questionType === 'single-choice') {
+        return { ...prev, [questionId]: [optionId] };
+      } else {
+        // Multiple choice
+        if (current.includes(optionId)) {
+          return { ...prev, [questionId]: current.filter((id) => id !== optionId) };
+        } else {
+          return { ...prev, [questionId]: [...current, optionId] };
+        }
+      }
+    });
+  };
+
+  const handleVoteSubmit = async () => {
+    if (submittingVote) return;
+
+    const authData = localStorage.getItem('telegram_auth');
+    if (!authData) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const parsed = JSON.parse(authData);
+    if (!parsed.telegramId) {
+      window.location.href = '/login';
+      return;
+    }
+
+    // Validate all questions are answered
+    for (const question of poll.questions || []) {
+      if (!selectedOptions[question.id] || selectedOptions[question.id].length === 0) {
+        alert('Моля, отговорете на всички въпроси');
+        return;
+      }
+    }
+
+    setSubmittingVote(true);
+    try {
+      const behavior = behaviorTracker?.getBehavior();
+
+      // Submit votes for all questions
+      for (const question of poll.questions || []) {
+        const response = await fetch('/api/votes/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegramAuth: parsed,
+            electionId: poll.id,
+            questionId: question.id,
+            selectedOptions: selectedOptions[question.id],
+            deviceFingerprint: fingerprint,
+            userBehavior: behavior,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Грешка при подаване на глас');
+        }
+      }
+
+      // Success - show results
+      setHasVoted(true);
+      setShowVoting(false);
+      setShowResults(true);
+      await loadResults();
+    } catch (err: any) {
+      alert(err.message || 'Грешка при подаване на глас');
+    } finally {
+      setSubmittingVote(false);
+    }
+  };
 
   const handleLike = async () => {
     if (isLoading) return;
@@ -165,6 +293,44 @@ export function FeedItem({ poll }: FeedItemProps) {
     }
   };
 
+  const handleShare = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      const authData = localStorage.getItem('telegram_auth');
+      if (!authData) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const parsed = JSON.parse(authData);
+      const response = await fetch(`/api/elections/${poll.id}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: parsed.telegramId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSharesCount(data.sharesCount || sharesCount + 1);
+        
+        const shareUrl = `${window.location.origin}/results/${poll.id}`;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(shareUrl);
+          alert('Линкът е копиран в клипборда!');
+        }
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const isActive = isElectionActive(new Date(poll.start_date), new Date(poll.end_date));
+  const isEnded = hasElectionEnded(new Date(poll.end_date));
+
   return (
     <GlassCard hover className="overflow-hidden">
       <GlassCardHeader>
@@ -185,9 +351,9 @@ export function FeedItem({ poll }: FeedItemProps) {
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            {poll.isActive ? (
+            {isActive ? (
               <Badge variant="success">Активна</Badge>
-            ) : new Date(poll.end_date) < new Date() ? (
+            ) : isEnded ? (
               <Badge variant="secondary">Приключила</Badge>
             ) : (
               <Badge variant="info">Предстояща</Badge>
@@ -205,35 +371,122 @@ export function FeedItem({ poll }: FeedItemProps) {
       </GlassCardHeader>
 
       <GlassCardContent>
-        {/* Poll Preview */}
-        {mainQuestion && (
-          <div className="mb-4 p-4 bg-background/30 rounded-lg border border-border/50">
-            <div className="text-sm font-semibold mb-3 text-foreground">
-              {mainQuestion.question_text_bg || mainQuestion.question_text}
+        {/* Voting UI */}
+        {isActive && !hasVoted && showVoting && poll.questions && poll.questions.length > 0 && (
+          <div className="mb-6 space-y-6 p-4 bg-background/30 rounded-lg border border-primary/20">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg">Гласувай</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowVoting(false);
+                  setShowResults(true);
+                  loadResults();
+                }}
+              >
+                Виж резултати
+              </Button>
             </div>
-            <div className="space-y-2">
-              {previewOptions.map((option) => (
-                <div
-                  key={option.id}
-                  className="flex items-center gap-2 p-2 rounded-md bg-background/50 hover:bg-background/70 transition-colors"
+            
+            {poll.questions.map((question) => (
+              <div key={question.id} className="space-y-3">
+                <div className="font-medium text-sm">
+                  {question.question_text_bg || question.question_text}
+                </div>
+                <div className="space-y-2">
+                  {question.options.map((option) => {
+                    const isSelected = selectedOptions[question.id]?.includes(option.id) || false;
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => handleOptionSelect(question.id, option.id, question.question_type)}
+                        className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                          isSelected
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50 bg-background/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">{option.option_text_bg || option.option_text}</span>
+                          {isSelected && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            
+            <Button
+              onClick={handleVoteSubmit}
+              disabled={submittingVote}
+              className="w-full gradient-primary text-white shadow-lg"
+            >
+              {submittingVote ? 'Изпращане...' : 'Подай глас'}
+            </Button>
+          </div>
+        )}
+
+        {/* Results/Statistics UI */}
+        {showResults && results.length > 0 && (
+          <div className="mb-6 space-y-6 p-4 bg-background/30 rounded-lg border border-border/50">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                📊 Резултати
+                {hasVoted && <Badge variant="success" className="text-xs">Гласували сте</Badge>}
+              </h3>
+              {isActive && !hasVoted && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowResults(false);
+                    setShowVoting(true);
+                  }}
                 >
-                  <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span className="text-sm text-foreground">
-                    {option.option_text_bg || option.option_text}
-                  </span>
-                </div>
-              ))}
-              {hasMoreOptions && (
-                <div className="text-xs text-muted-foreground pl-4">
-                  +{mainQuestion.options.length - 3} още опции
-                </div>
+                  Гласувай
+                </Button>
               )}
             </div>
-            {questionCount > 1 && (
-              <div className="mt-3 text-xs text-muted-foreground">
-                +{questionCount - 1} допълнителни въпроси
+            
+            {results.map((question) => (
+              <div key={question.id} className="space-y-3">
+                <div className="font-medium text-sm mb-3">
+                  {question.question_text_bg}
+                </div>
+                <div className="space-y-3">
+                  {question.options
+                    .sort((a, b) => b.votes - a.votes)
+                    .map((option, index) => (
+                      <div key={option.id} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            {index === 0 && question.totalVotes > 0 && (
+                              <span className="text-xl">🏆</span>
+                            )}
+                            <span className="text-sm font-medium">
+                              {option.option_text_bg}
+                            </span>
+                          </div>
+                          <Badge variant={index === 0 && question.totalVotes > 0 ? 'success' : 'secondary'}>
+                            {option.votes} ({option.percentage.toFixed(1)}%)
+                          </Badge>
+                        </div>
+                        <div className="w-full h-3 bg-background/50 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
+                            style={{ width: `${option.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                <div className="text-xs text-muted-foreground pt-2 border-t border-border/30">
+                  Общо гласове: {question.totalVotes}
+                </div>
               </div>
-            )}
+            ))}
           </div>
         )}
 
@@ -242,11 +495,11 @@ export function FeedItem({ poll }: FeedItemProps) {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <span>👥</span>
-              <span className="font-medium">{poll.totalVotes} гласа</span>
+              <span className="font-medium">{totalVotes} гласа</span>
             </div>
             <div className="flex items-center gap-1">
               <span>📊</span>
-              <span>{questionCount} {questionCount === 1 ? 'въпрос' : 'въпроса'}</span>
+              <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
             </div>
           </div>
           <div className="text-xs">
@@ -263,18 +516,16 @@ export function FeedItem({ poll }: FeedItemProps) {
                 <span className="font-semibold">Събиране на средства</span>
               </div>
               <span className="text-sm font-medium">
-                {fundraisingCurrent.toFixed(2)} {fundraisingCurrency} / {fundraisingGoal.toFixed(2)} {fundraisingCurrency}
+                {fundraisingCurrent.toFixed(2)} {poll.fundraisingCurrency || 'BGN'} / {poll.fundraisingGoal.toFixed(2)} {poll.fundraisingCurrency || 'BGN'}
               </span>
             </div>
             <div className="w-full h-2 bg-background/30 rounded-full overflow-hidden mb-3">
               <div
                 className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
-                style={{ width: `${progress}%` }}
+                style={{ 
+                  width: `${Math.min((fundraisingCurrent / poll.fundraisingGoal) * 100, 100)}%` 
+                }}
               />
-            </div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
-              <span>Прогрес</span>
-              <span>{progress.toFixed(1)}%</span>
             </div>
             <Button
               onClick={() => setShowDonationForm(true)}
@@ -284,19 +535,6 @@ export function FeedItem({ poll }: FeedItemProps) {
               <Heart className="w-4 h-4 mr-2" />
               Подкрепи
             </Button>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              <Button variant="secondary" size="sm" onClick={handleShare} className="gap-1">
-                <Copy className="w-3 h-3" />
-                Копирай линк
-              </Button>
-              <Link
-                href={`/elections/${poll.id}`}
-                className="flex items-center gap-1 text-primary hover:underline"
-              >
-                <LinkIcon className="w-3 h-3" />
-                Виж детайли
-              </Link>
-            </div>
           </div>
         )}
 
@@ -367,23 +605,28 @@ export function FeedItem({ poll }: FeedItemProps) {
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3">
-          {poll.isActive ? (
-            <Link href={`/vote/${poll.id}`} className="flex-1">
-              <Button className="w-full gradient-primary text-white shadow-lg">
+        {!showVoting && !showResults && (
+          <div className="flex gap-3">
+            {isActive && !hasVoted && (
+              <Button
+                onClick={() => setShowVoting(true)}
+                className="flex-1 gradient-primary text-white shadow-lg"
+              >
                 🗳️ Гласувай
               </Button>
-            </Link>
-          ) : null}
-          <Link href={`/results/${poll.id}`} className={poll.isActive ? 'flex-1' : 'w-full'}>
-            <Button 
-              variant={poll.isActive ? 'outline' : 'default'} 
-              className={poll.isActive ? 'w-full glass' : 'w-full gradient-primary text-white shadow-lg'}
+            )}
+            <Button
+              onClick={() => {
+                setShowResults(true);
+                loadResults();
+              }}
+              variant={isActive && !hasVoted ? 'outline' : 'default'}
+              className={isActive && !hasVoted ? 'flex-1 glass' : 'w-full gradient-primary text-white shadow-lg'}
             >
               📊 Резултати
             </Button>
-          </Link>
-        </div>
+          </div>
+        )}
       </GlassCardContent>
 
       {/* Donation Form Modal */}
@@ -395,7 +638,6 @@ export function FeedItem({ poll }: FeedItemProps) {
           currency={poll.fundraisingCurrency || 'BGN'}
           onClose={() => setShowDonationForm(false)}
           onSuccess={() => {
-            // Refresh fundraising amount after successful donation
             fetch(`/api/elections/${poll.id}/fundraising`)
               .then(res => res.json())
               .then(data => {
