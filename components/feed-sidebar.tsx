@@ -147,14 +147,13 @@ export function FeedSidebar() {
                 <Button 
                   variant="ghost" 
                   className={`w-full justify-start ${
-                    pathname === '/dashboard' || 
-                    (pathname && 
-                     pathname.startsWith('/dashboard') && 
-                     pathname !== '/dashboard/create' && 
-                     pathname !== '/dashboard/settings' && 
-                     pathname !== '/dashboard/statistics' && 
-                     pathname !== '/dashboard/creator' &&
-                     pathname !== '/dashboard/elections')
+                    pathname && 
+                    pathname.startsWith('/dashboard') && 
+                    pathname !== '/dashboard/create' && 
+                    pathname !== '/dashboard/settings' && 
+                    pathname !== '/dashboard/statistics' && 
+                    pathname !== '/dashboard/creator' &&
+                    pathname !== '/dashboard/elections'
                       ? 'bg-primary/10 text-primary' 
                       : ''
                   }`}
