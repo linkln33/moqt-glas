@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
       fundraising_goal,
       fundraising_currency,
       fundraising_description_bg,
+      fundraising_end_date,
     } = body;
 
     const supabase = createServerClient();
@@ -70,21 +71,21 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Full Telegram auth verification (callback method)
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      if (!botToken) {
-        return NextResponse.json(
-          { error: 'Bot token не е конфигуриран' },
-          { status: 500 }
-        );
-      }
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken) {
+      return NextResponse.json(
+        { error: 'Bot token не е конфигуриран' },
+        { status: 500 }
+      );
+    }
 
-      const isValid = verifyTelegramAuth(telegramAuth, botToken);
-      if (!isValid) {
-        return NextResponse.json(
-          { error: 'Невалидна автентификация' },
-          { status: 401 }
-        );
-      }
+    const isValid = verifyTelegramAuth(telegramAuth, botToken);
+    if (!isValid) {
+      return NextResponse.json(
+        { error: 'Невалидна автентификация' },
+        { status: 401 }
+      );
+    }
 
       telegramId = getTelegramId(telegramAuth);
     }
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
         fundraising_goal: has_fundraising && fundraising_goal ? parseFloat(fundraising_goal) : null,
         fundraising_currency: has_fundraising ? (fundraising_currency || 'BGN') : null,
         fundraising_description_bg: has_fundraising ? (fundraising_description_bg || null) : null,
+        fundraising_end_date: has_fundraising && fundraising_end_date ? fundraising_end_date : null,
       })
       .select()
       .single();
