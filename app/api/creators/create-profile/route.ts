@@ -56,20 +56,41 @@ export async function POST(request: NextRequest) {
 
     // If voter doesn't exist, try to create one
     if (!voter) {
-      const { error: createVoterError } = await supabase
+      console.log('Voter does not exist, creating voter:', telegramIdInt);
+      const { data: newVoter, error: createVoterError } = await supabase
         .from('voters')
         .insert({
           telegram_id: telegramIdInt,
           first_name: displayName.split(' ')[0] || displayName,
           last_name: displayName.split(' ').slice(1).join(' ') || null,
-        });
+        })
+        .select()
+        .single();
 
       if (createVoterError) {
-        console.error('Error creating voter:', createVoterError);
-        return NextResponse.json(
-          { error: 'Грешка при създаване на потребител', details: createVoterError.message },
-          { status: 500 }
-        );
+        console.error('Error creating voter:', {
+          code: createVoterError.code,
+          message: createVoterError.message,
+          details: createVoterError.details,
+          hint: createVoterError.hint,
+        });
+        
+        // If it's a unique constraint violation, voter might have been created concurrently
+        if (createVoterError.code === '23505') {
+          console.log('Voter already exists (concurrent creation), continuing...');
+          // Continue - voter exists now
+        } else {
+          return NextResponse.json(
+            { 
+              error: 'Грешка при създаване на потребител', 
+              details: createVoterError.message,
+              code: createVoterError.code,
+            },
+            { status: 500 }
+          );
+        }
+      } else {
+        console.log('Voter created successfully:', newVoter?.telegram_id);
       }
     }
 

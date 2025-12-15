@@ -40,16 +40,34 @@ export async function GET(request: NextRequest) {
     const { data: notifications, error } = await query;
 
     if (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('Error fetching notifications:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        userId,
+      });
+      
+      // If table doesn't exist or user doesn't exist, return empty array instead of error
+      if (error.code === '42P01' || error.code === 'PGRST116') {
+        return NextResponse.json({
+          notifications: [],
+          unreadCount: 0,
+        });
+      }
+      
       return NextResponse.json(
-        { error: 'Грешка при зареждане на известията' },
+        { 
+          error: 'Грешка при зареждане на известията',
+          details: error.message,
+        },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       notifications: notifications || [],
-      unreadCount: notifications?.filter(n => !n.is_read).length || 0,
+      unreadCount: notifications?.filter((n: any) => !n.is_read).length || 0,
     });
   } catch (error: any) {
     console.error('Notifications fetch error:', error);
