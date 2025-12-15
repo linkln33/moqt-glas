@@ -69,7 +69,7 @@ export function FeedSidebar() {
     return (
       <div className="sticky top-20 space-y-4">
         <GlassCard>
-          <GlassCardContent className="p-6">
+          <GlassCardContent className="p-4">
             <div className="animate-pulse space-y-4">
               <div className="h-16 bg-muted rounded-full"></div>
               <div className="h-4 bg-muted rounded w-3/4"></div>
@@ -104,10 +104,10 @@ export function FeedSidebar() {
   const initials = user.firstName.charAt(0).toUpperCase() + (user.lastName?.charAt(0).toUpperCase() || '');
 
   return (
-    <div className="sticky top-20 space-y-4">
+    <div className="sticky top-20 space-y-3">
         {/* User Profile Card */}
         <GlassCard>
-          <GlassCardContent className="p-6">
+          <GlassCardContent className="p-4">
             <div className="flex flex-col items-center text-center mb-4">
               {user.photoUrl ? (
                 <Image
@@ -195,7 +195,7 @@ export function FeedSidebar() {
 
         {/* Quick Stats Card */}
         <GlassCard>
-          <GlassCardContent className="p-6">
+          <GlassCardContent className="p-4">
             <h4 className="font-semibold mb-4">Бързи статистики</h4>
             <div className="space-y-3">
               <div className="flex justify-between items-center">

@@ -141,7 +141,7 @@ export default async function DashboardPage() {
   const polls = await getFeedPolls();
 
   return (
-    <div className="py-6 lg:py-8">
+    <div className="py-4 lg:py-6">
       {/* Feed Header */}
       <div className="mb-6 lg:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
