@@ -114,3 +114,56 @@ export function formatRelativeTime(date: Date | string): string {
     return formatDateBG(d);
   }
 }
+
+/**
+ * Check if error is a Supabase schema cache error (PGRST205)
+ * This happens when the schema cache hasn't been refreshed yet
+ */
+export function isSchemaCacheError(error: any): boolean {
+  if (!error) return false;
+  
+  // Check error code
+  if (error.code === 'PGRST205') {
+    return true;
+  }
+  
+  // Check error message
+  const message = error.message || '';
+  if (typeof message === 'string') {
+    return message.includes('schema cache') || 
+           message.includes('PGRST205') ||
+           message.includes('Could not find the table') ||
+           message.includes('Could not find the column');
+  }
+  
+  return false;
+}
+
+/**
+ * Check if error should be treated as non-fatal during build
+ * This allows the build to succeed even if there are temporary database issues
+ */
+export function shouldTreatErrorAsNonFatal(error: any): boolean {
+  if (!error) return false;
+  
+  // During build, treat schema cache errors as non-fatal
+  if (isSchemaCacheError(error)) {
+    return true;
+  }
+  
+  // Check if we're in build mode
+  const isBuildTime = process.env.NODE_ENV === 'production' && 
+                      (process.env.NEXT_PHASE === 'phase-production-build' || 
+                       process.env.NEXT_PHASE === 'phase-export');
+  
+  if (isBuildTime) {
+    // During build, treat connection errors and table not found errors as non-fatal
+    const message = error.message || '';
+    if (typeof message === 'string') {
+      return message.includes('relation') && 
+             (message.includes('does not exist') || message.includes('Could not find'));
+    }
+  }
+  
+  return false;
+}
