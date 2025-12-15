@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create election
+    // Create election - convert empty strings to null for timestamp fields
     const { data: election, error: electionError } = await supabase
       .from('elections')
       .insert({
@@ -106,14 +106,16 @@ export async function POST(request: NextRequest) {
         description: description || description_bg,
         description_bg,
         status: 'upcoming',
-        start_date,
-        end_date,
+        start_date: start_date || null,
+        end_date: end_date || null,
         created_by: telegramId.toString(),
         has_fundraising: has_fundraising || false,
         fundraising_goal: has_fundraising && fundraising_goal ? parseFloat(fundraising_goal) : null,
         fundraising_currency: has_fundraising ? (fundraising_currency || 'BGN') : null,
         fundraising_description_bg: has_fundraising ? (fundraising_description_bg || null) : null,
-        fundraising_end_date: has_fundraising && fundraising_end_date ? fundraising_end_date : null,
+        fundraising_end_date: has_fundraising && fundraising_end_date && fundraising_end_date.trim() !== '' 
+          ? fundraising_end_date 
+          : null,
       })
       .select()
       .single();
