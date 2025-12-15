@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { NotificationsBell } from '@/components/notifications-bell';
 import { useState, useEffect } from 'react';
 
 export function Nav() {
@@ -86,6 +87,7 @@ export function Nav() {
             <ThemeToggle />
             {isLoggedIn ? (
               <>
+                <NotificationsBell />
                 <Link href="/dashboard/create">
                   <Button size="sm" className="hidden sm:flex gradient-primary text-white">
                     + Създай

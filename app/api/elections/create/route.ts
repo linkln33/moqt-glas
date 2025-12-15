@@ -173,6 +173,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Create notifications for all users (except creator) about the new poll
+    // This is done via API call, but the database trigger will also handle it
+    try {
+      const { data: allUsers } = await supabase
+        .from('voters')
+        .select('telegram_id')
+        .neq('telegram_id', telegramId);
+
+      if (allUsers && allUsers.length > 0) {
+        const notifications = allUsers.map((user) => ({
+          user_id: user.telegram_id,
+          type: 'new_poll',
+          title: 'New Poll Created',
+          message: `A new poll "${title || title_bg || 'Untitled'}" has been created`,
+          message_bg: `Нова анкета "${title_bg || title || 'Без заглавие'}" беше създадена`,
+          related_id: election.id,
+          related_type: 'election',
+          is_read: false,
+        }));
+
+        await supabase.from('notifications').insert(notifications);
+      }
+    } catch (notifError) {
+      // Don't fail poll creation if notifications fail
+      console.warn('Failed to create notifications:', notifError);
+    }
+
     return NextResponse.json({
       success: true,
       electionId: election.id,
