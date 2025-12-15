@@ -54,27 +54,64 @@ export async function getOrCreateUserFromTelegram(
   const supabase = createServerClient();
 
   try {
-    // Use direct upsert to avoid missing RPC issues
-    const { data: userProfile, error: upsertError } = await supabase
+    // 1) Try to find existing user
+    const { data: existingUser, error: selectError } = await supabase
       .from('voting_user_profiles')
-      .upsert({
+      .select('*')
+      .eq('telegram_id', params.telegram_id)
+      .maybeSingle();
+
+    if (selectError) {
+      console.error('Select error when checking existing user:', selectError);
+    }
+
+    const now = new Date().toISOString();
+
+    if (existingUser) {
+      // 2) Update existing user with latest info
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('voting_user_profiles')
+        .update({
+          first_name: params.first_name,
+          last_name: params.last_name || null,
+          username: params.username || null,
+          photo_url: params.photo_url || null,
+          is_verified: true,
+          last_login_at: now,
+        })
+        .eq('id', existingUser.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Update error when refreshing existing user:', updateError);
+        return null;
+      }
+
+      return updatedUser as VotingUserProfile;
+    }
+
+    // 3) Insert new user if none exists
+    const { data: newUser, error: insertError } = await supabase
+      .from('voting_user_profiles')
+      .insert({
         telegram_id: params.telegram_id,
         first_name: params.first_name,
         last_name: params.last_name || null,
         username: params.username || null,
         photo_url: params.photo_url || null,
         is_verified: true,
-        last_login_at: new Date().toISOString(),
-      }, { onConflict: 'telegram_id' })
+        last_login_at: now,
+      })
       .select()
       .single();
 
-    if (upsertError) {
-      console.error('Upsert error creating/getting user from Telegram:', upsertError);
+    if (insertError) {
+      console.error('Insert error creating user from Telegram:', insertError);
       return null;
     }
 
-    return userProfile as VotingUserProfile;
+    return newUser as VotingUserProfile;
   } catch (error: any) {
     console.error('Exception getting/creating user from Telegram:', {
       message: error?.message,
