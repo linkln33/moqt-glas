@@ -54,7 +54,7 @@ export function verifyTelegramAuth(
     const sortedKeys = Object.keys(data).sort();
     
     for (const key of sortedKeys) {
-      const value = data[key as keyof typeof data];
+        const value = data[key as keyof typeof data];
       
       // Only include fields that are present (not undefined/null)
       // Empty strings are included (they are "present")

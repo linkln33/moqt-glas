@@ -1,7 +1,7 @@
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { createServerClient } from '@/lib/supabase/client';
-import { formatDateBG, formatTimeBG, isSchemaCacheError, shouldTreatErrorAsNonFatal } from '@/lib/utils';
+import { formatDateBG, formatTimeBG } from '@/lib/utils';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,26 +18,11 @@ async function getElectionResults(electionId: string) {
     const supabase = createServerClient();
 
     // Get election
-    const { data: election, error: electionError } = await supabase
+    const { data: election } = await supabase
       .from('elections')
       .select('*')
       .eq('id', electionId)
       .single();
-
-    if (electionError) {
-      // Handle schema cache errors gracefully during build
-      if (isSchemaCacheError(electionError)) {
-        console.warn('⚠️ Schema cache not refreshed yet (PGRST205). Returning null. This is normal during build.');
-        return null;
-      }
-      
-      console.error('Error fetching election:', electionError);
-      
-      // During build, treat errors as non-fatal
-      if (shouldTreatErrorAsNonFatal(electionError)) {
-        return null;
-      }
-    }
 
     if (!election) {
       return null;

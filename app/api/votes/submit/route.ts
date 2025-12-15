@@ -245,8 +245,18 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Vote submission error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      stack: error.stack,
+    });
     return NextResponse.json(
-      { error: error.message || 'Грешка при подаване на глас' },
+      { 
+        error: error.message || 'Грешка при подаване на глас',
+        details: process.env.NODE_ENV === 'development' ? error.details : undefined,
+      },
       { status: 500 }
     );
   }

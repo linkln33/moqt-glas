@@ -123,7 +123,7 @@ export function CreatorDashboardClientPage() {
             </GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent>
-            <Link href={`/api/creators/create-profile?telegramId=${telegramId}`}>
+            <Link href={`/dashboard/creator/create?telegramId=${telegramId}`}>
               <Button className="gradient-primary text-white">
                 <Plus className="w-4 h-4 mr-2" />
                 Създай профил като създател

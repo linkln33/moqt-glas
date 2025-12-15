@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardFooter, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
 import { createServerClient } from '@/lib/supabase/client';
-import { formatDateBG, isSchemaCacheError, shouldTreatErrorAsNonFatal } from '@/lib/utils';
+import { formatDateBG } from '@/lib/utils';
 
 async function getActiveElections() {
   // Check if Supabase is configured (not placeholder)
@@ -28,19 +28,7 @@ async function getActiveElections() {
       .limit(6);
 
     if (error) {
-      // Handle schema cache errors gracefully during build
-      if (isSchemaCacheError(error)) {
-        console.warn('⚠️ Schema cache not refreshed yet (PGRST205). Returning empty array. This is normal during build.');
-        return [];
-      }
-      
       console.error('Error fetching elections:', error);
-      
-      // During build, treat errors as non-fatal
-      if (shouldTreatErrorAsNonFatal(error)) {
-        return [];
-      }
-      
       return [];
     }
 

@@ -122,12 +122,16 @@ export function FeedItem({ poll }: FeedItemProps) {
           setResults(data.questions || []);
           const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
           setTotalVotes(total);
+          // Show results if they exist and election has ended
+          if (data.questions && data.questions.length > 0 && hasElectionEnded(poll.end_date)) {
+            setShowResults(true);
+          }
         }
       }
     } catch (error) {
       console.error('Error loading results:', error);
     }
-  }, [poll.id]);
+  }, [poll.id, poll.end_date]);
 
   // Initialize selected options
   useEffect(() => {
@@ -249,7 +253,15 @@ export function FeedItem({ poll }: FeedItemProps) {
       return;
     }
 
-    const parsed = JSON.parse(authData);
+    let parsed;
+    try {
+      parsed = JSON.parse(authData);
+    } catch (e) {
+      console.error('Error parsing auth data:', e);
+      window.location.href = '/login';
+      return;
+    }
+
     const telegramId = parsed.telegramId || parsed.id;
     if (!telegramId) {
       window.location.href = '/login';
@@ -275,14 +287,18 @@ export function FeedItem({ poll }: FeedItemProps) {
     setSubmittingVote(true);
 
     try {
-      // Safely get behavior - check if method exists
+      // Safely get behavior - check if method exists and behaviorTracker is not null
       let behavior = null;
-      if (behaviorTracker && typeof behaviorTracker.getBehavior === 'function') {
-        try {
-          behavior = behaviorTracker.getBehavior();
-        } catch (e) {
-          console.warn('Error getting behavior:', e);
+      try {
+        if (behaviorTracker && typeof behaviorTracker === 'object' && 'getBehavior' in behaviorTracker) {
+          const getBehaviorFn = behaviorTracker.getBehavior;
+          if (typeof getBehaviorFn === 'function') {
+            behavior = getBehaviorFn();
+          }
         }
+      } catch (e) {
+        console.warn('Error getting behavior:', e);
+        // Continue without behavior data
       }
 
       // Prepare telegramAuth object with correct structure
@@ -298,58 +314,67 @@ export function FeedItem({ poll }: FeedItemProps) {
       };
 
       // Submit votes for all questions
+      let allSuccessful = true;
       for (const question of poll.questions) {
-        const response = await fetch('/api/votes/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            telegramAuth,
-            electionId: poll.id,
-            questionId: question.id,
-            selectedOptions: selectedOptions[question.id] || [],
-            deviceFingerprint: fingerprint || null,
-            userBehavior: behavior,
-          }),
-        });
+        try {
+          const response = await fetch('/api/votes/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telegramAuth,
+              electionId: poll.id,
+              questionId: question.id,
+              selectedOptions: selectedOptions[question.id] || [],
+              deviceFingerprint: fingerprint || null,
+              userBehavior: behavior,
+            }),
+          });
 
-        if (!response.ok) {
-          let errorMessage = 'Грешка при подаване на глас';
-          try {
-            const result = await response.json();
-            errorMessage = result.error || errorMessage;
-          } catch {
-            // If JSON parsing fails, use default message
+          if (!response.ok) {
+            let errorMessage = 'Грешка при подаване на глас';
+            try {
+              const result = await response.json();
+              errorMessage = result.error || errorMessage;
+            } catch {
+              // If JSON parsing fails, use default message
+            }
+            console.error('Vote submission failed:', errorMessage, 'Status:', response.status);
+            allSuccessful = false;
+            throw new Error(errorMessage);
           }
-          throw new Error(errorMessage);
+        } catch (err: any) {
+          console.error('Error submitting vote for question:', question.id, err);
+          allSuccessful = false;
+          throw err;
         }
       }
 
       // Success - show results
-      if (mountedRef.current) {
+      if (allSuccessful && mountedRef.current) {
         setHasVoted(true);
         setShowResults(true);
-        // Load results after a small delay to ensure state is updated
-        setTimeout(async () => {
-          if (mountedRef.current) {
-            try {
-              const response = await fetch(`/api/elections/${poll.id}/results`);
-              if (response.ok) {
-                const data = await response.json();
-                if (mountedRef.current) {
-                  setResults(data.questions || []);
-                  const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
-                  setTotalVotes(total);
-                }
-              }
-            } catch (error) {
-              console.error('Error loading results:', error);
+        // Load results immediately
+        try {
+          const response = await fetch(`/api/elections/${poll.id}/results`);
+          if (response.ok) {
+            const data = await response.json();
+            if (mountedRef.current) {
+              setResults(data.questions || []);
+              const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
+              setTotalVotes(total);
             }
+          } else {
+            console.error('Failed to load results:', response.status);
           }
-        }, 100);
+        } catch (error) {
+          console.error('Error loading results:', error);
+        }
       }
     } catch (err: any) {
       console.error('Vote submission error:', err);
-      alert(err.message || 'Грешка при подаване на глас');
+      if (mountedRef.current) {
+        alert(err.message || 'Грешка при подаване на глас');
+      }
     } finally {
       if (mountedRef.current) {
         setSubmittingVote(false);
@@ -682,7 +707,7 @@ export function FeedItem({ poll }: FeedItemProps) {
         )}
 
         {/* Results/Statistics UI - Directly integrated into card flow with color coding */}
-        {showResults && results.length > 0 && (
+        {(showResults || (results.length > 0 && (hasVoted || isEnded))) && results.length > 0 && (
           <>
             <div className="flex items-center gap-2 mb-4">
               <span className="font-semibold text-base">📊 Резултати</span>
