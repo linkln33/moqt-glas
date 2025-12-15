@@ -983,6 +983,21 @@ function CreatePollPageContent() {
     }
   };
 
+  if (loadingElection) {
+    return (
+      <div className="py-6 lg:py-8">
+        <div className="w-full max-w-4xl mx-auto">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+              <p className="text-muted-foreground">Зареждане на анкета за редактиране...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="py-6 lg:py-8">
       <div className="w-full max-w-4xl mx-auto">
