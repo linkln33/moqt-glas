@@ -33,6 +33,8 @@ export function getClientIP(request: Request): string {
  * 
  * This function interprets the input as Bulgaria time and converts to UTC.
  * Example: "2025-12-15T16:18" (16:18 Bulgaria time) -> UTC equivalent
+ * 
+ * Uses a reliable iterative method to find the correct UTC time
  */
 export function convertBulgariaDateTimeToUTC(dateTimeLocal: string): string | null {
   if (!dateTimeLocal || dateTimeLocal.trim() === '') {
@@ -44,19 +46,21 @@ export function convertBulgariaDateTimeToUTC(dateTimeLocal: string): string | nu
   if (!parts) return null;
   
   const [, year, month, day, hour, minute] = parts;
+  const dateTimeStr = `${year}-${month}-${day}T${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:00`;
   
-  // Create date string
-  const dateTimeStr = `${year}-${month}-${day}T${hour}:${minute}:00`;
-  
-  // Use a workaround: create date assuming UTC, then calculate Bulgaria offset
-  // We'll iterate to find the correct UTC that gives us the desired Bulgaria time
+  // Start with a reasonable guess: assume UTC+2 (Bulgaria winter time)
+  // Then iterate to find the exact UTC time that gives us the desired Bulgaria time
   let testUTC = new Date(`${dateTimeStr}Z`);
+  // Adjust for typical Bulgaria offset (UTC+2 or UTC+3)
+  // Start by subtracting 2 hours (UTC+2)
+  testUTC = new Date(testUTC.getTime() - 2 * 60 * 60 * 1000);
+  
   let iterations = 0;
-  const maxIterations = 10;
+  const maxIterations = 15;
   
   while (iterations < maxIterations) {
     // Get Bulgaria time for this UTC
-    const bgTimeStr = testUTC.toLocaleString('en-US', {
+    const bgParts = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Europe/Sofia',
       year: 'numeric',
       month: '2-digit',
@@ -64,30 +68,50 @@ export function convertBulgariaDateTimeToUTC(dateTimeLocal: string): string | nu
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
-    });
+    }).formatToParts(testUTC);
     
-    // Parse: "MM/DD/YYYY, HH:mm"
-    const [bgDate, bgTime] = bgTimeStr.split(', ');
-    const [bgMonth, bgDay, bgYear] = bgDate.split('/');
-    const [bgHour, bgMinute] = bgTime.split(':');
+    const bgYear = bgParts.find(p => p.type === 'year')?.value || '';
+    const bgMonth = bgParts.find(p => p.type === 'month')?.value || '';
+    const bgDay = bgParts.find(p => p.type === 'day')?.value || '';
+    const bgHour = bgParts.find(p => p.type === 'hour')?.value || '';
+    const bgMinute = bgParts.find(p => p.type === 'minute')?.value || '';
     
     // Check if Bulgaria time matches desired time
     if (bgYear === year && bgMonth === month && bgDay === day && 
-        bgHour === hour && bgMinute === minute) {
+        bgHour === hour.padStart(2, '0') && bgMinute === minute.padStart(2, '0')) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Bulgaria time conversion:', {
+          input: dateTimeLocal,
+          output: testUTC.toISOString(),
+          bgTime: `${bgYear}-${bgMonth}-${bgDay}T${bgHour}:${bgMinute}`,
+          iterations,
+        });
+      }
       return testUTC.toISOString();
     }
     
-    // Calculate difference and adjust
-    const desiredTime = parseInt(hour) * 60 + parseInt(minute);
-    const actualTime = parseInt(bgHour) * 60 + parseInt(bgMinute);
-    const diffMinutes = desiredTime - actualTime;
+    // Calculate time difference in minutes
+    const desiredTotal = parseInt(year) * 525600 + // minutes in a year (approx)
+                         parseInt(month) * 43200 +  // minutes in a month (approx)
+                         parseInt(day) * 1440 +    // minutes in a day
+                         parseInt(hour) * 60 +
+                         parseInt(minute);
     
-    // Adjust UTC by the difference (in milliseconds)
-    testUTC = new Date(testUTC.getTime() + (diffMinutes * 60 * 1000));
+    const actualTotal = parseInt(bgYear) * 525600 +
+                       parseInt(bgMonth) * 43200 +
+                       parseInt(bgDay) * 1440 +
+                       parseInt(bgHour) * 60 +
+                       parseInt(bgMinute);
+    
+    const diffMinutes = desiredTotal - actualTotal;
+    
+    // Adjust UTC time
+    testUTC = new Date(testUTC.getTime() + diffMinutes * 60 * 1000);
     iterations++;
   }
   
-  // Fallback: return the best guess
+  // If we couldn't find exact match, return the best guess
+  console.warn('Could not find exact UTC match for Bulgaria time:', dateTimeLocal, 'using approximation');
   return testUTC.toISOString();
 }
 
@@ -161,40 +185,109 @@ export function formatDateTimeBG(date: Date | string): string {
 }
 
 /**
- * Get current time in Bulgaria timezone (Europe/Sofia)
+ * Get current time in Bulgaria timezone (Europe/Sofia) as UTC Date
+ * This ensures we're comparing times correctly - dates stored in DB are UTC,
+ * but represent Bulgaria local times
  */
 export function getBulgariaNow(): Date {
   const now = new Date();
-  // Convert current UTC time to Bulgaria timezone for comparison
-  // We compare UTC timestamps, but ensure we're using Bulgaria timezone context
+  // Return UTC time - dates in DB are stored as UTC
   return now;
 }
 
 /**
- * Check if election is active - using Bulgaria timezone for comparison
+ * Get current Bulgaria local time and return it as a UTC Date object
+ * This is useful for comparing with dates that were entered as Bulgaria local time
+ */
+export function getBulgariaNowAsUTC(): Date {
+  const now = new Date();
+  // Get current time in Bulgaria timezone
+  const bgTimeStr = now.toLocaleString('en-US', {
+    timeZone: 'Europe/Sofia',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  // Parse "MM/DD/YYYY, HH:mm:ss"
+  const [datePart, timePart] = bgTimeStr.split(', ');
+  const [month, day, year] = datePart.split('/');
+  const [hour, minute, second] = timePart.split(':');
+  
+  // Create a date string in ISO format (treating it as if it were UTC)
+  // Then adjust to get the UTC equivalent
+  const bgDateTimeStr = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+  
+  // We need to find the UTC time that corresponds to this Bulgaria time
+  // Use the same approach as convertBulgariaDateTimeToUTC
+  let testUTC = new Date(`${bgDateTimeStr}Z`);
+  let iterations = 0;
+  const maxIterations = 10;
+  
+  while (iterations < maxIterations) {
+    const testBgTimeStr = testUTC.toLocaleString('en-US', {
+      timeZone: 'Europe/Sofia',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    if (testBgTimeStr === bgTimeStr) {
+      return testUTC;
+    }
+    
+    // Calculate difference
+    const [testDatePart, testTimePart] = testBgTimeStr.split(', ');
+    const [testMonth, testDay, testYear] = testDatePart.split('/');
+    const [testHour, testMinute, testSecond] = testTimePart.split(':');
+    
+    const desiredTotal = parseInt(year) * 365 * 24 * 60 + parseInt(month) * 30 * 24 * 60 + parseInt(day) * 24 * 60 + parseInt(hour) * 60 + parseInt(minute);
+    const actualTotal = parseInt(testYear) * 365 * 24 * 60 + parseInt(testMonth) * 30 * 24 * 60 + parseInt(testDay) * 24 * 60 + parseInt(testHour) * 60 + parseInt(testMinute);
+    const diffMinutes = desiredTotal - actualTotal;
+    
+    testUTC = new Date(testUTC.getTime() + (diffMinutes * 60 * 1000));
+    iterations++;
+  }
+  
+  return testUTC;
+}
+
+/**
+ * Check if election is active - comparing UTC timestamps
+ * Dates are stored as UTC in DB, but represent Bulgaria local times
  */
 export function isElectionActive(startDate: Date | string, endDate: Date | string): boolean {
-  const now = new Date(); // UTC timestamp
+  const now = new Date(); // Current UTC time
   const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
   const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
-  // Compare UTC timestamps (database stores UTC, we compare UTC)
+  
+  // Compare UTC timestamps
+  // Both dates are UTC (stored in DB as UTC, representing Bulgaria times)
   return now >= start && now <= end;
 }
 
 /**
- * Check if election has started - using Bulgaria timezone for comparison
+ * Check if election has started - comparing UTC timestamps
  */
 export function hasElectionStarted(startDate: Date | string): boolean {
-  const now = new Date(); // UTC timestamp
+  const now = new Date(); // Current UTC time
   const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
   return now >= start;
 }
 
 /**
- * Check if election has ended - using Bulgaria timezone for comparison
+ * Check if election has ended - comparing UTC timestamps
  */
 export function hasElectionEnded(endDate: Date | string): boolean {
-  const now = new Date(); // UTC timestamp
+  const now = new Date(); // Current UTC time
   const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
   return now > end;
 }

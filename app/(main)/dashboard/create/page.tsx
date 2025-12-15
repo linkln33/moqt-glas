@@ -387,6 +387,15 @@ function CreatePollPageContent() {
         : '/api/elections/create';
       const method = editingElectionId ? 'PUT' : 'POST';
       
+      console.log('Submitting election:', {
+        isEdit: !!editingElectionId,
+        electionId: editingElectionId,
+        method,
+        url,
+        hasQuestions: submitData.questions?.length > 0,
+        questionsCount: submitData.questions?.length || 0,
+      });
+      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -398,13 +407,27 @@ function CreatePollPageContent() {
 
       const result = await response.json();
 
+      console.log('Election submit response:', {
+        ok: response.ok,
+        status: response.status,
+        result,
+      });
+
       if (!response.ok) {
-        throw new Error(result.error || (editingElectionId ? 'Грешка при обновяване на изборите' : 'Грешка при създаване на изборите'));
+        const errorMessage = result.error || (editingElectionId ? 'Грешка при обновяване на изборите' : 'Грешка при създаване на изборите');
+        console.error('Election submit error:', {
+          status: response.status,
+          error: errorMessage,
+          details: result.details,
+        });
+        throw new Error(errorMessage);
       }
 
+      console.log('Election saved successfully, redirecting...');
       router.push(`/dashboard`);
       router.refresh();
     } catch (error: any) {
+      console.error('Election submit exception:', error);
       alert(error.message || (editingElectionId ? 'Грешка при обновяване на изборите' : 'Грешка при създаване на изборите'));
     } finally {
       setLoading(false);

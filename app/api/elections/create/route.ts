@@ -129,14 +129,55 @@ export async function POST(request: NextRequest) {
             electionStatus = 'upcoming';
           }
           
+          // Get current Bulgaria time for debugging
+          const nowBG = now.toLocaleString('en-US', {
+            timeZone: 'Europe/Sofia',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          
+          const startBG = start.toLocaleString('en-US', {
+            timeZone: 'Europe/Sofia',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          
+          const endBG = end.toLocaleString('en-US', {
+            timeZone: 'Europe/Sofia',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          
           // Debug logging
           console.log('Election status calculation:', {
-            start_date: start.toISOString(),
-            end_date: end.toISOString(),
-            now: now.toISOString(),
+            // UTC times
+            start_date_UTC: start.toISOString(),
+            end_date_UTC: end.toISOString(),
+            now_UTC: now.toISOString(),
+            // Bulgaria times
+            start_date_BG: startBG,
+            end_date_BG: endBG,
+            now_BG: nowBG,
+            // Status
             calculatedStatus: electionStatus,
             isActive: isElectionActive(start, end),
             hasEnded: hasElectionEnded(end),
+            // Raw input
             rawStartDate: start_date,
             rawEndDate: end_date,
           });

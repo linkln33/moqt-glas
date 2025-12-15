@@ -189,8 +189,12 @@ export async function PUT(
     }
 
     // Calculate election status based on dates
+    // Handle empty strings and null values
+    const hasStartDate = start_date && start_date.trim() !== '';
+    const hasEndDate = end_date && end_date.trim() !== '';
+    
     let electionStatus = 'upcoming';
-    if (start_date && end_date) {
+    if (hasStartDate && hasEndDate) {
       try {
         const start = new Date(start_date);
         const end = new Date(end_date);
@@ -208,11 +212,67 @@ export async function PUT(
           } else {
             electionStatus = 'upcoming';
           }
+          
+          // Get current Bulgaria time for debugging
+          const now = new Date();
+          const nowBG = now.toLocaleString('en-US', {
+            timeZone: 'Europe/Sofia',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          
+          const startBG = start.toLocaleString('en-US', {
+            timeZone: 'Europe/Sofia',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          
+          const endBG = end.toLocaleString('en-US', {
+            timeZone: 'Europe/Sofia',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          
+          // Debug logging
+          console.log('Election status calculation (update):', {
+            // UTC times
+            start_date_UTC: start.toISOString(),
+            end_date_UTC: end.toISOString(),
+            now_UTC: now.toISOString(),
+            // Bulgaria times
+            start_date_BG: startBG,
+            end_date_BG: endBG,
+            now_BG: nowBG,
+            // Status
+            calculatedStatus: electionStatus,
+            isActive: isElectionActive(start, end),
+            hasEnded: hasElectionEnded(end),
+            // Raw input
+            rawStartDate: start_date,
+            rawEndDate: end_date,
+          });
         }
       } catch (error) {
         console.error('Error calculating election status:', error);
         electionStatus = 'upcoming';
       }
+    } else {
+      console.warn('Missing dates during update, defaulting to upcoming:', { hasStartDate, hasEndDate, start_date, end_date });
     }
 
     // Update election
@@ -224,8 +284,8 @@ export async function PUT(
         description: description || description_bg,
         description_bg,
         status: electionStatus,
-        start_date: start_date || null,
-        end_date: end_date || null,
+        start_date: hasStartDate ? start_date : null,
+        end_date: hasEndDate ? end_date : null,
         has_fundraising: has_fundraising || false,
         fundraising_goal: has_fundraising && fundraising_goal ? parseFloat(fundraising_goal) : null,
         fundraising_currency: has_fundraising ? (fundraising_currency || 'BGN') : null,
@@ -248,53 +308,102 @@ export async function PUT(
     }
 
     // Delete existing questions and options
-    const { data: existingQuestions } = await supabase
+    const { data: existingQuestions, error: fetchQuestionsError } = await supabase
       .from('questions')
       .select('id')
       .eq('election_id', electionId);
 
+    if (fetchQuestionsError) {
+      console.error('Error fetching existing questions:', fetchQuestionsError);
+      throw fetchQuestionsError;
+    }
+
     if (existingQuestions && existingQuestions.length > 0) {
       const questionIds = existingQuestions.map(q => q.id);
-      await supabase.from('options').delete().in('question_id', questionIds);
-      await supabase.from('questions').delete().eq('election_id', electionId);
-    }
-
-    // Create new questions and options
-    for (let qIndex = 0; qIndex < questions.length; qIndex++) {
-      const question = questions[qIndex];
-
-      const { data: createdQuestion, error: questionError } = await supabase
-        .from('questions')
-        .insert({
-          election_id: electionId,
-          question_text: question.question_text || question.question_text_bg,
-          question_text_bg: question.question_text_bg,
-          question_type: question.question_type,
-          order_index: qIndex,
-        })
-        .select()
-        .single();
-
-      if (questionError) {
-        throw questionError;
-      }
-
-      // Create options
-      const optionsToInsert = question.options.map((option: any, oIndex: number) => ({
-        question_id: createdQuestion.id,
-        option_text: option.option_text || option.option_text_bg,
-        option_text_bg: option.option_text_bg,
-        order_index: oIndex,
-      }));
-
-      const { error: optionsError } = await supabase
+      
+      // Delete options first (due to foreign key constraint)
+      const { error: deleteOptionsError } = await supabase
         .from('options')
-        .insert(optionsToInsert);
-
-      if (optionsError) {
-        throw optionsError;
+        .delete()
+        .in('question_id', questionIds);
+      
+      if (deleteOptionsError) {
+        console.error('Error deleting options:', deleteOptionsError);
+        throw deleteOptionsError;
+      }
+      
+      // Then delete questions
+      const { error: deleteQuestionsError } = await supabase
+        .from('questions')
+        .delete()
+        .eq('election_id', electionId);
+      
+      if (deleteQuestionsError) {
+        console.error('Error deleting questions:', deleteQuestionsError);
+        throw deleteQuestionsError;
       }
     }
+
+    // Validate questions array
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      console.warn('No questions provided for update, skipping question creation');
+    } else {
+      // Create new questions and options
+      for (let qIndex = 0; qIndex < questions.length; qIndex++) {
+        const question = questions[qIndex];
+
+        if (!question.question_text_bg || question.question_text_bg.trim() === '') {
+          console.warn(`Skipping question ${qIndex} - no text provided`);
+          continue;
+        }
+
+        const { data: createdQuestion, error: questionError } = await supabase
+          .from('questions')
+          .insert({
+            election_id: electionId,
+            question_text: question.question_text || question.question_text_bg,
+            question_text_bg: question.question_text_bg,
+            question_type: question.question_type || 'single-choice',
+            order_index: qIndex,
+          })
+          .select()
+          .single();
+
+        if (questionError) {
+          console.error(`Error creating question ${qIndex}:`, questionError);
+          throw questionError;
+        }
+
+        // Create options if they exist
+        if (question.options && Array.isArray(question.options) && question.options.length > 0) {
+          const optionsToInsert = question.options
+            .filter((option: any) => option.option_text_bg && option.option_text_bg.trim() !== '')
+            .map((option: any, oIndex: number) => ({
+              question_id: createdQuestion.id,
+              option_text: option.option_text || option.option_text_bg,
+              option_text_bg: option.option_text_bg,
+              order_index: oIndex,
+            }));
+
+          if (optionsToInsert.length > 0) {
+            const { error: optionsError } = await supabase
+              .from('options')
+              .insert(optionsToInsert);
+
+            if (optionsError) {
+              console.error(`Error creating options for question ${qIndex}:`, optionsError);
+              throw optionsError;
+            }
+          }
+        }
+      }
+    }
+
+    console.log('Election updated successfully:', {
+      electionId,
+      status: electionStatus,
+      questionsCount: questions?.length || 0,
+    });
 
     return NextResponse.json({
       success: true,
@@ -302,9 +411,19 @@ export async function PUT(
       message: 'Изборите са обновени успешно',
     });
   } catch (error: any) {
-    console.error('Election update error:', error);
+    console.error('Election update error:', {
+      electionId: params.id,
+      error: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      stack: error.stack,
+    });
     return NextResponse.json(
-      { error: error.message || 'Грешка при обновяване на изборите' },
+      { 
+        error: error.message || 'Грешка при обновяване на изборите',
+        details: process.env.NODE_ENV === 'development' ? error.details : undefined,
+      },
       { status: 500 }
     );
   }
