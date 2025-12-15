@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 
-export default function CreateCreatorProfilePage() {
+function CreateCreatorProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const telegramId = searchParams.get('telegramId');
@@ -169,5 +169,24 @@ export default function CreateCreatorProfilePage() {
         </GlassCard>
       </div>
     </div>
+  );
+}
+
+export default function CreateCreatorProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="py-6">
+        <div className="max-w-2xl mx-auto">
+          <GlassCard>
+            <GlassCardContent className="py-16 text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+              <p className="text-muted-foreground">Зареждане...</p>
+            </GlassCardContent>
+          </GlassCard>
+        </div>
+      </div>
+    }>
+      <CreateCreatorProfileContent />
+    </Suspense>
   );
 }
