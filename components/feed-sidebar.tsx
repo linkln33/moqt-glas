@@ -143,10 +143,10 @@ export function FeedSidebar() {
                   Лента
                 </Button>
               </Link>
-              <Link href="/dashboard/elections" className="block">
+              <Link href="/dashboard" className="block">
                 <Button 
                   variant="ghost" 
-                  className={`w-full justify-start ${pathname === '/dashboard/elections' ? 'bg-primary/10 text-primary' : ''}`}
+                  className={`w-full justify-start ${pathname === '/dashboard' && pathname !== '/dashboard/create' && pathname !== '/dashboard/settings' && pathname !== '/dashboard/statistics' && pathname !== '/dashboard/creator' ? 'bg-primary/10 text-primary' : ''}`}
                 >
                   <List className="w-4 h-4 mr-2" />
                   Всички избори

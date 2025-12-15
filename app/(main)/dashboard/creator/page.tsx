@@ -173,7 +173,7 @@ export default async function CreatorDashboardPage({
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <GlassCard hover>
           <GlassCardHeader>
             <GlassCardTitle>Управлявай видеа</GlassCardTitle>
@@ -205,28 +205,6 @@ export default async function CreatorDashboardPage({
                 Управлявай нива
               </Button>
             </Link>
-          </GlassCardContent>
-        </GlassCard>
-
-        <GlassCard hover>
-          <GlassCardHeader>
-            <GlassCardTitle>Дарения и цели</GlassCardTitle>
-            <GlassCardDescription>
-              Активирай fundraising при създаване на анкета и следи целите.
-            </GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              В стъпката за създаване на анкета включи fundraising, задай цел, валута и крайна дата. Можеш да следиш напредъка от списъка с анкети.
-            </p>
-            <div className="flex gap-2">
-              <Link href="/dashboard/create">
-                <Button size="sm" variant="outline">Нова анкета</Button>
-              </Link>
-              <Link href="/dashboard/elections">
-                <Button size="sm" variant="outline">Моите анкети</Button>
-              </Link>
-            </div>
           </GlassCardContent>
         </GlassCard>
       </div>

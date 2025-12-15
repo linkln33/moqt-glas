@@ -155,7 +155,7 @@ export default function StatisticsPage() {
               ) : (
                 <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                   Зареждане...
-                </div>
+              </div>
               )}
             </GlassCardContent>
           </GlassCard>
@@ -204,7 +204,7 @@ export default function StatisticsPage() {
               ) : (
                 <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                   Зареждане...
-                </div>
+              </div>
               )}
             </GlassCardContent>
           </GlassCard>

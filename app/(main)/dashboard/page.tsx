@@ -1,9 +1,8 @@
 import { createServerClient } from '@/lib/supabase/client';
-import { FeedItem } from '@/components/feed-item';
-import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
-import { Button } from '@/components/ui/button';
-import { isSchemaCacheError, shouldTreatErrorAsNonFatal } from '@/lib/utils';
-import Link from 'next/link';
+import { DashboardClientPage } from './client-page';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface PollWithStats {
   id: string;
@@ -50,27 +49,14 @@ async function getFeedPolls(): Promise<PollWithStats[]> {
     const supabase = createServerClient();
     const now = new Date().toISOString();
 
-    // Get recent elections ordered by creation date (most recent first)
+    // Get all elections ordered by creation date (most recent first) - removed limit
     const { data: elections, error } = await supabase
       .from('elections')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
+      .order('created_at', { ascending: false });
 
     if (error) {
-      // Handle schema cache errors gracefully during build
-      if (isSchemaCacheError(error)) {
-        console.warn('⚠️ Schema cache not refreshed yet (PGRST205). Returning empty array. This is normal during build.');
-        return [];
-      }
-      
       console.error('Error fetching elections:', error);
-      
-      // During build, treat errors as non-fatal
-      if (shouldTreatErrorAsNonFatal(error)) {
-        return [];
-      }
-      
       return [];
     }
 
@@ -152,47 +138,5 @@ async function getFeedPolls(): Promise<PollWithStats[]> {
 
 export default async function DashboardPage() {
   const polls = await getFeedPolls();
-
-  return (
-    <div className="py-4 lg:py-6">
-      {/* Feed Header */}
-      <div className="mb-6 lg:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Лента</h1>
-          <p className="text-muted-foreground">
-            Най-новите анкети и избори
-          </p>
-        </div>
-        <Link href="/dashboard/create" className="w-full sm:w-auto">
-          <Button className="w-full sm:w-auto gradient-primary text-white shadow-lg hover:shadow-xl transition-shadow">
-            ➕ Създай анкета
-          </Button>
-        </Link>
-      </div>
-
-      {/* Feed Items */}
-      {polls.length > 0 ? (
-        <div className="space-y-4 lg:space-y-6">
-          {polls.map((poll) => (
-            <FeedItem key={poll.id} poll={poll} />
-          ))}
-        </div>
-      ) : (
-        <GlassCard>
-          <GlassCardContent className="py-16 text-center">
-            <div className="text-6xl mb-4">📊</div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Няма анкети</h2>
-            <p className="text-muted-foreground mb-6">
-              Все още няма публикувани анкети. Бъдете първият, който създава!
-            </p>
-            <Link href="/dashboard/create">
-              <Button className="gradient-primary text-white shadow-lg hover:shadow-xl transition-shadow">
-                ➕ Създай първата анкета
-              </Button>
-            </Link>
-                </GlassCardContent>
-              </GlassCard>
-      )}
-    </div>
-  );
+  return <DashboardClientPage initialPolls={polls} />;
 }
