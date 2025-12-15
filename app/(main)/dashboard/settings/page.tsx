@@ -32,6 +32,9 @@ export default function SettingsPage() {
   const [availableFunds, setAvailableFunds] = useState<{ total: number; currency: string } | null>(null);
 
   useEffect(() => {
+    // Set page title
+    document.title = 'Настройки - Моят Глас';
+    
     loadUserData();
     loadPaymentDetails();
     loadAvailableFunds();
