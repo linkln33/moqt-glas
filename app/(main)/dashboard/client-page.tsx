@@ -71,6 +71,26 @@ export function DashboardClientPage({ initialPolls }: DashboardClientPageProps) 
     };
   }, []);
 
+  // Scroll to poll if hash is present in URL (for shared links)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#poll-')) {
+      const pollId = hash.replace('#poll-', '');
+      // Wait for polls to render
+      setTimeout(() => {
+        const element = document.querySelector(`[data-poll-id="${pollId}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Highlight the poll briefly
+          element.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all');
+          setTimeout(() => {
+            element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+          }, 2000);
+        }
+      }, 500);
+    }
+  }, [polls]);
+
   const filteredPolls = polls.filter(poll => {
     const startDate = new Date(poll.start_date);
     const endDate = new Date(poll.end_date);
