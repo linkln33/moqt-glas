@@ -69,37 +69,37 @@ export default async function HomePage() {
       {/* Hero Section */}
       <div className="relative overflow-hidden gradient-bg border-b border-border/50">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent"></div>
-        <div className="container mx-auto px-4 pt-12 pb-20 md:pt-16 md:pb-32 relative">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 md:pt-16 pb-12 sm:pb-20 md:pb-32 relative">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="flex flex-col items-center justify-center mb-6">
-              <div className="mb-6">
+            <div className="flex flex-col items-center justify-center mb-4 sm:mb-6">
+              <div className="mb-4 sm:mb-6">
                 <Image 
                   src="/logo.svg" 
                   alt="Моят Глас" 
                   width={400}
                   height={400}
-                  className="object-contain mx-auto drop-shadow-2xl hero-logo"
+                  className="object-contain mx-auto drop-shadow-2xl hero-logo w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96"
                   priority
                 />
               </div>
-              <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">
                 Моят Глас
               </h1>
             </div>
-            <p className="text-xl md:text-2xl text-muted-foreground mb-4">
+            <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-3 sm:mb-4 px-4">
               Създавайте и участвайте в избори и анкети
             </p>
-            <p className="text-lg text-muted-foreground/80 mb-12">
+            <p className="text-base sm:text-lg text-muted-foreground/80 mb-8 sm:mb-12 px-4">
               Безопасно, прозрачно и лесно гласуване с Telegram автентификация
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/dashboard">
-                <Button size="lg" className="gradient-primary text-white shadow-lg hover:shadow-xl transition-all text-lg px-8 py-6 shine">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <Button size="lg" className="gradient-primary text-white shadow-lg hover:shadow-xl transition-all text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full sm:w-auto shine">
                   🚀 Започни сега
                 </Button>
               </Link>
-              <Link href="/dashboard/elections">
-                <Button size="lg" variant="outline" className="glass border-primary/50 text-lg px-8 py-6">
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="glass border-primary/50 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full sm:w-auto">
                   Виж изборите
                 </Button>
               </Link>
@@ -109,15 +109,15 @@ export default async function HomePage() {
       </div>
 
       {/* Quick Templates Section */}
-      <div className="container mx-auto px-4 py-16 max-w-6xl">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Бързи шаблони</h2>
-          <p className="text-muted-foreground text-lg">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Бързи шаблони</h2>
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
             Създайте анкета за секунди с готови шаблони
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3 mb-16">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-12 sm:mb-16">
           <Link href="/dashboard/create?template=yesno">
             <GlassCard hover className="cursor-pointer h-full text-center shine">
               <GlassCardHeader>
@@ -172,15 +172,15 @@ export default async function HomePage() {
       </div>
 
       {/* Features Section */}
-      <div className="container mx-auto px-4 py-16 max-w-6xl">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Защо Моят Глас?</h2>
-          <p className="text-muted-foreground text-lg">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-7xl">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Защо Моят Глас?</h2>
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
             Модерна платформа за демократично участие
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <GlassCard hover className="shine">
             <GlassCardHeader>
               <div className="text-4xl mb-4">🔒</div>
@@ -234,106 +234,129 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Active Elections Section */}
-      {activeElections.length > 0 ? (
-        <div className="container mx-auto px-4 py-16 max-w-7xl">
-          {examplePolls.length > 0 && (
+      {/* Current Events Section - Prominent for new users */}
+      {activeElections.length > 0 && (
+        <div className="w-full bg-gradient-to-b from-background via-background/95 to-background border-y border-border/50 py-16 md:py-20">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Примерни анкети</h2>
-              <p className="text-muted-foreground text-lg">
-                Опитайте нашата платформа с тези примерни анкети
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                Текущи събития
+              </h2>
+              <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+                Участвайте в активни избори и анкети. Вашият глас има значение!
               </p>
             </div>
-          )}
 
-          {examplePolls.length > 0 && (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-16">
-              {examplePolls.map((poll) => (
-                <Link key={poll.id} href={`/vote/${poll.id}`}>
-                  <GlassCard hover className="flex flex-col cursor-pointer group h-full">
-                    <GlassCardHeader>
-                      <div className="flex items-start justify-between gap-4">
-                        <GlassCardTitle className="text-xl group-hover:text-primary transition-colors">
-                          {poll.title_bg || poll.title}
-                        </GlassCardTitle>
-                        <Badge variant="info">Пример</Badge>
-                      </div>
-                      <GlassCardDescription className="line-clamp-2">
-                        {poll.description_bg || poll.description}
-                      </GlassCardDescription>
-                    </GlassCardHeader>
-                    <GlassCardContent className="flex-grow">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">📊 Въпроси:</span>
-                          <span className="font-medium">{poll.questions?.length || 0}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">📅 Край:</span>
-                          <span>{formatDateBG(poll.end_date)}</span>
-                        </div>
-                      </div>
-                    </GlassCardContent>
-                    <GlassCardFooter>
-                      <Button className="w-full gradient-primary text-white shadow-lg">
-                        Гласувай сега →
-                      </Button>
-                    </GlassCardFooter>
-                  </GlassCard>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {otherElections.length > 0 && (
-            <>
-              <div className="text-center mb-12">
-                <h2 className="text-3xl md:text-4xl font-bold mb-4">Активни избори</h2>
-                <p className="text-muted-foreground text-lg">
-                  Участвайте в активни избори и анкети
-                </p>
+            {/* Example Polls */}
+            {examplePolls.length > 0 && (
+              <div className="mb-16">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl sm:text-2xl font-semibold">Примерни анкети</h3>
+                  <Badge variant="info" className="text-sm">Опитайте платформата</Badge>
+                </div>
+                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {examplePolls.map((poll) => (
+                    <Link key={poll.id} href={`/dashboard`}>
+                      <GlassCard hover className="flex flex-col cursor-pointer group h-full transition-all hover:scale-[1.02]">
+                        <GlassCardHeader>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <GlassCardTitle className="text-lg sm:text-xl group-hover:text-primary transition-colors line-clamp-2">
+                              {poll.title_bg || poll.title}
+                            </GlassCardTitle>
+                            <Badge variant="info" className="shrink-0 text-xs">Пример</Badge>
+                          </div>
+                          <GlassCardDescription className="line-clamp-2 text-sm">
+                            {poll.description_bg || poll.description}
+                          </GlassCardDescription>
+                        </GlassCardHeader>
+                        <GlassCardContent className="flex-grow space-y-3">
+                          <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <span>📊</span>
+                              <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span>📅</span>
+                              <span>{formatDateBG(poll.end_date)}</span>
+                            </div>
+                          </div>
+                        </GlassCardContent>
+                        <GlassCardFooter className="pt-0">
+                          <Button className="w-full gradient-primary text-white shadow-lg text-sm sm:text-base">
+                            Гласувай →
+                          </Button>
+                        </GlassCardFooter>
+                      </GlassCard>
+                    </Link>
+                  ))}
+                </div>
               </div>
+            )}
 
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {otherElections.map((poll) => (
-                  <Link key={poll.id} href={`/vote/${poll.id}`}>
-                    <GlassCard hover className="flex flex-col cursor-pointer group h-full">
-                      <GlassCardHeader>
-                        <div className="flex items-start justify-between gap-4">
-                          <GlassCardTitle className="text-xl group-hover:text-primary transition-colors">
-                            {poll.title_bg || poll.title}
-                          </GlassCardTitle>
-                          <Badge variant="success">Активни</Badge>
-                        </div>
-                        <GlassCardDescription className="line-clamp-2">
-                          {poll.description_bg || poll.description}
-                        </GlassCardDescription>
-                      </GlassCardHeader>
-                      <GlassCardContent className="flex-grow">
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">📊 Въпроси:</span>
-                            <span className="font-medium">{poll.questions?.length || 0}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">📅 Край:</span>
-                            <span>{formatDateBG(poll.end_date)}</span>
-                          </div>
-                        </div>
-                      </GlassCardContent>
-                      <GlassCardFooter>
-                        <Button className="w-full gradient-primary text-white shadow-lg">
-                          Гласувай сега →
-                        </Button>
-                      </GlassCardFooter>
-                    </GlassCard>
+            {/* Other Active Elections */}
+            {otherElections.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl sm:text-2xl font-semibold">Активни избори</h3>
+                  <Link href="/dashboard">
+                    <Button variant="ghost" size="sm" className="text-sm">
+                      Виж всички →
+                    </Button>
                   </Link>
-                ))}
+                </div>
+                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {otherElections.slice(0, 8).map((poll) => (
+                    <Link key={poll.id} href={`/dashboard`}>
+                      <GlassCard hover className="flex flex-col cursor-pointer group h-full transition-all hover:scale-[1.02]">
+                        <GlassCardHeader>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <GlassCardTitle className="text-lg sm:text-xl group-hover:text-primary transition-colors line-clamp-2">
+                              {poll.title_bg || poll.title}
+                            </GlassCardTitle>
+                            <Badge variant="success" className="shrink-0 text-xs">Активни</Badge>
+                          </div>
+                          <GlassCardDescription className="line-clamp-2 text-sm">
+                            {poll.description_bg || poll.description}
+                          </GlassCardDescription>
+                        </GlassCardHeader>
+                        <GlassCardContent className="flex-grow space-y-3">
+                          <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <span>📊</span>
+                              <span>{poll.questions?.length || 0} {poll.questions?.length === 1 ? 'въпрос' : 'въпроса'}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span>📅</span>
+                              <span>{formatDateBG(poll.end_date)}</span>
+                            </div>
+                          </div>
+                        </GlassCardContent>
+                        <GlassCardFooter className="pt-0">
+                          <Button className="w-full gradient-primary text-white shadow-lg text-sm sm:text-base">
+                            Гласувай →
+                          </Button>
+                        </GlassCardFooter>
+                      </GlassCard>
+                    </Link>
+                  ))}
+                </div>
+                {otherElections.length > 8 && (
+                  <div className="text-center mt-8">
+                    <Link href="/dashboard">
+                      <Button variant="outline" size="lg" className="glass">
+                        Виж всички {otherElections.length} активни избори →
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
-      ) : (
+      )}
+
+      {/* No Active Elections */}
+      {activeElections.length === 0 && (
         <div className="container mx-auto px-4 py-16 max-w-4xl">
           <GlassCard className="text-center">
             <GlassCardContent className="py-12">
@@ -360,17 +383,17 @@ export default async function HomePage() {
       )}
 
       {/* CTA Section */}
-      <div className="container mx-auto px-4 py-16 max-w-4xl">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 max-w-4xl">
         <GlassCard variant="gradient" className="text-center">
-          <GlassCardContent className="p-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-4">
+          <GlassCardContent className="p-8 sm:p-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-3 sm:mb-4">
               Готови ли сте да започнете?
             </h2>
-            <p className="text-muted-foreground dark:text-white/80 mb-8 text-lg">
+            <p className="text-muted-foreground dark:text-white/80 mb-6 sm:mb-8 text-base sm:text-lg">
               Създайте първата си анкета за минути
             </p>
             <Link href="/dashboard/create">
-              <Button size="lg" className="bg-white text-primary hover:bg-white/90 text-lg px-8 py-6">
+              <Button size="lg" className="bg-white text-primary hover:bg-white/90 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6">
                 Създай анкета
               </Button>
             </Link>
