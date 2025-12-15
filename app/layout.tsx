@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Nav } from '@/components/nav';
-import { Footer } from '@/components/footer';
+import { FooterWrapper } from '@/components/footer-wrapper';
 import { QuickNav } from '@/components/quick-nav';
 import { ThemeProvider } from '@/components/theme-provider';
 
@@ -41,7 +41,7 @@ export default function RootLayout({
           <main className="flex-1 pb-16 md:pb-0">
             {children}
           </main>
-          <Footer />
+          <FooterWrapper />
           <QuickNav />
         </ThemeProvider>
       </body>
