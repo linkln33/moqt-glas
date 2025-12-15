@@ -75,7 +75,6 @@ export function FeedItem({ poll }: FeedItemProps) {
   
   // Voting state
   const [hasVoted, setHasVoted] = useState(false);
-  const [showVoting, setShowVoting] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
   const [submittingVote, setSubmittingVote] = useState(false);
@@ -272,7 +271,6 @@ export function FeedItem({ poll }: FeedItemProps) {
       // Success - show results
       if (mountedRef.current) {
         setHasVoted(true);
-        setShowVoting(false);
         setShowResults(true);
         await loadResults();
       }
@@ -435,25 +433,10 @@ export function FeedItem({ poll }: FeedItemProps) {
       </GlassCardHeader>
 
       <GlassCardContent>
-        {/* Voting UI - Directly in main card, no sub-box */}
-        {isActive && !hasVoted && showVoting && poll.questions && poll.questions.length > 0 && (
+        {/* Voting UI - Always visible when active and not voted */}
+        {isActive && !hasVoted && !showResults && poll.questions && poll.questions.length > 0 && (
           <div className="mb-6 space-y-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">Гласувай</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (mountedRef.current) {
-                    setShowVoting(false);
-                    setShowResults(true);
-                    loadResults();
-                  }
-                }}
-              >
-                Виж резултати
-              </Button>
-            </div>
+            <h3 className="font-semibold text-lg mb-4">Гласувай</h3>
             
             {poll.questions.map((question) => (
               <div key={question.id} className="space-y-3">
@@ -494,29 +477,13 @@ export function FeedItem({ poll }: FeedItemProps) {
           </div>
         )}
 
-        {/* Results/Statistics UI - Directly in main card, no sub-box */}
+        {/* Results/Statistics UI - Always visible when voted or ended */}
         {showResults && results.length > 0 && (
           <div className="mb-6 space-y-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                📊 Резултати
-                {hasVoted && <Badge variant="success" className="text-xs">Гласували сте</Badge>}
-              </h3>
-              {isActive && !hasVoted && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    if (mountedRef.current) {
-                      setShowResults(false);
-                      setShowVoting(true);
-                    }
-                  }}
-                >
-                  Гласувай
-                </Button>
-              )}
-            </div>
+            <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
+              📊 Резултати
+              {hasVoted && <Badge variant="success" className="text-xs">Гласували сте</Badge>}
+            </h3>
             
             {results.map((question) => (
               <div key={question.id} className="space-y-3">
