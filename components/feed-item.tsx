@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -84,46 +84,59 @@ export function FeedItem({ poll }: FeedItemProps) {
   
   const { fingerprint } = useDeviceFingerprint();
   const [behaviorTracker, setBehaviorTracker] = useState<ReturnType<typeof trackUserBehavior> | null>(null);
+  const mountedRef = useRef(true);
 
   // Initialize selected options
   useEffect(() => {
+    mountedRef.current = true;
     if (poll.questions) {
       const initial: Record<string, string[]> = {};
       poll.questions.forEach((q) => {
         initial[q.id] = [];
       });
-      setSelectedOptions(initial);
+      if (mountedRef.current) {
+        setSelectedOptions(initial);
+      }
     }
+    return () => {
+      mountedRef.current = false;
+    };
   }, [poll.questions]);
 
   // Check if user has voted and load results if needed
   useEffect(() => {
+    mountedRef.current = true;
     const checkVoteStatus = async () => {
       try {
         const authData = localStorage.getItem('telegram_auth');
         if (!authData) {
           // If election ended, show results anyway
           if (hasElectionEnded(poll.end_date)) {
-            setShowResults(true);
-            loadResults();
+            if (mountedRef.current) {
+              setShowResults(true);
+              loadResults();
+            }
           }
           return;
         }
 
         const parsed = JSON.parse(authData);
-        if (!parsed.telegramId) {
+        const telegramId = parsed.telegramId || parsed.id;
+        if (!telegramId) {
           if (hasElectionEnded(poll.end_date)) {
-            setShowResults(true);
-            loadResults();
+            if (mountedRef.current) {
+              setShowResults(true);
+              loadResults();
+            }
           }
           return;
         }
 
         // Check if user has voted for this election
-        const voteCheck = await fetch(`/api/votes/check?electionId=${poll.id}&telegramId=${parsed.telegramId}`);
+        const voteCheck = await fetch(`/api/votes/check?electionId=${poll.id}&telegramId=${telegramId}`);
         if (voteCheck.ok) {
           const voteData = await voteCheck.json();
-          if (voteData.hasVoted) {
+          if (voteData.hasVoted && mountedRef.current) {
             setHasVoted(true);
             setShowResults(true);
             loadResults();
@@ -132,7 +145,7 @@ export function FeedItem({ poll }: FeedItemProps) {
       } catch (error) {
         console.error('Error checking vote status:', error);
         // If election ended, show results anyway
-        if (hasElectionEnded(poll.end_date)) {
+        if (hasElectionEnded(poll.end_date) && mountedRef.current) {
           setShowResults(true);
           loadResults();
         }
@@ -142,25 +155,34 @@ export function FeedItem({ poll }: FeedItemProps) {
     if (poll.isActive || hasElectionEnded(poll.end_date)) {
       checkVoteStatus();
     }
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [poll.id, poll.isActive, poll.end_date]);
 
   // Start behavior tracking
   useEffect(() => {
+    mountedRef.current = true;
     const tracker = trackUserBehavior();
     setBehaviorTracker(tracker);
     return () => {
       tracker?.cleanup();
+      mountedRef.current = false;
     };
   }, []);
 
   const loadResults = async () => {
+    if (!mountedRef.current) return;
     try {
       const response = await fetch(`/api/elections/${poll.id}/results`);
       if (response.ok) {
         const data = await response.json();
-        setResults(data.questions || []);
-        const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
-        setTotalVotes(total);
+        if (mountedRef.current) {
+          setResults(data.questions || []);
+          const total = data.questions?.reduce((sum: number, q: QuestionResult) => sum + q.totalVotes, 0) || 0;
+          setTotalVotes(total);
+        }
       }
     } catch (error) {
       console.error('Error loading results:', error);
@@ -168,6 +190,7 @@ export function FeedItem({ poll }: FeedItemProps) {
   };
 
   const handleOptionSelect = (questionId: string, optionId: string, questionType: string) => {
+    if (!mountedRef.current) return;
     setSelectedOptions((prev) => {
       const current = prev[questionId] || [];
       if (questionType === 'single-choice') {
@@ -184,7 +207,7 @@ export function FeedItem({ poll }: FeedItemProps) {
   };
 
   const handleVoteSubmit = async () => {
-    if (submittingVote) return;
+    if (submittingVote || !mountedRef.current) return;
 
     const authData = localStorage.getItem('telegram_auth');
     if (!authData) {
@@ -193,7 +216,8 @@ export function FeedItem({ poll }: FeedItemProps) {
     }
 
     const parsed = JSON.parse(authData);
-    if (!parsed.telegramId) {
+    const telegramId = parsed.telegramId || parsed.id;
+    if (!telegramId) {
       window.location.href = '/login';
       return;
     }
@@ -206,9 +230,22 @@ export function FeedItem({ poll }: FeedItemProps) {
       }
     }
 
+    if (!mountedRef.current) return;
     setSubmittingVote(true);
     try {
       const behavior = behaviorTracker?.getBehavior();
+
+      // Prepare telegramAuth object with correct structure
+      const telegramAuth = {
+        id: telegramId,
+        telegramId: telegramId,
+        hash: parsed.hash || 'redirect-auth',
+        first_name: parsed.first_name || '',
+        last_name: parsed.last_name,
+        username: parsed.username,
+        photo_url: parsed.photo_url,
+        auth_date: parsed.auth_date,
+      };
 
       // Submit votes for all questions
       for (const question of poll.questions || []) {
@@ -216,7 +253,7 @@ export function FeedItem({ poll }: FeedItemProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            telegramAuth: parsed,
+            telegramAuth,
             electionId: poll.id,
             questionId: question.id,
             selectedOptions: selectedOptions[question.id],
@@ -233,19 +270,23 @@ export function FeedItem({ poll }: FeedItemProps) {
       }
 
       // Success - show results
-      setHasVoted(true);
-      setShowVoting(false);
-      setShowResults(true);
-      await loadResults();
+      if (mountedRef.current) {
+        setHasVoted(true);
+        setShowVoting(false);
+        setShowResults(true);
+        await loadResults();
+      }
     } catch (err: any) {
       alert(err.message || 'Грешка при подаване на глас');
     } finally {
-      setSubmittingVote(false);
+      if (mountedRef.current) {
+        setSubmittingVote(false);
+      }
     }
   };
 
   const handleLike = async () => {
-    if (isLoading) return;
+    if (isLoading || !mountedRef.current) return;
     
     setIsLoading(true);
     try {
@@ -256,13 +297,14 @@ export function FeedItem({ poll }: FeedItemProps) {
       }
 
       const parsed = JSON.parse(authData);
+      const telegramId = parsed.telegramId || parsed.id;
       const response = await fetch(`/api/elections/${poll.id}/like`, {
         method: isLiked ? 'DELETE' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId: parsed.telegramId }),
+        body: JSON.stringify({ telegramId }),
       });
 
-      if (response.ok) {
+      if (response.ok && mountedRef.current) {
         const data = await response.json();
         setIsLiked(!isLiked);
         setLikesCount(data.likesCount || likesCount + (isLiked ? -1 : 1));
@@ -270,12 +312,14 @@ export function FeedItem({ poll }: FeedItemProps) {
     } catch (error) {
       console.error('Error toggling like:', error);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleComment = async () => {
-    if (!commentText.trim() || isLoading) return;
+    if (!commentText.trim() || isLoading || !mountedRef.current) return;
     
     setIsLoading(true);
     try {
@@ -286,16 +330,17 @@ export function FeedItem({ poll }: FeedItemProps) {
       }
 
       const parsed = JSON.parse(authData);
+      const telegramId = parsed.telegramId || parsed.id;
       const response = await fetch(`/api/elections/${poll.id}/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           commentText: commentText.trim(),
-          telegramId: parsed.telegramId,
+          telegramId,
         }),
       });
 
-      if (response.ok) {
+      if (response.ok && mountedRef.current) {
         setCommentText('');
         setShowCommentInput(false);
         setCommentsCount(commentsCount + 1);
@@ -303,12 +348,14 @@ export function FeedItem({ poll }: FeedItemProps) {
     } catch (error) {
       console.error('Error adding comment:', error);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleShare = async () => {
-    if (isLoading) return;
+    if (isLoading || !mountedRef.current) return;
     
     setIsLoading(true);
     try {
@@ -319,13 +366,14 @@ export function FeedItem({ poll }: FeedItemProps) {
       }
 
       const parsed = JSON.parse(authData);
+      const telegramId = parsed.telegramId || parsed.id;
       const response = await fetch(`/api/elections/${poll.id}/share`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId: parsed.telegramId }),
+        body: JSON.stringify({ telegramId }),
       });
 
-      if (response.ok) {
+      if (response.ok && mountedRef.current) {
         const data = await response.json();
         setSharesCount(data.sharesCount || sharesCount + 1);
         
@@ -338,7 +386,9 @@ export function FeedItem({ poll }: FeedItemProps) {
     } catch (error) {
       console.error('Error sharing:', error);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -385,18 +435,20 @@ export function FeedItem({ poll }: FeedItemProps) {
       </GlassCardHeader>
 
       <GlassCardContent>
-        {/* Voting UI */}
+        {/* Voting UI - Directly in main card, no sub-box */}
         {isActive && !hasVoted && showVoting && poll.questions && poll.questions.length > 0 && (
-          <div className="mb-6 space-y-6 p-4 bg-background/30 rounded-lg border border-primary/20">
+          <div className="mb-6 space-y-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-lg">Гласувай</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setShowVoting(false);
-                  setShowResults(true);
-                  loadResults();
+                  if (mountedRef.current) {
+                    setShowVoting(false);
+                    setShowResults(true);
+                    loadResults();
+                  }
                 }}
               >
                 Виж резултати
@@ -442,9 +494,9 @@ export function FeedItem({ poll }: FeedItemProps) {
           </div>
         )}
 
-        {/* Results/Statistics UI */}
+        {/* Results/Statistics UI - Directly in main card, no sub-box */}
         {showResults && results.length > 0 && (
-          <div className="mb-6 space-y-6 p-4 bg-background/30 rounded-lg border border-border/50">
+          <div className="mb-6 space-y-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 📊 Резултати
@@ -455,8 +507,10 @@ export function FeedItem({ poll }: FeedItemProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setShowResults(false);
-                    setShowVoting(true);
+                    if (mountedRef.current) {
+                      setShowResults(false);
+                      setShowVoting(true);
+                    }
                   }}
                 >
                   Гласувай
@@ -542,7 +596,11 @@ export function FeedItem({ poll }: FeedItemProps) {
               />
             </div>
             <Button
-              onClick={() => setShowDonationForm(true)}
+              onClick={() => {
+                if (mountedRef.current) {
+                  setShowDonationForm(true);
+                }
+              }}
               className="w-full gradient-primary text-white shadow-lg"
               size="sm"
             >
@@ -567,7 +625,11 @@ export function FeedItem({ poll }: FeedItemProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowCommentInput(!showCommentInput)}
+            onClick={() => {
+              if (mountedRef.current) {
+                setShowCommentInput(!showCommentInput);
+              }
+            }}
             className="flex-1"
           >
             <MessageCircle className="w-4 h-4 mr-2" />
@@ -590,7 +652,11 @@ export function FeedItem({ poll }: FeedItemProps) {
           <div className="mb-4 space-y-2">
             <textarea
               value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
+              onChange={(e) => {
+                if (mountedRef.current) {
+                  setCommentText(e.target.value);
+                }
+              }}
               placeholder="Напишете коментар..."
               className="w-full p-3 rounded-lg bg-background/50 border border-border/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
               rows={3}
@@ -600,8 +666,10 @@ export function FeedItem({ poll }: FeedItemProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setShowCommentInput(false);
-                  setCommentText('');
+                  if (mountedRef.current) {
+                    setShowCommentInput(false);
+                    setCommentText('');
+                  }
                 }}
               >
                 Отказ
@@ -623,7 +691,11 @@ export function FeedItem({ poll }: FeedItemProps) {
           <div className="flex gap-3">
             {isActive && !hasVoted && (
               <Button
-                onClick={() => setShowVoting(true)}
+                onClick={() => {
+                  if (mountedRef.current) {
+                    setShowVoting(true);
+                  }
+                }}
                 className="flex-1 gradient-primary text-white shadow-lg"
               >
                 🗳️ Гласувай
@@ -631,8 +703,10 @@ export function FeedItem({ poll }: FeedItemProps) {
             )}
             <Button
               onClick={() => {
-                setShowResults(true);
-                loadResults();
+                if (mountedRef.current) {
+                  setShowResults(true);
+                  loadResults();
+                }
               }}
               variant={isActive && !hasVoted ? 'outline' : 'default'}
               className={isActive && !hasVoted ? 'flex-1 glass' : 'w-full gradient-primary text-white shadow-lg'}
@@ -650,12 +724,16 @@ export function FeedItem({ poll }: FeedItemProps) {
           goal={poll.fundraisingGoal}
           currentAmount={fundraisingCurrent}
           currency={poll.fundraisingCurrency || 'BGN'}
-          onClose={() => setShowDonationForm(false)}
+          onClose={() => {
+            if (mountedRef.current) {
+              setShowDonationForm(false);
+            }
+          }}
           onSuccess={() => {
             fetch(`/api/elections/${poll.id}/fundraising`)
               .then(res => res.json())
               .then(data => {
-                if (data.totalRaised !== undefined) {
+                if (data.totalRaised !== undefined && mountedRef.current) {
                   setFundraisingCurrent(data.totalRaised);
                 }
               })
