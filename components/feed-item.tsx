@@ -1303,7 +1303,7 @@ export function FeedItem({ poll }: FeedItemProps) {
                 <div className="absolute bottom-full left-0 mb-2 w-56 glass rounded-lg shadow-lg border border-border z-50 p-2">
                   <div className="space-y-1">
                     {/* Native Share (Mobile) */}
-                    {navigator.share && (
+                    {typeof navigator !== 'undefined' && 'share' in navigator && (
                       <button
                         onClick={handleNativeShare}
                         className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-background/50 transition-colors text-sm text-left"
