@@ -21,12 +21,39 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServerClient();
 
+    // First, ensure user exists in voters table (required foreign key)
+    const { data: voter, error: voterError } = await supabase
+      .from('voters')
+      .select('telegram_id')
+      .eq('telegram_id', parseInt(telegramId))
+      .single();
+
+    if (voterError && voterError.code !== 'PGRST116') {
+      console.error('Error checking voter:', voterError);
+      // Try to create voter if doesn't exist
+      const { error: createVoterError } = await supabase
+        .from('voters')
+        .insert({
+          telegram_id: parseInt(telegramId),
+          first_name: displayName.split(' ')[0] || displayName,
+          last_name: displayName.split(' ').slice(1).join(' ') || null,
+        });
+
+      if (createVoterError) {
+        console.error('Error creating voter:', createVoterError);
+        return NextResponse.json(
+          { error: 'Грешка при създаване на потребител' },
+          { status: 500 }
+        );
+      }
+    }
+
     // Check if profile already exists
     const { data: existing } = await supabase
       .from('creator_profiles')
       .select('id')
       .eq('telegram_id', parseInt(telegramId))
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return NextResponse.json(
