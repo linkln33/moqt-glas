@@ -143,24 +143,31 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                 {(() => {
                   // Check if it's a simple yes/no question
                   // ONLY show two-colored bar if:
-                  // 1. It's single-choice type
+                  // 1. It's single-choice type (NOT multiple-choice)
                   // 2. Has exactly 2 options (no more, no less)
                   // 3. Options array is valid
                   const hasValidOptions = Array.isArray(question.options) && question.options.length > 0;
-                  const isYesNo = question.type === 'single-choice' && 
+                  const questionType = question.type?.toLowerCase() || '';
+                  
+                  // Explicitly check: must be single-choice, NOT multiple-choice, and exactly 2 options
+                  // Multiple-choice questions ALWAYS show thin bars, regardless of option count
+                  const isMultipleChoice = questionType === 'multiple-choice';
+                  const isYesNo = !isMultipleChoice && 
+                                  questionType === 'single-choice' && 
                                   hasValidOptions && 
                                   question.options.length === 2;
                   
-                  // Debug logging
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log('Question stats:', {
-                      type: question.type,
-                      optionsLength: question.options?.length,
-                      isYesNo,
-                      hasValidOptions,
-                      options: question.options?.map(o => ({ id: o.id, text: o.text, votes: o.votes })),
-                    });
-                  }
+                  // Debug logging - always log to help diagnose
+                  console.log('Question stats:', {
+                    type: question.type,
+                    questionType,
+                    optionsLength: question.options?.length,
+                    isYesNo,
+                    isMultipleChoice,
+                    hasValidOptions,
+                    willShowThinBars: !isYesNo,
+                    options: question.options?.map(o => ({ id: o.id, text: o.text, votes: o.votes })),
+                  });
                   
                   // Only show two-colored thick bar for true yes/no (exactly 2 options, single-choice)
                   // For ALL other cases (3+ options, multiple-choice, rating, etc.), show thin bars
