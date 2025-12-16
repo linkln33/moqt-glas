@@ -163,7 +163,18 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                                         questionType === 'singlechoice';
                   const hasExactlyTwoOptions = hasValidOptions && question.options.length === 2;
                   
+                  // Detect rating questions: single-choice with 3-10 numeric options (typically 1-5 or 1-10)
+                  const isRatingQuestion = isSingleChoice && 
+                                          hasValidOptions && 
+                                          question.options.length >= 3 && 
+                                          question.options.length <= 10 &&
+                                          question.options.every(opt => {
+                                            const num = parseInt(opt.text?.trim() || '');
+                                            return !isNaN(num) && num > 0;
+                                          });
+                  
                   const isYesNo = !isMultipleChoice && 
+                                  !isRatingQuestion &&
                                   isSingleChoice && 
                                   hasExactlyTwoOptions;
                   
@@ -173,6 +184,7 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                     questionType,
                     optionsLength: question.options?.length,
                     isYesNo,
+                    isRatingQuestion,
                     isMultipleChoice,
                     isSingleChoice,
                     hasExactlyTwoOptions,
@@ -181,7 +193,7 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                     options: question.options?.map(o => ({ id: o.id, text: o.text, votes: o.votes })),
                   });
                   
-                  // Only show two-colored thick bar for true yes/no (exactly 2 options, single-choice)
+                  // Only show two-colored thick bar for true yes/no (exactly 2 options, single-choice, not rating)
                   // For ALL other cases (3+ options, multiple-choice, rating, missing type, etc.), show thin bars
                   if (isYesNo) {
                     // Yes/No question - show two-colored thick bar
@@ -247,13 +259,20 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                   );
                   } else {
                     // Multi-option, rating, or any other type - Thin colored lines under each option
+                    // Detect rating by checking if all options are numeric
+                    const allOptionsNumeric = hasValidOptions && 
+                                            question.options.every(opt => {
+                                              const num = parseInt(opt.text?.trim() || '');
+                                              return !isNaN(num) && num > 0;
+                                            });
+                    
                     return (
                     <div className="space-y-3">
-                    {(question.type === 'rating' 
+                    {(allOptionsNumeric && question.options.length >= 3
                       ? [...question.options].sort((a, b) => {
                           // For rating questions, sort by option text/number to show 1-5 in order
-                          const aNum = parseInt(a.text) || 0;
-                          const bNum = parseInt(b.text) || 0;
+                          const aNum = parseInt(a.text?.trim() || '0');
+                          const bNum = parseInt(b.text?.trim() || '0');
                           return aNum - bNum;
                         })
                       : question.options
@@ -263,11 +282,11 @@ export function EventStatisticsCard({ event }: EventStatisticsCardProps) {
                       return (
                         <div key={option.id} className="space-y-1.5">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium flex items-center gap-2">
+                              <span className="font-medium flex items-center gap-2">
                               <span className={`w-2 h-2 rounded-full bg-gradient-to-r ${colorClass}`} />
                               {option.text}
-                              {question.type === 'rating' && (() => {
-                                const ratingNum = parseInt(option.text) || 0;
+                              {allOptionsNumeric && (() => {
+                                const ratingNum = parseInt(option.text?.trim() || '0');
                                 if (ratingNum >= 1 && ratingNum <= 5) {
                                   return <span className="text-xs text-muted-foreground ml-1">{'⭐'.repeat(ratingNum)}</span>;
                                 }
